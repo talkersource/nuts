@@ -1,27 +1,31 @@
 /*****************************************************************************
-	    Neils Unix Talk Server (NUTS) - (C) Neil Robertson 1992-1994
-			 Last update 9th August 1994  Version 2.1.0
+       Neils Unix Talk Server (NUTS) - Version 2.1.1 - 31 August 1994
+                   Copyright(c) 1994 Sven Barzanallana
+         Versions 2.1.0 and earlier are Copyright(c) Neil Robertson
 
-  Feel free to modify to code in any way but remember the original copyright
-  is mine - this means you can't sell it or pass it off as your own work!
-  If you make any changes to the code please leave the original copyright in
-  the code somewhere. Thanks. 
-	Also thanks to lots and lots of people who I don't have room to mention 
-  (or whose names I can't remember).
+  Feel free to modify the code in any way but remember that the above
+  copyrights apply at all times.  This means that you cannot sell the
+  resulting code or in any way pass it off as your own work!
 
-  Rewritten from NUTS 1.X at RTC in Watford, England during the times that I 
-  was too bored to stare out the window.
+  You may change any of the code to your own tastes and needs, but please
+  include the original copyrights.  Thank you.
 
-  Neil Robertson 
+  Version notes:
 
-  NB: 
-  NUTS 2.0.3 was due to be the last NUTS version but Werewolf from the Crypt 
-  talker (IP address 147.143.1.17 3000) wanted a modified version which became 
-  2.1 , so here it is.
+    2.0.0 - Major rewrite done by Neil from NUTS 1.x.
+    2.0.3 - Bug Fixes
+    2.1.0 - Modified version from 2.0.3 with some added commands done
+            by Neil at the request of Werewolf from The Crypt talker
+            (IP 147.143.1.17 3000)
+    2.1.1 - A few bug fixes, including the problem with file buffers
+            being left open and disabling line numbers (sockets).
 
- *****************************************************************************/
+  All bugs should be reported to sven@borderbase.utep.edu.
+  Any questions or comments concerning Versions 2.1.0 and earlier
+  should be address to neil@realtime.demon.co.uk.
+*****************************************************************************/
 
-#define VERSION "2.1.0"
+#define VERSION "2.1.1"
 
 #include <stdio.h>
 #ifdef _AIX
@@ -370,7 +374,7 @@ while(1) {
 }
 
 
-/*************************** MISCELLANIOUS FUNCTIONS ***************************/
+/*************************** MISCELLANEOUS FUNCTIONS ***************************/
 
 /*** Say user speech ***/
 say_speech(user,inpstr)
@@ -860,6 +864,7 @@ else {
 	timestr[strlen(timestr)-1]=0; 
 	ustr[user].desc[strlen(ustr[user].desc)-1]=0;
 	}
+fclose(fp);
 	
 
 /* send intro stuff */
@@ -1085,8 +1090,9 @@ if (!(fp=fopen(PASSFILE,"r"))) {
 while(!feof(fp)) {
 	fgets(line,80,fp);
 	sscanf(line,"%s ",name2);
-	if (!strcmp(name,name2)) return 1;
+	if (!strcmp(name,name2)) {fclose(fp); return 1;}
 	}
+fclose(fp);
 return 0;
 }
 

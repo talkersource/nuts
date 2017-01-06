@@ -1,4 +1,4 @@
-Wed Aug 10 13:47:29 1994
-odin
+Wed Aug 31 16:00:27 1994
+andromeda
 is the boss
 2

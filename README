@@ -1,10 +1,38 @@
-A rough guide for would be sysops.
+A Note from the New Author
+--------------------------
+
+Neil Robertson has decided to pass the baton to someone else in the
+maintenance and development of the NUTS software.  The NUTS-based
+talker community owes many thanks to Neil for his efforts and time
+spent on this software.
+
+As the new developer of NUTS, I will make every effort possible 
+(time-permitting) to continue the usefulness of this program.  This
+is not in any way ignoring the fun factor with this program, I believe
+that it provides the medium for a great deal of entertainment both for
+any would-be sysops and also users.
+
+As of version 2.1.1, all bugs reports and suggestions should be addressed
+to me at sven@borderbase.utep.edu.  I appreciate any constructive comments,
+but if you wish to make unproductive comments ("this code is no good",etc)
+please keep them to yourself.  All such messages will be routed to /dev/null.
+
+Thank you
+
+Sven Barzanallana  31-Aug-94
+sven@borderbase.utep.edu
+
+P.S.  Questions about NUTS 2.1.0 and earlier should be addressed to
+      Neil Robertson at neil@realtime.demon.co.uk
+
+
+A rough guide for would-be sysops.
 -----------------------------------
 
 This is NUTS 2. Even though it appears the same as NUTS 1.x from the users
 point of view (bar some extra commands and slight changes) it has been 
 changed quite radically under the skin. To compile the program type
-"cc nuts210.c" and to run just type "a.out" or whatever name you give it.
+"cc nuts211.c" and to run just type "a.out" or whatever name you give it.
 This software is guaranteed to compile on AIX & OSF/1 and Mach (NeXT)
 and should compile on SunOS & HP-UX. As for other unix's I haven't a clue.
 
@@ -58,7 +86,3 @@ of God so log in has him first to play around.
 You should be able to work the rest out for yourself.
 
 Have fun.
-
-Neil Robertson 15/6/94
-
-neil@realtime.demon.co.uk
