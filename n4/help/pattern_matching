@@ -1,0 +1,27 @@
+                             Pattern matching
+                             ================
+
+NUTS uses pattern matching in certain commands (eg: ntell, ninvite, whois) 
+similar to that used in unix shells. It does NOT use regular expressions.
+Why? Because although they are powerful they are also inconsistent (greps
+syntax is slightly different to sed which is different to awk and so on..) and
+doing simple searches is non intuitive for "normal" users (for example most
+people when searching on the name "fred" would understand "f*d" but wouldn't
+have a clue what "f.+d" meant).
+  NUTS also has a couple of additional operators: ! and =. These switch
+case insensitivity on and off respectively.
+
+Some example matches:
+    "!fred"  = fred, FRED, FreD ...
+    "f*d"    = fred, fed, fd ...
+    "f??d"   = fred, ford, ...
+    "!f=red" = Fred or fred
+    "f*!"    = freD, fred, fuD ...
+
+The operators can also be escaped so that they are treated as normal
+characters, eg: "f\*d" , "f*\!", "f\\d"
+
+Since writing pattern matching code is tricky I won't make any guarantees
+that this code will always work perfectly but hopefully you will find it
+useful nontheless.
+

@@ -1,0 +1,23 @@
+
+~BM*** Batch ***
+
+~FTUsage:~RS batch list / run / delete <batch name>
+       batch create <batch name> [include]
+
+This allows you to create, delete and list a command batch. Command batches
+are just lists of standard commands that are executed in sequence when you
+run the batch , or in the case of the special "login" and "logout" batches
+when you login or logout , as if you had typed the commands at the command
+line. 
+   There are certain restrictions on batches however, the most stringent
+being that you cannot use the batch command itself from within a batch apart
+from listing a batch. This is to prevent any kind of recursion. Also you
+cannot automate interactive sub systems such as the mailer or board reader. 
+If you call these from a batch you will be presented with a prompt and the
+batch will not continue until you have exited. Please note that in the special
+"logout" batch any sub systems called will be exited immediately.
+   In the future I may add support for simple programming language constructs
+such as if-then etc but only if demand is there from users.
+          
+~FYSee also:~RS lsbatches
+

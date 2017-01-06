@@ -1,0 +1,15 @@
+
+~BM*** Imprison ***
+
+~FTUsage:~RS imprison <user id> [<sentence length> [seconds / minutes / hours / days]]
+
+To shut a troublesome user up you can either muzzle them or use the less 
+dramatic option which is to imprison them. This puts them into the prison
+group (0003) and prevents them shouting and also prevents them leaving the
+group until their sentence has run out. If no sentence is given then they
+are there indefinitely until someone releases them.
+
+eg: imprison 0622 10 minutes
+
+~FYSee also:~RS release, lsprison, muzzle, kill, nkill
+

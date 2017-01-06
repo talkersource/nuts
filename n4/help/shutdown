@@ -1,0 +1,13 @@
+
+~BM*** Shutdown ***
+
+~FTUsage:~RS shutdown now / cancel / <time delay> [seconds / minutes / hours / days]
+
+This allows you to start (or cancel) a shutdown sequence. The now option is
+to commence shutdown immediately, the time delay option will start shutdown
+after the given time has elapsed and the cancel option will cancel the
+current shutdown sequence if there is one. For the first 2 options you are
+given a confirmation prompt.
+
+~FYSee also:~RS reboot
+

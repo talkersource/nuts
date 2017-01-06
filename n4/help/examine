@@ -1,0 +1,12 @@
+
+~BM*** Examine ***
+
+~FTUsage:~RS examine [<user id[@<server>]>]
+
+This shows you details about the given user. If you are examining a user
+on a local system you will see their text profile but this is not shown for
+a remote user (yet). If no user id is given the examine command will show you
+your own details. This functionality replaces the removed "whoami" command.
+
+~FYSee also:~RS entpro, whois
+

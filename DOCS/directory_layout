@@ -1,0 +1,20 @@
+               Layout of the various directories and data files
+               ================================================
+
+                                    n4/
+                                    |
+ ---------------------------------------------------------------------------
+|  |      |       |                        |                    |           |
+| DOCS/  help/   boards/               pubgroups/             users/       etc/
+|                 |                        |                    |
+src/           ------...            ----------...          --------....
+              |     |              |                      |
+             0006/                0006/                  0FFF/
+              |                    |                      |
+         -----------            --------                  |
+        |           |          |        |                 |
+    boardinfo     msg_N      config    desc               |
+                                                          |
+                ----------------------------------------------------------
+               |          |           |         |         |       |       |
+             config  groupconfig  groupdesc  profile  mailinfo  mail_N  N.n4b

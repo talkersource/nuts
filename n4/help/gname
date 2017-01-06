@@ -1,0 +1,11 @@
+
+~BM*** Gname ***
+
+~FTUsage:~RS gname \"<new group name>\"
+
+This allows you to set the name of the group you are currently in (provided
+you have the appropriate permissions). If the name contains whitespace it
+must be surrounded by double quotes.
+
+~FYSee also:~RS gdesc, lsgroups
+

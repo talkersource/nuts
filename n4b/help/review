@@ -1,0 +1,11 @@
+
+~BM*** Review ***
+
+~FTUsage:~RS review
+
+This shows the contents of the review buffer for the group you are in. This
+buffer contains all speech, emotes and shouts plus any group joined/left
+messages for the group.
+
+~FYSee also:~RS revclr, say, shout, emote, revtell
+

@@ -1,0 +1,21 @@
+
+~BM*** Savecfg ***
+
+~FTUsage:~RS savecfg [<filename>]
+
+This command saves out the current system configuration to a filename in
+a format the server can read when booting. The extension ".n4c" is appended
+onto the end of the file if it is not given in the name. If a file of the
+same name as the given file already exists a warning prompt is given. The
+file is saved into the working directory.
+    The default config file if none is given when the server is booted is
+"default.n4c" which is expected to be found in whatever directory you start
+the server in (usually src/)
+    If no filename is given the config file used on boot is overwritten.
+
+    Something to bear in mind when using this command is that any comments or
+commented out values in the config command used to boot the server will not
+be written out to the new config file.
+
+~FYSee also:~RS sysinfo, level
+

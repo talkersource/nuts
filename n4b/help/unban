@@ -1,0 +1,13 @@
+
+~BM*** Unban ***
+
+~FTUsage:~RS unban user/site <entry number>
+
+This will remove the ban entry in the ban list given by the number. Entry
+number is used instead of user id since there may be a local and numerous
+remote users who all share the same id and having to specify ip address and
+port aswell would be a pain in the backside. Site is specified by entry
+number for consistency and ease of use.
+
+~FYSee also:~RS ban, lsubans, gunban, gban
+

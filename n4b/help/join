@@ -1,0 +1,20 @@
+
+~BM*** Join ***
+
+~FTUsage:~RS join <group id[@<server>]> / @<server> / home / prev
+
+This command is used to join a group, either local or remote. To join a
+local group simply enter the group id: "join 0FFF"
+
+To join a remote group you enter the group id followed by the server name
+as follows: "join 0FFF@n4b"
+
+To join the default remotes group on a remote server simply enter the server
+name preceeded by the @ character: "join @n4b"
+
+To return to your home group (on your current server) enter "join home".
+To return to your previous group (if you have one and if you have permission)
+then enter "join prev"
+
+~FYSee also:~RS leave, ujoin, move, lsgroups, servers
+

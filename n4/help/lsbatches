@@ -1,0 +1,10 @@
+
+~BM*** Lsbatches ***
+
+~FTUsage:~RS lsbatches
+
+This gives a list of all the commands batches that you have created and the
+size in bytes of the batch.
+
+~FYSee also:~RS batch
+

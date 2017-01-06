@@ -1,0 +1,10 @@
+
+~BM*** Unmuzzle ***
+
+~FTUsage:~RS unmuzzle <user id>
+
+This removes a muzzle from a user. You cannot remove a muzzle that been 
+imposed by a higher level user than yourself.
+
+~FYSee also:~RS muzzle
+

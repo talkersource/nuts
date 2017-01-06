@@ -1,0 +1,27 @@
+password = "H0wLIpW0gyQ"
+level = ADMIN
+name = "Fred"
+desc = "is the ~OL~FMADMINISTRATOR!"
+prompt = YES
+paging = YES
+"group persist" = NO
+muzzled = NO
+"muzzle level" = NOVICE
+"muzzle time" = 0
+"muzzle remaining" = 0
+prisoner = NO
+"imprison level" = NOVICE
+"imprisoned time" = 0
+"sentence remaining" = 0
+"logoff time" = 1126297057
+"session duration" = 4
+"start group" = 0FFF
+converse = NO
+puip = YES
+"recv net bcast" = NO
+autosilence = YES
+"prev ip addr" = "127.0.0.1 (localhost)"
+"email address" = "wibble@wobble"
+
+friends = 0EEE@n4b,0EEE@n4c,0EEE@lklk,0ABC,0123
+friends = 0DDD,0EEE

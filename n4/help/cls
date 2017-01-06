@@ -1,0 +1,7 @@
+
+~BM*** Cls ***
+
+~FTUsage:~RS cls [<user id>]
+
+This clears your or the given users current window/terminal.
+

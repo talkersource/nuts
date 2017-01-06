@@ -1,0 +1,23 @@
+password = "H0wLIpW0gyQ"
+level = ADMIN
+name = "Boltar"
+desc = "- the wobble"
+prompt = YES
+paging = YES
+"group persist" = NO
+muzzled = NO
+"muzzle level" = NOVICE
+"muzzle time" = 0
+"muzzle remaining" = 0
+prisoner = NO
+"imprison level" = NOVICE
+"imprisoned time" = 0
+"sentence remaining" = 0
+"logoff time" = 1075996177
+"session duration" = 40
+"start group" = 0FFF
+converse = NO
+puip = NO
+"recv net bcast" = NO
+
+friends = 0EEE@n4b,0EEE@n4c,0EEE@lklk,0ABC,0123

@@ -1,0 +1,16 @@
+
+~BM*** Muzzle ***
+
+~FTUsage:~RS muzzle <user id> [<muzzle period> [seconds / minutes / hours / days]]
+
+Muzzling a user is a mild punishment that prevents the user doing the following
+actions: say, emote, tell, pemote, ntell, nemote, shout, board write, mail send.
+You can either muzzle the user for a given time period or if no time period is
+given they are muzzled indefinately.
+
+eg: muzzle 0622 10 minutes
+
+User muzzle details are shown in an examine.
+
+~FYSee also:~RS unmuzzle, kill, nkill, imprison, user
+

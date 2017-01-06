@@ -1,0 +1,10 @@
+
+~BM*** Ftell ***
+
+~FTUsage:~RS ftell <text>
+
+This sends a tell to all the friends who are in your friends list and
+are logged on and receiving tells.
+
+~FYSee also:~RS femote, friend, lsfriends, tell
+

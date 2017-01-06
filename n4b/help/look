@@ -1,0 +1,15 @@
+
+~BM*** Look ***
+
+~FTUsage:~RS look [<group id>]
+
+This shows details about a group, including its id, name, its description,
+who is in it etc. If you do not give a group id the command defaults to the
+current group you are in. If any given user is invisible you will not be able
+to see them unless you are a high enough level.
+   All users can view all groups whether they have permission or not to join
+those groups. This is because users can discern who is in a group anyway by
+using the "who" command so there is no reduction in group privacy.
+
+~FYSee also:~RS lsgroups
+

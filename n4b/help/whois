@@ -1,0 +1,16 @@
+
+~BM*** Whois ***
+
+~FTUsage:~RS whois "<username>"
+
+This displays a list of logged on users who have the name given. If the name
+has whitespace you must put quotes around it. Since names are non-unique (as
+ids are used as identifiers) multiple users can have the same name. This
+command can do pattern matching on the name.
+
+eg: whois "*red??log?s"
+
+See the pattern matching help for more information.
+
+~FYSee also:~RS who, examine, ntell
+

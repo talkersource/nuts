@@ -1,0 +1,10 @@
+
+~BM*** Who ***
+
+~FTUsage:~RS who
+
+This gives the list of the local and remote users currently logged onto the
+server.
+
+~FYSee also:~RS whois, friend, people, lsgroups, lsip
+

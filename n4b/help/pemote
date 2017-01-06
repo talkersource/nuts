@@ -1,0 +1,13 @@
+
+~BM*** Pemote ***
+
+~FTUsage:~RS pemote <user id[@<server>]> <text>
+
+This displays a private emotion message (see emote for an explanation) to
+the local or remote user specified. Aside from the format of output displayed
+this command operates identically to the tell command.
+
+Shortcut: "<"
+
+~FYSee also:~RS tell, ftell, femote, say, shout
+

@@ -1,0 +1,17 @@
+
+~BM*** Wake ***
+
+~FTUsage:~RS wake <user id>
+
+This command will send a wake message to the given user which appears to
+them the same as a flashing tell saying "WAKE UP" except that it will beep
+a number of times. Since the /~SN code is stripped from user input (due to
+obvious scope for abuse) you cannot cause a beep with a normal tell. You can
+only wake a user who is a lower level than yourself.
+    Currently wakes can only be sent to local users since sending to a remote
+user would necessitate finding out their level first to see if you are allowed
+to wake them and this leads to all sorts of complexities which frankly are
+not worth the effort for such a unimportant command.
+
+~FYSee also:~RS tell, ntell
+

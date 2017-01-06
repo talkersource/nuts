@@ -1,0 +1,10 @@
+
+~BM*** Gdesc ***
+
+~FTUsage:~RS gdesc
+
+This allows you to set the text description of the group you are currently in
+(provided you have the appropriate permissions). 
+
+~FYSee also:~RS gname, lsgroups
+

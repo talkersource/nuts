@@ -1,0 +1,16 @@
+
+~BM*** Afk ***
+
+~FTUsage:~RS afk [lock] [<afk message>]
+
+You would use this command to signify that you are Away From the Keyboard
+doing something else and so unavailable for conversation. This will be evident
+when someone does a "look" in the room or tries to "tell" you something. 
+   The lock option allows you to lock the session while you are away and it 
+cannot be unlocked without you entering your password or doing a remote 
+disconnect.
+   The message option is a short message sent to users who try to "tell" you
+while you are afk and also appears in the output of the examine command.
+
+~FYSee also:~RS tell, look, examine
+

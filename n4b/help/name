@@ -1,0 +1,13 @@
+
+~BM*** Name ***
+
+~FTUsage:~RS name "<new name>"
+
+This will change your user name. Since names are not used as identifiers on
+the system you can have any name including one already used by someone else.
+This only works on the server you are currently on or any subsequent servers
+you may jump to from it. If you use this command on a remote server it will
+NOT change your name in all the servers back down the chain that you are on.
+
+~FYSee also:~RS desc, whois
+

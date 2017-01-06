@@ -1,0 +1,14 @@
+
+~BM*** Tell ***
+
+~FTUsage:~RS tell <user id[@<server>]> <text>
+
+This sends a private message to another user who can either be located on
+the users server or on a remote one. If the user has the NOTELLS flag toggled
+on their your tell will not get through , however if they are AFK they can
+review it from their tell buffer using the revtell command.
+
+Shortcut: ">"
+
+~FYSee also:~RS pemote, say, emote, ftell, femote, shout, revtell
+

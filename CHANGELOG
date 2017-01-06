@@ -1,0 +1,301 @@
+NUTS-IV versions
+================
+This gives a list of NUTS-IV versions , when they were released and notes
+about the release.
+
+
+Version 0.1.0, NIVN rev 1, March 2003:
+Initial alpha release.  
+
+
+Version 0.8.0, NIVN rev 2, April 2003:
+Too many changes to mention.
+
+
+1.0
+===
+
+Version 1.0.0, NIVN rev 2, May 2003:
+- All planned commands added.
+- Total bans added.
+- Levels in muzzling & bans, timed muzzles.
+- Tiny mail.cc file subsumed into misc.cc
+- Optional persistent user home group (remain when user logs out).
+
+
+Version 1.0.1, NIVN rev 2, June 2003
+- Added version.h file
+- Pre login screen now paged after terminal info gathered so now it can contain
+  print codes (colour etc)
+- Added "idle timeout ignore level" configuration option which sets a level
+  at which users won't be timed out if idleing.
+- Fixed potential memory leaks in cl_mail.cc & cl_board.cc
+- Fixed sigpipe bug caused by a server that was hosting loopback users
+  disconnecting.
+- Fixed bug in networking code that caused manual connect failures after
+  a disconnect of the same server under certain conditions.
+- RX / TX packet count now has "since" date associated with it since these
+  variables will wrap after 2^32 or 2^64 packets (depending on CPU) and the
+  data will become meaningless without it. When the wrap occurs this date is
+  updated to the current server date.
+- Removed some left over debug code from main.cc and other minor code updates
+  and bug fixes.
+
+
+
+1.1
+===
+
+Version 1.1.0, NIVN rev 2, July 2003
+- Added 16 bit terminal column and row size support (but only for local users,
+  remote users are limited to 255x255)
+- Added "nkill" command.
+- Added "ninvite" command.
+- Added "news" command.
+- Added site ban functionality including lssbans command and changes to the
+  ban & unban commands.
+- lsbans command becomes lsubans
+- Fixed possible crash bug in linked list traversal in get_input().
+- If new passwords don't match when changing password the passwd command now
+  exits instead of re-promping.
+- Added autosave for user info at specific time intervals (new config file
+  option).
+- Added more colour to login messages.
+- savecfg command now prompts if a file of ANY new name exists , not just if
+  its the current config file.
+
+
+1.2 
+===
+
+Version 1.2.0 NIVN rev 3, September 2003
+- Added "systoggle" command.
+- Added "netbcast" command and associated network broadcast packet and
+  functionality. The release version of NIVN protocol hence upped to 3.
+- "log net broadcasts" config option.
+- "recv net bcast level" config option.
+- "working dir" config option.
+- "strip printcodes" config option
+- "hexdump packets" config option and associated functionality.
+- Changed "prisoners sent home" config option to "prisoners ret home"
+- Created a system_flags global variable and removed a lot of seperate flags
+  variables.
+- Added src/ directory which now contains the source code
+- Added new etc/ directory that contains the login screens, banfile, newsfile
+- Initial boot output now written to log file as well if -l option used.
+- Ping interval now sent in connect packet so "server timeout" option is used
+  for servers with NIVN rev 2 or less only.
+- Added repeat shortcut '#'
+- Modified help system so now any file in help sub directory can be viewed 
+  which means it does not have to be a valid command name anymore so any topic
+  can have help.
+- Added "!" as shortcut for shout command.
+- CONVERSE, PUIP and new NETBCAST flags being saved in user config
+- Minor code mods & bug fixes.
+
+
+Version 1.2.1 NIVN rev 3, October 2003
+- Removed clean_string() from cl_server::recv_print() as this was added in
+  error in 1.2.0
+- Checks for muzzle & prisoner flags for netbcast command as per bcast command.
+- Tidied up hard coded board & mail help.
+- Added "max broadcast chars" config option
+- Added "info" command to mail sub system.
+- Put more info in board sub system "info" command.
+- The mailer now checks the mail address is valid before prompting for a
+  subject.
+- Put board message count in lsgroup command.
+- Changed the credits waffle in help command.
+- Fixed bug in network code that could prevent any further incoming connections
+  succeeding after a failed outgoing connection.
+- Modified signal handling. ^C now causes a reboot unless ignored and others
+  cause a soft shutdown.
+- Added "igncase" option to whois command
+- Fixed reboot bug whereby reboot would only work if the executable was in
+  the working directory. Duh.
+- Fixed bug whereby system groups that had boards were not loading messages
+  on bootup.
+- Other minor code mods & bug fixes.
+
+
+1.3
+===
+
+Version 1.3.0 NIVN rev 4, November 2003
+- "ulevel" command has become "user" and has new user create and delete admin
+  options with new "default pwd" option in config file.
+- "connect" and "disconnect" commands subsumed into "server" command which
+  means that connecting and disconnecting other servers is now an admin only
+  operation.
+- Added "ping" option to server command - required NIVN protocol upgrade.
+- Fixed bug that meant logout batch would run on the remote server a user was
+  on when they entered /quit.
+- Autosave no longer runs if no one is logged on (nothing to save!)
+- Added config file option to enable/disable "who" listing at login prompt.
+- Added pattern matching to the get_user_by_name() function which effects
+  ALL commands that use it, eg whois.
+- Added -s command line option to suppress config info print.
+- Added "allow remote batch runs"" option to config file which sets whether
+  users who have gone remote can execute batches on their home server.
+- Remote user levels are now checked against lockout level before being allowed
+  to join.
+- Added "allow new accounts" option to config file and newaccounts option to
+  systoggle command.
+- Added "delete disconnected incoming" option to config file. See config docs.
+- Removed pointless "whoami" command and now "examine" does the same job if
+  called with no arguments.
+- "friends" command renamed to "friend" as some people assumed it was a list
+  command.
+- Added "log unexpected packets" option.
+- Other misc code mods & bug fixes.
+
+
+Version 1.3.1 NIVN rev 4, January 2004
+- Added support for local ports on connecting to remote servers. This changed
+  the format of the "server" line in the config file. See DOCS/config_fields
+  for details. 
+- Modified "server add" sub command to take account of local port numbers.
+- Added "max packet rate" config option so as to limit the potential for a
+  hacker to DOS the server.
+- Added "server port listening" config file option and "svrlisten" option to
+  systoggle command to allow the server port to be switched on and off. If it
+  is off no other server can connect though outgoing connections can still
+  occur.
+- Other minor code mods.
+
+
+Version 1.3.2 NIVN rev 5, February 2004
+- Added server packet encryption level option and "encrypt" option to
+  "server add" command and "server connect" command.
+- Added "incoming encryption policy" option to config file for incoming 
+  connections.
+- Added "outgoing encryption enforce" option for outgoing connections.
+- A client refusing character mode no longer causes a forced disconnect
+- Improved socket write code in cl_local_user and cl_server classes.
+- Signal handling code produces more info to log and admins logged in.
+- Fixed bug in save config command 
+- OS/X now tentatively supported; ie it compiles and boots apparently but
+  since I don't have a Mac to test on myself I can't promise any more than
+  that.
+
+
+Version 1.3.3 NIVN rev 5, April 2004
+- System group board messages are now being expired as per public groups.
+- Added "soft max servers" config option.
+- Colon now a shortcut for emote as well as semicolon
+- Repeat character changed from '#' to '='. This is so that comments using
+  a '#' can be entered into a batch.
+- Deleting a batch file and creating a batch file with a name of an already 
+  existing one (that is not being included) now brings up a confirmation prompt.
+- Fixed bug in manual server delete command.
+- Fixed bug whereby disconnected incoming servers were not deleted if system
+  flag was set to delete manually after they had disconnected.
+- Fixed potential crash bug in cl_server outgoing constructor.
+- Fixed editor bug in which batch lines from an included batch file were not
+  shown in the editor during a create batch.
+- Other minor code mods.
+
+
+Version 1.3.4 NIVN rev 5, April 2004
+- The IP name of a remote users home address is now resolved and is viewable
+  in various places.
+- Put local users IP address in examine() command for admins and rearranged
+  output format of command.
+- Added individual message lifetime to boards that overrides the global
+  message lifetime value. A new board sub command "expire" was added for this
+  purpose.
+- Changed method of operation of board command. See help for more details.
+- Ditto for mail command.
+- Modified board and mail delete commands to take optional "to <msg number>"
+  arguments so a range of message can be deleted instead of just 1 or all of
+  them.
+- Added continuous ping option to the "server ping" command. See command help
+  for more information.
+
+
+Version 1.3.5 NIVN rev 5, May 2004
+- Fixed crash bug caused by race condition in user ip resolve thread.
+- Instead of immediately spawning an ip name revolve thread server now looks
+  through user and server lists to find a matching number and hence name.
+  Added systoggle option and "resolve ipname internally" config option to
+  control if this is done.
+- Modified board and mail "read" command so that the command on its own will
+  read the whole board/mailbox.
+- Added "max local user data rate" and "max server data rate" config file
+  options to limit the amount of incoming data that will be accepted from a
+  local user or remote server. This is to prevent people trying to flood the
+  links.
+- Better message number checking in board & mail delete sub command.
+- Added autosilence toggle option which sets whether a user can here shouts,
+  speech etc when using the mailer or board reader
+- When a user goes invisible/visible notification is not given to other
+  group members.
+- Other minor code mods
+
+
+Version 1.3.6 NIVN rev 5, June 2004
+- Added last login address to local users which is visible to them as they
+  login and to admins upon doing an examine on them.
+
+
+Version 1.3.7 NIVN rev 5, August 2004
+- Minor mods to support AIX and a small bug fix in cl_user2.cc
+- EAGAIN changed to EINVAL
+
+
+Version 1.3.8 NIVN rev 6, September 2004
+- Fixed nasty bug that caused server to crash when a non logged in users
+  details were modified (eg muzzled)
+- Home server name now passed along with user information when joining 
+  another server. This will only work when the remote server is NIVN 6 and
+  above.
+- clean_string() now removes ascii control codes
+- When user does /name or /desc when on remote site the new name/desc is now
+  passed along.
+- When a user returns from a remote server he is returned to the last group he
+  was in if possible, else he is returned to his home group.
+- Added "prev" option to join command that lets you return to your previous
+  group.
+- Fixed bug in threading that could cause whole server to hang if a thread was 
+  cancelled while holding a locked log mutex.
+- Fixed bug that stopped incoming server connection addresses being resolved.
+- Fixed potential crash bug in cl_local_user::uwrite()
+- Fixed bug that caused server to crash when user deleted group they were
+  currently in.
+- gname command now causes new name to be saved.
+- Other minor mods 
+
+
+Version 1.3.9 NIVN rev 6, March 2005
+- Added user option to cls command
+- Added option not to save novice accounts (well ok , they get renamed to
+  0XXX.del1 when they log out as per suicided accounts unless option below
+  is set) in the config file and systoggle command.
+- Added option to really delete user accounts (ie not just rename them)
+- savecfg command now defaults to current config file if none given.
+- Server connect now tries all addresses found for an ip name.
+- Changed formatting of Id,name output in speech, tells etc
+- Lots of code mods
+
+
+1.4
+===
+
+Version 1.4.0 NIVN rev 6, June 2005
+- Added syset command
+- Added semote command
+- Added lsip command
+- Added think command
+- Added group logging functionality
+- Modified viewlog command to view group logs too
+- Fixed bug in shout command that caused rubbish to get into review log
+
+
+Version 1.4.1 NIVN rev 6, September 2005
+- Put "log" option in group delete command so that group logs can be
+  deleted by admins (NOT users, they don't exist for the users, they're there
+  for auditing & legal reaons).
+- Put informational messages in group logs, eg group created, deleted
+- Fixed some minor bugs
+- Changed level of viewlog command to OPERATOR to be consistent with the
+  group delete log command.

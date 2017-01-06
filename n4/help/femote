@@ -1,0 +1,10 @@
+
+~BM*** Femote ***
+
+~FTUsage:~RS femote <text>
+
+This sends a private emote to all the friends online and receiving 
+tells/pemotes in your friends list.
+
+~FYSee also:~RS ftell, friend, lsfriends, emote
+

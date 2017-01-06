@@ -1,0 +1,15 @@
+
+~BM*** Invite ***
+
+~FTUsage:~RS invite <user id> / friends
+
+This command is used to either invite a specific user into your current group
+or if passed the "friends" option it will invite all the friends in your 
+friends list who are currently online. An invite expires after a system 
+defined time period. You can only use this command in a group that is alredy
+private, it cannot be used to pre-empt a currently public group being set to
+private and you must have appropriate permissions to invite people into the
+given group.
+
+~FYSee also:~RS ninvite, uninvite, lsinvites, evict, private, public, lsgroups
+

@@ -1,0 +1,33 @@
+Current known bugs
+==================
+
+1) gethostbyname() in FreeBSD is not multithreaded and this can cause
+   threads that use this to block if another thread is using it.
+
+2) errno variable not set to correct value in threads on Solaris which
+   gives rise to error messages (for instance on a failed connect).
+   No idea how to fix this. Anyone?
+
+3) Occasionally connects to other servers hang on server bootup (but they
+   don't hang the whole server). It happens so rarely I haven't been able
+   to pin down the cause.
+
+4) Rebooting in linux causes the new process to be automatically backgrounded
+   if the server was originally running off the command line (ie not a
+   daemon). This is due to the linux thread model whereby each thread is
+   actually a process and the auxilliary threads (processes) are effectively
+   backgrounded with only the main thread being in the foreground.
+   The solution to this is so ugly (involving sending a signal to the main
+   thread which then does the shutdown) that you will just have to live with
+   it.
+
+5) Runtime error with old Solaris compilers as mentioned in README.
+
+6) Rebooting fails on MacOS X with an "Operation not permitted" error. Since
+   I don't have a Mac to develop on this bug will remain until someone sends
+   me a patch.
+
+7) Trying multiple connect addresses doesn't work on BSD. For some reason
+   gethostbyname doesn't fill up the address list like it should. Frankly
+   I couldn't give a toss, think yourself lucky I even bothered to port
+   it to this fucked up OS.

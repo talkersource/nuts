@@ -1,0 +1,53 @@
+
+~BM*** Systoggle ***
+
+~FTUsage:~RS systoggle
+
+This toggles various system flags on and off. Current options are:
+   rethome      - If ON then prisoners will be put back into their home group
+                  when they are released.
+   rrids        - If ON then a random id will be generated for a remote user if
+                  their id clashes with an id already in use. 
+   loopback     - If ON then users will be allowed to loop back to a server
+                  from a remote server.
+   renum        - If ON then boards will automatically have their messages
+                  renumbered when out of date messages are deleted.
+   lognetbcast  - If ON then network broadcast messages received will be logged.
+   pkthexdump   - If ON then all packets received and sent will be hexdumped to
+                  the log file. WARNING: This produces a LOT of output and can
+                  seriously slow down network operation. Only use for debugging.
+   stripcodes   - If ON (the default) then all printcodes that could mess up 
+                  other users sessions are stripped from user input. This is
+                  best left on unless you really want some users causing chaos.
+   whoatlogin   - If ON then someone at the login prompt can type "who" and
+                  see all users logged on. If yours is a private system (ie new
+                  accounts cannot be created at login) then you may not want
+                  strangers seeing who uses the system.
+   rembatchruns - If ON then someone can run a local batch when on a remote
+                  server.
+   newaccounts  - If ON then new accounts can be created at the login prompt.
+   deldiscin    - If ON then any disconnected incoming server connections will
+                  be deleted from the server list (this happens anyway with
+                  connections that fail to connect in the first place).
+   loguxpkts    - If ON then any unexpected packets will be logged.
+   svrlisten    - If ON then the server port will be open and listening for
+                  incoming connections.
+   outenforce   - If ON then the server will disconnect from a remote server if
+                  it refuses to do encryption on a connection our server has
+                  initiated. If OFF then a warning is given but the connection
+                  is retained. Toggling this flag has no effect on links
+                  that are already connected.
+   resolvint    - If ON then the server will search through its user and 
+                  connected servers list to find a matching ip number for the
+                  user or server that has just connected and hopefully a 
+                  resolved IP name. If it cannot it spawns a resolver thread.
+                  If OFF then a resolver thread is spawned immediately.
+   savenovices  - If ON then novice user accounts are saved. Else they are
+                  deleted.
+   delaccounts  - If ON then deleted user accounts are really deleted , ie the
+                  user directory is removed , not just renamed.
+   loggroups    - If ON then will log all text spoken in a group to the log
+                  file in the given group/user directory.
+
+~FYSee also:~RS syset, toggle
+

@@ -1,0 +1,11 @@
+
+~BM*** Revclr ***
+
+~FTUsage:~RS revclr
+
+This clears the review buffer in your current group. You can do this if you
+are the group owner , it is a public/system group and your level >= MONITOR
+or if you are an ADMIN you can clear the buffer in any group.
+
+~FYSee also:~RS review
+

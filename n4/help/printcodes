@@ -1,0 +1,58 @@
+                                 Printcodes
+                                 ==========
+
+NUTS-IV printcodes are the same as those used in NUTS 3 except with a few
+additions. Printcodes themselves are embedded 2 character strings that are
+parsed by the NUTS 4 server and cause various modifications to the output to
+occur. The strings are recognized in a string by a prepended tilda ~.
+
+The following codes will not necessarily work on all terminals. For example
+xterms hardly ever support character blinking, a Windows DOS box doesn't 
+support underlining and old green/orange/b&w screen terminals obviously cannot
+support colours though they may come out as different shades.
+
+Screen codes:
+
+   RS - Reset all settings to terminal default
+   OL - Bold
+   UL - Underline
+   LI - Blink 
+ * SN - Sound (beep)
+   RV - Reverse video
+ * SC - Clear screen
+ * SH - Home cursor
+ * LC - Clear line
+ * CU - Move cursor up 1 line
+
+Colour codes:
+
+   FK - Foreground (ie ascii characters) black
+   FR - Foreground red
+   FG - Foreground green
+   FY - Foreground yellow (or orange/brown depending on terminal)
+   FB - Foreground blue
+   FM - Foreground majenta (or purple depending on terminal)
+   FT - Foreground turquoise
+   FW - Foreground white
+   BK - Background black
+   BR - Background red
+   BG - Background green
+   BY - Background yellow
+   BB - Background blue
+   BM - Background majenta
+   BT - Background turquoise
+   BW - Background white
+
+Internal NUTS codes:
+
+ * IP - Set rest of string to be an inline prompt (eg "Mail>")
+ * NP - Unset inline prompt and dump any text user was typing.
+ * PR - Print normal prompt if inline prompt not set.
+
+
+* indicates that this code is stripped from all user input before it is
+processed and can only be used within the program code or externally created
+files if the SYS_FLAG_STRIP_PRINTCODE flag is set (check using sysinfo
+command). This is to prevent users from saying or writing text that could
+mess up other users sessions or irritate them.
+

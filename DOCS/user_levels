@@ -1,0 +1,31 @@
+
+USER LEVELS
+===========
+
+The talker has 6 levels described below:
+
+LOGIN:
+This is only used when the user is logging in.
+
+NOVICE:
+This is the level of all new accounts and provices limited functionality.
+The intention is that the user sets their email address using the "setemail"
+command which is then verified by an admin and once this is done the user
+is promoted to level USER by an admin using the "level" command. 
+
+USER:
+The standard level for the majority of users which provides all the necessary
+functionality to use the talkers features.
+
+MONITOR:
+This is intended for users who can monitor conversations in various groups
+and take action if some user is misbehaving or being rude.
+
+OPERATOR:
+This user has greater power than a monitor and can do things like create and
+destroy public groups and connect and disconnect the server from other servers.
+
+ADMIN:
+An admin has full control of the talker including shutting it down, rebooting,
+creating new server links etc. I would recommend that only one or two users
+have access to an admin account.

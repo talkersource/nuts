@@ -1,0 +1,317 @@
+                        Server configuration fields
+                        ===========================
+
+This file gives a list of all the allowed fields in the main server config
+file and what they do. For actual examples see the config files supplied
+which is called "default.n4c".
+
+For time periods times default to seconds but the modifiers "days", "hours"
+and "minutes" can be used too: 
+
+eg 
+"idle timeout" = 5          - 5 seconds
+"idle timeout" = 5,minutes  - means 5 minutes (300 seconds)
+
+Where a variable has "chars" in its name this means that its describing the
+length of a portion of edited multiline text, eg a profile. When the variable
+has "length" in its name its describing the length of a short 1 line piece of
+text such as a subject line.
+
+
+Name                      Function                            
+----------------------    -----------------------------------------------------
+"working dir"             Specifies the servers working directory where it 
+                          will look for all its expected sub directories.
+
+"bind interface"          Specific IP interface to listen on. Eg 127.0.0.1
+                          If set to ALL then it listens on all interfaces.
+
+"user port"               TCP port where users log in  
+"server port"             TCP port where other servers connect 
+"server port listening"   If NO then the server port will not be opened.
+"server name"             Sets the name of the server
+
+"connect key"             Connection key for remote servers. This is a very
+                          basic security measure. No connection can occur
+                          without the currect key which is a 32 bit int. 
+
+"soft max servers"        The hard max server number is 15 hence this can be
+                          set to between 0 and 15. Note that this is the 
+                          maximum number of servers allowed in the server list,
+                          NOT the maximum number of live connections.
+
+"ansi terminals"          A list of terminals which are ANSI code compatable.
+
+"max local users"         Maximum number of local users allowed on server. If
+                          a users level is > max_user_ign_level then they can
+                          still log in. A value of 0 = unlimited.
+
+"max remote users"        Maximum number of remote users allowed on.
+
+"max user ignore level"   This is the user level (and higher) at which the user
+                          login code ignores the max user value.
+
+"max name length"         Maximum user name length.
+"max desc length"         Maximum user description length
+"max subject length"      Maximum message subject length.
+"linkdead timeout"        Time a user can remain linkdead before being timeout.
+"login timeout"           Time a user can idle at the login prompt. 
+"idle timeout"            Time a user can idle once logged in.
+
+"idle timeout ignore level" Level from and above which the idle timeout does
+                          not apply.
+
+"board msg expire"        Maximum age of a board message in a public group
+                          before it expires.
+
+"board renumber"          If set to YES then board messages will be 
+                          automatically renumbered if any messages have been
+                          expired.
+
+"min pwd length"          Minimum user password length.
+"max hop"                 Maximum remote user hop count. Max = 255.
+"max profile chars"       Maximum characters in user profile. 0 = unlimited.
+"max mail chars"          Maximum characters in a mail. 0 = unlimited.
+"max board chars"         Maximum characters in a board message. 0 = unlimited.
+"max group desc chars"    Maximum characters in a group description.
+"max group name length"   Maximum length of a group name
+
+"max broadcast chars"     Maximum number of characters allowed in a broadcast
+                          or net broadcast. 0 = unlimited.
+"max include lines"       Maximum number of lines included on a mail or board
+                          reply when the user uses the "inc" option.
+
+"ping interval"           Time in seconds between sending a ping signal (a NIVN
+                          ping, not ICMP) to a remote server.
+
+"server timeout"          Server link disconnected if nothing received from
+                          server in this time period. This is only used when
+                          connected to servers with NIVN < 3 as they do not 
+                          send their ping interval when connecting.
+
+"connect timeout"         Time to wait for a server to respond after issuing a
+                          connect.
+
+"max tx errors"           Maximum number of transmission errors allowed before
+                          server connection is terminated.
+
+"max rx errors"           Maximum number of receive errors allowed before server
+                          connection is terminated.
+
+"max packet rate"         Maximum number of packets a second a remote server is
+                          allowed to send. If this is exceeded an automatic 
+                          disconnect occurs. This is an attempt to prevent DOS
+                          attacks. Setting this value to zero switches the
+                          feature off.
+
+"random remote ids"       If YES then we give a remote user a new random id if
+                          their id based on their remote id would be the same as
+                          a user already on.
+
+"allow loopback"          If YES then a remote user can "loopback" to a server
+                          already on their hop chain.
+
+"default desc"            Sets default description of new users.
+"default pwd"             Sets the default password for use with the 
+                          "user create" command.
+"group invite expire"     Length of time that group invites last for.
+"group modify level"      Minimum level of user than can modify a group.
+
+"group gatecrash level"   Minimum level of user that can gatecrash a private
+                          group or not be evicted from.
+
+"lockout level"           Minimum level of user than can log in to the talker.
+
+"remote user max level"   Maximum level remote users can be (unless promoted
+                          manually). If a user with a greater original level
+                          comes over to the server their level is reduced to
+                          this else it is set to their original level. **
+
+"go invis level"          Minimum level at which a user can go invisible.
+"review lines"            Number of lines in group and tell review buffers.
+
+"signal ignore"           Signals that the server will ignore. Ignoring a
+                          SIGPIPE is hardcoded in and cannot be changed (since
+                          sometimes this signal is generated by a socket 
+                          closed remotely)
+
+"max login batch lines"   Maximum number of lines allowed in a login batch.
+"max logout batch lines"  Maximum number of lines allowed in a logout batch.
+
+"max session batch lines" Maximum number of lines allowed in a session batch 
+                          (ie a batch not run automatically but has to be 
+                           called using "batch run" by the user during a
+                           session)
+
+"prisoners ret home"      If YES then prisoners are automatically returned to
+                          their home group on release from prison.
+
+"autosave interval"       Time period at which all user data is saved in case
+                          of a crash.
+
+"log net broadcasts"      If YES then net broadcasts from other servers will be
+                          logged.
+
+"recv net bcast level"    Sets the minimum level of user who will receive 
+                          network broadcasts.
+
+"hexdump packets"         If YES then ALL packets received and sent will have
+                          their details and contents dumped out to the log file.
+                          WARNING: This produces a LOT of output and can 
+                          seriously slow down network operations. Only use for
+                          debugging purposes.
+
+"strip printcodes"        If YES then all string printcodes in user input that
+                          could mess up other user sessions are stripped out.
+
+"allow who at login"      If YES then anyone at the login prompt can see who
+                          is on just by typing "who"
+
+"allow remote batch runs" If YES then a user who is remote can run a batch on 
+                          his home server. Since the batch is treated just like
+                          ordinary commands entered at the command line it will
+                          execute on the REMOTE server which could make you 
+                          very unpopular.
+
+"allow new accounts"      If YES then new accounts can be created at the login
+                          prompt.
+
+"delete disconnected incoming"   If YES then any incoming connections that have
+                          been disconnected will be deleted from the server
+                          list (this happens anyway with failed incoming 
+                          connections) to keep it tidy and allow reuse of local
+                          server ids. This is only important if you have lots
+                          of remote servers connecting to yours and need as
+                          many free id's as possible.
+
+"log unexpected packets"  If YES then log any unexpected packets from servers.
+ 
+"incoming encryption policy"  
+                          Options: ALWAYS - Server will refuse connect if
+                                            unencrypted link requested.
+                                   NEVER  - Server will force link to 
+                                            unencrypted.
+                                   EITHER - Don't care.
+
+"outgoing encryption enforce" 
+                          This is for OUTGOING connections only. If YES then
+                          the server will disconnect from a remote server if
+                          it refuses to have encryption on the link. If NO then
+                          a warning is given but the connection is retained.
+
+"resolve ip name internally"
+                          If YES then the server will attempt to resolve ip 
+                          names internally first by looking through the 
+                          current lists of users before spawning a resolve
+                          thread.
+
+"max local user data rate" 
+                          Max incoming data rate from local users. Zero is
+                          unlimited.
+"max server data rate"    Max incoming data rate from remote servers. Zero is
+                          unlimited.
+
+"save novice accounts"    If NO then any NOVICE account is deleted once they
+                          log out.
+
+"really delete accounts"  If YES then user directories get deleted when the user
+                          exits , else they get renamed to <uid>.delN
+
+"log groups"              If YES then save everything spoken, shouted &
+                          emoted in all groups in a log file in the group or
+                          users (if a user group) directory.
+
+server                    Sets up connection details to a remote server.
+
+Server line format:
+server = <name>,<IP address>,[<port>],[<local port>],[<connect key>],[encrypt]
+
+The optional argumenst can be left out , just leave the space between the
+commas empty. eg: server = n4b,localhost,1416,,666,encrypt
+                  server = n4c,abc.co.uk,1418,12345
+                  server = n4d,def.co.uk,,,,encrypt
+
+All the fields above have default values except for "server name" which MUST
+be set and "server" which do not need to be in the config if you do not wish
+to connect to any remote servers.
+Hopefully this list will be up to date but for 100% guaranteed accuracy
+look at the #define lines in globals.h! :)
+
+
+** Original level is the level the user has on their local server. This level
+   is passed to every remote server they connect to and the level on any given
+   remote server is based on this.
+
+Defaults are listed below:
+
+Name                            Default value
+---------------------------     -------------
+"working dir"                   "."
+"bind interface"                ALL
+"user port"                     1413
+"server port"                   1414 
+"server port listening"         YES
+"connect key"                   0
+"ansi terminals"                <none>
+"max local users"               0 (unlimited)
+"max remote users"              100
+"max user ign level"            ADMIN
+"max name length"               15 chars
+"max desc length"               30 chars
+"max subject length"            40 chars
+"linkdead timeout"              2 minutes
+"login timeout"                 1 minute
+"idle timeout"                  5 minutes
+"idle timeout ignore level"     MONITOR
+"board msg expire"              5 days
+"board renumber"                NO
+"min pwd length"                4 chars
+"max hop"                       255
+"max profile chars"             800 chars (10 lines)
+"max mail chars"                1600 (20 lines)
+"max board chars"               800 chars
+"max group desc chars"          800     "
+"max group name length"         20 chars
+"max broadcast chars"           400 chars
+"max include lines"             5 
+"ping interval"                 1 minute
+"server timeout"                2 minutes
+"connect timeout"               30 seconds
+"max tx errors"                 1
+"max rx errors"                 5
+"max packet rate"               100 per second
+"random remote ids"             NO
+"allow loopback"                NO
+"default desc"                  "the novice."
+"default pwd"                   "changeme"
+"group invite expire"           5 minutes
+"group modify level"            ADMIN
+"group gatecrash level"         ADMIN
+"lockout level"                 NOVICE
+"remote user max level"         USER
+"go invis level"                ADMIN
+"review lines"                  20
+"max login batch lines"         5
+"max logout batch lines"        5
+"max session batch lines"       5
+"prisoners ret home"            YES
+"signal ignore"                 PIPE (Can't be removed)
+"autosave interval"             15 minutes
+"log net broadcasts"            YES
+"recv net bcast level"          ADMIN
+"hexdump packets"               NO
+"strip printcodes"              YES
+"allow who at login"            YES
+"allow remote batch runs"       NO
+"allow new accounts"            YES
+"delete disconnected incoming"  NO
+"log unexpected packets"        YES
+"incoming encryption policy"    EITHER
+"outgoing encryption enforce"   YES
+"resolve ip name internally"    YES
+"max local user data rate"      10000 bytes/sec
+"max server data rate"          50000 bytes/sec
+"save novice accounts"          YES
+"really delete accounts"        NO
+"log groups"                    NO
+

@@ -1,0 +1,11 @@
+
+~BM*** Admshout ***
+
+~FTUsage:~RS admshout <level> <text>
+
+This is the same as the shout command except that it only sends the message
+to users of level <level> and above. The level must be MONITOR or higher and
+it must not be higher than your own level.
+
+~FYSee also:~RS shout
+

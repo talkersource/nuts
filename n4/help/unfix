@@ -1,0 +1,10 @@
+
+~BM*** Unfix ***
+
+~FTUsage:~RS unfix
+
+This will unfix the access to the group you are currenty in. See "fix" for
+how permissions apply.
+
+~FYSee also:~RS fix, public, private
+

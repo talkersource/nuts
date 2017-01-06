@@ -1,0 +1,37 @@
+
+~BM*** Ulevel ***
+
+~FTUsage:~RS user create <id> <name> [<password>]
+       user delete <id>
+       user level  <id> <level>
+
+This command allows you to create and delete users and modify their level.
+
+Create:
+This allows you to create a new user account. This is useful on private
+systems that do not allow new users to create accounts for themselves
+at the login prompt. If you set the id to zero the the server will create
+a random id. If you do not give the password it will be set to the systems
+default password.
+
+Delete:
+You can delete a user whether they are logged on or not. It will not delete
+their data files but rename their data and board directories by adding .delN
+on the end where N is a number. You cannot delete a remote user.
+
+Level:
+Modifying a users level is how users are promoted or demoted. You can
+only promote a user up to your own level but BEWARE , you can only demote a
+user who is LOWER than your own level. This means if you promote a user to
+your level you cannot demote them again! One result of this is that to demote
+an admin you would have to edit their configuration file manually from the unix
+command line.
+
+User levels are: novice, user, monitor, operator, admin
+
+This option can be used on both local and remote users but for remotes the
+effect only lasts while they are on the given server the level change was
+done on.
+
+~FYSee also:~RS kill, muzzle
+

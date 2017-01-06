@@ -1,0 +1,18 @@
+
+~BM*** Ban ***
+
+~FTUsage:~RS ban user <user id>
+       ban site <ip number> [user/server/all]
+
+This command is used to ban local or remote users permanantly from the talker
+until unbanned and also to ban sites which means that users and servers
+cannot connect from them. The bans are stored in the file "banfile" (defined in
+globals.h). Remote users original id's and ip addresses are stored so even
+if they attempt to come via a different 3rd party server they will be
+prevented.
+   The optional argument with site bans indicates which type of ban it will
+be: "user" means only ban users from that site, "server" means only ban
+server connects from that site and "all" means ban both.
+
+~FYSee also:~RS unban. lsubans, gban, gunban
+

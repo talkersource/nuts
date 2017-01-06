@@ -1,0 +1,5 @@
+"admin level" = OPERATOR
+"write level" = USER
+msg = "0FFF", "Boltar", "<No subject>", msg_1, 1046092885, 6
+msg = "0FFF", "Boltar", "This is drivel", msg_2, 1046092905, 76
+msg = "0FFF", "Boltar", "hello world", msg_3, 1046092911, 7

@@ -1,0 +1,12 @@
+
+~BM*** Desc ***
+
+~FTUsage:~RS desc "<new description>"
+
+This sets your user description which appears in the who listing amongst
+other things. If it is to have whitespace you must use quotes. The same
+restrictions apply to this as to the name command with regards to using
+on remote servers.
+
+~FYSee also:~RS name
+

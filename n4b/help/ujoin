@@ -1,0 +1,11 @@
+
+~BM*** Ujoin ***
+
+~FTUsage:~RS ujoin <user id[@<server>]>
+
+This acts in the same way as the join command except that instead of 
+specifying a group id you give the user id of the user you wish to join
+in whatever group.
+
+~FYSee also:~RS join, leave, move, lsgroups, servers
+

@@ -1,0 +1,16 @@
+
+~BM*** Ntell ***
+
+~FTUsage:~RS ntell "<username>" <text>
+
+This does exactly the same as the normal tell command except that it takes
+a user name instead of an id number. The name must have quotes around it if
+it is more than one word (has whitespace) and it can only be of a user on the
+local server. Ntell to users on remote servers is not supported. If more than
+one user has the given name tells will be sent to all of them. Note that
+this command is case sensitive when looking up the name.
+
+Shortcut: ">>"
+
+~FYSee also:~RS nemote, tell, emote, ftell, femote, revtell
+

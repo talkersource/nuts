@@ -1,0 +1,12 @@
+
+~BM*** Nemote ***
+
+~FTUsage:~RS nemote "<username>" <text>
+
+This does the same as a pemote except that it works in the same way as the
+ntell command. Please see the help for the latter for more info.
+
+Shortcut: "<<"
+
+~FYSee also:~RS ntell, tell, emote, ftell, femote, revtell
+

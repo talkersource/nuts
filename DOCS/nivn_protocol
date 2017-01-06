@@ -1,0 +1,346 @@
+
+                     NIVN PROTOCOL (REV 3) INFORMATION
+                     =================================
+
+The NIVN (pronounced niven as in David Niven) protocol is the method that
+NUTS 4 servers use to communicate to each other, whether this be to connect a
+remote user, send a mail or a tell. The protocol is completely different to
+the NUTS 3 procotol, the main difference being that the NUTS 3 netlink protocol
+was ascii based whereas NIVN is a binary protocol. This means that connections
+between NUTS 3 & 4 servers is not possible.
+
+NIVN is mainly an asynchronous protocol, ie when the server sends a packet it
+does not wait for the reply but just gets on with other things. The ONLY
+exception to this is connecting to another server when the connect thread MUST
+wait for a reply packet before anything other packets or operations can be
+carried out on that link. 
+
+Internally in the code each link is controlled by a single cl_server object.
+This object can be in one of the following stages:
+
+SERVER_STAGE_UNCONNECTED,
+SERVER_STAGE_INCOMING,
+SERVER_STAGE_CONNECTING,
+SERVER_STAGE_CONNECTED,
+SERVER_STAGE_CONNECT_REFUSED,
+SERVER_STAGE_CONNECT_FAILED,
+SERVER_STAGE_DISCONNECTED,
+SERVER_STAGE_NOT_FOUND,
+SERVER_STAGE_TIMED_OUT,
+SERVER_STAGE_NETWORK_ERROR,
+SERVER_STAGE_MANUAL_DISCONNECT,
+SERVER_STAGE_DELETE
+
+Only when the link/object is in the SERVER_STAGE_CONNECTED stage can normal
+user packets be sent over the link and normal operations carried out.
+
+Protocol revision 2 is incompatable with revision 1. This is because I do not
+expect revision 1 (only found with talker version 0.1.0) to be in use at all
+once beta and full releases of the talker are in circulation. This avoids 
+unnecessary cruft building up in the code.
+
+The protocol version will only be incremented if a new packet type is 
+introduced or an existing packet type has its structure or length changed.
+It will NOT be incremented if previously unused field(s) are now being used.
+
+*** PROTOCOL REVISIONS ***
+
+Aside from revision 1 all protocol revisions should be able to connect to each
+other though obviously functionality available is dictated by the lowest 
+revision number, eg: you can't have encrypted packets being used over a 
+connection that has any revision lower than 5.
+
+Rev.  Info
+----------
+1     This is the original alpha release of the protocol and it is incompatable
+      with all susequent releases. Server version 0.1.0 only.
+2     Found in server versions 0.8.0 to 1.1.0 inclusive.
+3     Server versions 1.2.0 & 1.2.1. This added network broadcast functionality.
+4     Server version 1.3.0 & 1.3.1. This added upgraded ping functionality
+      allowing manual pings and ping timing.
+5     Server verion 1.3.2. This added packet encryption.
+
+
+*** PACKET TYPES ***
+
+PKT_COM_CONNECT:
+
+Field name          Bytes  Notes
+--------------------------------
+len                 2
+type                1
+error               1
+connect_key         4
+proto_rev           1
+svr_version         1
+lockout_level       1
+flags_el            1  Only top 2 bits is set for encryption level for now
+local_user_cnt      2
+remote_user_cnt     2
+sys_group_cnt       1
+pub_group_cnt       1
+svr_links_cnt       1
+rem_user_level      1
+ping_interval       2  
+name                N
+
+Length = 22 + N
+
+
+
+PKT_REP_CONNECT (OK), PKT_SVR_INFO:
+
+Field name          Bytes  Notes
+--------------------------------
+len                 2
+type                1
+error               1
+connect_key         4
+proto_rev           1
+svr_version         1
+lockout_level       1
+flags_el            1  Set as above for REP_CONNECT , 0 for SVR_INFO
+local_user_cnt      2
+remote_user_cnt     2
+sys_group_cnt       1
+pub_group_cnt       1
+svr_links_cnt       1
+rem_user_max_level  1
+ping_interval       2  Length of time between servers pings (for timeout)
+
+Length = 22
+
+
+
+PKT_REP_CONNECT (Error):
+
+Field name  Bytes  Notes
+-----------------------
+len             2
+type            1
+error           1
+
+Length = 4
+
+
+
+PKT_INF_DISCONNECTING:
+
+Field name  Bytes  Notes
+-----------------------
+len             2
+type            1
+erf             1  Reason for disconnecting
+
+Length = 4
+
+
+
+PKT_COM_JOIN, PKT_COM_UJOIN, PKT_INF_USER_INFO:
+
+Field name  Bytes  Notes
+-----------------------
+len             2 
+type            1
+hop_count       1
+uid             2
+orig_uid        2
+gid_ruid        2  Is uid of user we wish to join with PKT_COM_UJOIN, else gid
+orig_level      1
+term_cols       1  Set to 255 if actual cols > 255.
+term_rows       1  Set to 255 if actual rows > 255.
+desc_len        1
+pad             2  For future use
+user_flags      4
+home_addr      16  A union with 4 bytes for IP4 , 16 for IP6
+home_port       2
+namelen         1
+name_desc       N 
+
+Length = 39 + N
+
+
+
+PKT_REP_JOIN:
+
+Field name  Bytes  Notes
+-----------------------
+len             2 
+type            1
+erf             1  Ok , or reason user can't join group
+id1             2  User id
+id2             2  Group user is joining (for information only)
+
+Length = 8
+
+
+
+PKT_COM_PING, PKT_REP_PING:
+
+Field name  Bytes  Notes
+-----------------------
+len             2 
+type            1
+
+Length = 3
+
+
+
+PKT_COM_TELL, PKT_COM_PEMOTE, PKT_INF_BCAST:
+
+Field name  Bytes  Notes
+-----------------------
+len             2 
+type            1
+erf             1  1 if friends tell/pemote (always 0 for BCAST)
+id1             2  Sender (0 for BCAST)
+id2             2  Receiver (0 for BCAST)
+namelen         1  Length of senders name
+name_mesg       N  Senders name + tell/emote message
+
+Length = 9 + N
+
+
+
+PKT_COM_REQ_USER_INFO &
+PKT_INF_LEAVE &
+PKT_INF_LEFT &
+PKT_INF_LOGON_NOTIFY &
+PKT_INF_LOGOFF_NOTIFY:
+
+Field name  Bytes  Notes
+-----------------------
+len             2 
+type            1
+add_prefix      1  Not used, set to zero
+id              2
+
+Length = 6
+
+
+
+PKT_COM_INPUT:
+
+Field name  Bytes  Notes
+-----------------------
+len             2 
+type            1
+add_prefix      1  Not used, set to zero
+id              2
+data            N
+
+Length = 6 + N
+
+
+
+PKT_COM_PRINT:
+
+Field name  Bytes  Notes
+-----------------------
+len             2 
+type            1
+add_prefix      1  Set to 1 if we want remote server to prepend server name
+id              2
+data            N
+
+Length = 6 + N
+
+
+
+PKT_COM_FIND_USER, PKT_COM_EXAMINE, PKT_INF_GROUP_CHANGE:
+
+Field name  Bytes  Notes
+-----------------------
+len             2 
+type            1
+erf             1  Not used
+id1             2
+id2             2
+
+Length = 8
+
+
+
+PKT_REP_FIND_USER:
+
+Field name  Bytes  Notes
+-----------------------
+len             2 
+type            1
+erf             1  Result of search: 0, 1 or 2
+id1             2
+id2             2
+
+Length = 8
+
+
+
+PKT_INF_TERMSIZE:
+
+Field name  Bytes  Notes
+-----------------------
+len             2 
+type            1
+term_cols       1
+uid             2  This is inbetween cols & rows for alignment purposes
+term_rows       1
+
+Length = 7
+
+
+PKT_INF_USER_FLAGS
+
+Field name  Bytes  Notes
+-----------------------
+len             2 
+type            1
+pad             1
+flags           4
+uid             2
+
+Length = 10
+
+
+PKT_COM_MAIL:
+
+Field name  Bytes  Notes
+-----------------------
+len             2 
+type            1
+flags           1  For future use
+uid_from        2
+uid_to          2
+namelen         1
+subjlen         1
+data            N
+
+Length = 10 + N
+
+
+PKT_REP_MAIL:
+
+Field name  Bytes  Notes
+-----------------------
+len             2 
+type            1
+erf             1  Ok , or mail error
+uid_from        2
+uid_to          2
+
+Length = 8
+
+
+PKT_COM_PING, PKT_REP_PING
+The last 3 fields are only used in timing pings.
+
+Field name  Bytes  Notes
+-----------------------
+len             2 
+type            1
+flags           1  Currently unused 
+send_time       4
+uid             2
+
+
+
+

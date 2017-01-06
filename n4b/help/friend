@@ -1,0 +1,12 @@
+
+~BM*** Friend ***
+
+~FTUsage:~RS friend add / delete  <friend id[@<server>]> [<friend id..> ...]
+
+Every user has a friends list which gives information on when the given
+friend is logged on and in what group. Use this command to add or delete
+a friend(s) from the list. Friends can be local or on immediately connected
+servers.
+
+~FYSee also:~RS lsfriends, ftell, femote
+

@@ -1,0 +1,12 @@
+
+~BM*** Move ***
+
+~FTUsage:~RS move <user id> <group id> / here
+
+This command will move the given user to the given group (or to your current
+group if "here" is used). If your level is less than the current gatecrash
+level then you cannot move a user to a group if it is private or they are
+banned from it. Also you cannot move prisoners, they must be released first.
+
+~FYSee also:~RS join, ujoin
+

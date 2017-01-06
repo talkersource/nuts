@@ -1,0 +1,13 @@
+
+~BM*** Netbcast ***
+
+~FTUsage:~RS netbcast [<text>]
+
+This sends a network broadcast message to all connected servers and users on
+the local server of a level >= recv_net_bcast_level. Note that just because a
+message is succesfully sent does not mean that anyone at the other end will
+see it or that it will be logged. If you do not enter any text after the
+command you will be placed in the editor.
+
+~FYSee also:~RS bcast
+

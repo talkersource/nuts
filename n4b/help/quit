@@ -1,0 +1,13 @@
+
+~BM*** Quit ***
+
+~FTUsage:~RS quit
+
+This will log you out of your current session on the local server in which
+case you are disconnected, or the remote server (in which case you return
+to the previous server in the chain. If you are on a remote server and enter
+"/quit" on the home server you will completely disconnected and your telnet
+session will end.
+
+~FYSee also:~RS leave
+

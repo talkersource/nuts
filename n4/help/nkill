@@ -1,0 +1,11 @@
+
+~BM*** Nkill ***
+
+~FTUsage:~RS nkill <username>
+
+This does the same as the the "kill" command except that you pass it a username
+as a parameter instead of a user id. If there are more than 1 users with the
+same name it will Kill 'Em All! 
+
+~FYSee also:~RS kill, muzzle, imprison
+

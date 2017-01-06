@@ -1,0 +1,25 @@
+
+~BM*** Syset ***
+
+~FTUsage:~RS syset <parameter> <time period> [seconds / minutes / hours / days]
+
+This command sets various numeric system time parameters (but may be extended
+in the future to cover non time parameters too). The parameters currently
+are:
+        "Ping interval",
+        "Server timeout",
+        "Connect timeout",
+        "Linkdead timeout",
+        "Login timeout",
+        "Idle timeout"
+        "Invite expire",
+        "Board msg expire",
+        "Autosave interval"
+
+If you're wondering why this uses clearer multiple word options as opposed
+to the obscure single word options in systoggle its because since I wrote
+the systoggle command I've changed my mind about which is more important,
+brevity or clarity. 
+
+~FYSee also:~RS systoggle
+

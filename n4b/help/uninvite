@@ -1,0 +1,11 @@
+
+~BM*** Uninvite ***
+
+~FTUsage:~RS uninvite <user id>
+
+This revokes a specific users invite to your current group. The invite need not
+have been given by you initially for this to work though this may change in the
+future as I'm undecided if thats a good or bad thing! :)
+
+~FYSee also:~RS invite, lsinvites, evict, public, private
+

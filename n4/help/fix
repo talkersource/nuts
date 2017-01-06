@@ -1,0 +1,12 @@
+
+~BM*** Fix ***
+
+~FTUsage:~RS fix
+
+This fixes the group you are currently in to its current access (public or 
+private). Whether you can fix a group depends on whether it is your own
+group (always), a system group (never) or a public group (depends if your
+level is equal or higher than the current group modify level).
+
+~FYSee also:~RS unfix, private, public
+

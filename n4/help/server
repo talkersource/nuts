@@ -1,0 +1,49 @@
+
+~BM*** Server ***
+
+~FTUsage:~RS server add        <server> <ip addr> <port> <local port> <connect key>
+                         [encrypted] [connect]
+       server delete     <server>
+       server connect    <server> [encrypted | unencrypted]
+       server disconnect <server>
+       server ping       <server> [continuous] | cancel 
+
+This allows you to add, delete connect, disconnect or ping servers from the
+current server list. The add fields are fairly self evident but the ip address
+can be either numeric or a name address. The connect option for add forces a
+connect attempt to be made immediately. If a server is deleted and is currently
+connected it will be disconnected. The connect option will only work with
+an outgoing list entry, the disconnect option will work with outgoing or
+incoming.
+
+  The ping option does not use an ICMP ping, rather it sends a special NIVN
+packet to see if the remote server is still responding and the delay on the
+network. If you add the continuous option the remote server will be pinged
+every server HEARTBEAT. The cancel option cancels the ping.
+eg:
+    server ping n4b continuous
+    server ping cancel
+
+Only one server can be continuously pinged at a time. If you set a continuous
+ping while already doing another then your current ping will be cancelled.
+
+  The add option allows the port, local port and connect key options to be 
+left blank. In this case just use "". eg:
+
+    server add n4b localhost 1413 "" "" connect encrypyted
+
+Encryption is optional with server connections but the default is off unless
+explictly requested in these commands or in the config file. If no encrypt
+option is given in the add command then encryption is switched off and can
+only be switched on by disconnecting and reconnecting **. If no option
+is given in the connect command then the encryption remains as it was when
+last connected.
+
+No changes are made to the configuration file by this command.
+
+** Encryption CANNOT be switched on and off ad-hoc on a connection while it
+   is live as this would require a negotiation protocol that I have not yet
+   implemented though I may put this in revision 6 if I feel its worth it.
+
+~FYSee also:~RS lsservers
+

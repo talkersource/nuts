@@ -1,0 +1,11 @@
+
+~BM*** People ***
+
+~FTUsage:~RS people
+
+This command gives a more detailed overview of all the users logged onto
+the system compared to the "who" command and is meant for monitors and above
+only as it gives out users IP addresses.
+
+~FYSee also:~RS who, whois, lsip
+

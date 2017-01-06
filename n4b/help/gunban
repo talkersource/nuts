@@ -1,0 +1,11 @@
+
+~BM*** Gunban ***
+
+~FTUsage:~RS gunban <entry number> [<group id>]
+
+Despite the rather unfortunate name of this command (or not depending on
+how you feel about guns :) its actually for unbanning a user from your
+current group or from a specific group if you give an optional group id.
+
+~FYSee also:~RS gban, lsgbans, ban, unban
+

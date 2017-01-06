@@ -1,0 +1,10 @@
+
+~BM*** Lsservers ***
+
+~FTUsage:~RS lsservers
+
+This gives a list of the current servers connected to the one you are on and
+their current statuses.
+
+~FYSee also:~RS server, sysinfo
+

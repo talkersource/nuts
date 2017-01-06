@@ -1,0 +1,10 @@
+
+~BM*** Lsgroups ***
+
+~FTUsage:~RS lsgroups
+
+This gives a list of the current groups on the server. Group types can be
+SYSTEM, PUBLIC or USER.
+
+~FYSee also:~RS join, leave
+

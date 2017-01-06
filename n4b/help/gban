@@ -1,0 +1,14 @@
+
+~BM*** Gban ***
+
+~FTUsage:~RS gban <user id> [<group id>]
+
+This allows you to ban a user from your current group or if a group id is
+given from that particular group. Whether you have permissions to do this
+depends on your level and the type of group. Users can never be banned from
+system groups but can always be banned from your home group (though high level
+users banned can gatecrash anyway) and you may be able to ban them from 
+pubic groups depending on permissions.
+
+~FYSee also:~RS gunban, lsgbans, ban, unban
+

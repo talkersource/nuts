@@ -1,0 +1,10 @@
+
+~BM*** Kill ***
+
+~FTUsage:~RS kill <user id>
+
+This throws a user off the system. If they are local they are disconnected and
+if remote they are returned to their previous server.
+
+~FYSee also:~RS nkill, muzzle, imprison, user
+

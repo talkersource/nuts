@@ -1,0 +1,12 @@
+
+~BM*** Bcast ***
+
+~FTUsage:~RS bcast [<text>]
+
+This broadcasts a message to all users logged on. It cannot be ignored.
+You can either enter the command and the text for an immediate broadcast
+or you can enter the command on its own at which point you are put into the
+editor to write a longer message.
+
+~FYSee also:~RS netbcast, shout
+

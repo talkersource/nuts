@@ -1,0 +1,9 @@
+
+~BM*** Lsgbans ***
+
+~FTUsage:~RS lsgbans [<group id>]
+
+This lists the users banned for your current group or the given group.
+
+~FYSee also:~RS gban, gunban, lsgroups
+

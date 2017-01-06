@@ -1,0 +1,25 @@
+
+~BM*** Group ***
+
+~FTUsage:~RS group create  <group id> "<group name>" [private] [fixed]
+       group delete  <group id>
+       group load    <group id>
+       group unload  <group id>
+       group monitor <group id>/none
+
+This allows you to create, delete, load or unload a public group. Loading or 
+unloading is used on prexisting groups whose directory & config files etc
+already exist. Creating a group creates an entirely new group (whose id must
+be unique) that will now be usable and will also be loaded on the next reboot.
+Deleting a group renames the group directory so that the talker will no longer
+find it but is still there in case the owner wishes to reinstate it. When a
+group is unloaded/deleted all users in it are returned to their home groups.
+  A user can monitor a group providing they are of a high enough level and
+they are not banned from it or the group is private. They will then see 
+everything that is said in that group when they are not in it. 
+
+NOTE: Only ONE group can be monitored at a time though this may change in a
+      future release.
+
+~FYSee also:~RS lsgroups
+

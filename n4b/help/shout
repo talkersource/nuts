@@ -1,0 +1,13 @@
+
+~BM*** Shout ***
+
+~FTUsage:~RS shout <text>
+
+This allows a user to broadcast a message to every user logged onto the
+server who does not have the NOSHOUTS flag toggled on. The output of this
+command gets stored in ALL the group review buffers. 
+
+Shortcut: "!"
+
+~FYSee also:~RS say, tell, pemote, emote, semote
+

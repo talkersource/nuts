@@ -1,0 +1,35 @@
+
+~BM*** Toggle ***
+
+~FTUsage:~RS toggle <option>
+
+This toggles various user flags on and off. Current options are:
+    prompt      - User will/won't get a prompt
+    paging      - Paging will/won't occur with commands/files
+    converse    - Switches between command and converse mode
+    colour      - Forces colour (and other ansi term operations) on or off
+                  whether the users terminal supports them or not.
+    nospeech    - User will/won't hear speech and other things in current room
+    notells     - User will/won't receive tells
+    noshouts    - User will/won't hear shouts
+    noinfo      - User will/won't get INFO messages
+    nomisc      - User will/won't see miscellanious messages such as logon/off,
+                  join/left of other users
+    puip        - If on then any text sent to the user will appear under any
+                  inline prompt (eg: "Mail>") they currently have. The default
+                  is to appear to the right of it.
+    invisible   - If on the user is invisible and will not appear in a "who"
+                  or a "look". They will however be in "people" and can be
+                  examined in the normal way. The minimum level of user that can
+                  use this option is set by the "go invis level" in the config.
+    persist     - This is for local users only and sets whether their own group
+                  will remain after they've logged off.
+    netbcast    - User will/won't hear network broadcasts.
+    autosilence - User will/won't hear speech, shouts etc when using the mailer
+                  or board reader
+                  
+If you are on a remote server these changes will be sent back to all servers
+if the chain back to your local server.
+
+~FYSee also:~RS prompt, say, tell, toggle
+

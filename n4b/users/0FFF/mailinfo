@@ -1,0 +1,6 @@
+msg = 0FFF@n4a, "Boltar", "test", mail_1, 1049383974, 6, YES
+msg = 0FFF@n4a, "Boltar", "<No subject>", mail_2, 1049385542, 6, YES
+msg = 0EEE, "Caliburn the King", "Re: Hello friend", mail_3, 1049451585, 53, YES
+msg = 0EEE, "Caliburn the King", "Re: test", mail_4, 1049451629, 20, YES
+msg = 0FFF@n4a, "Boltar", "<No subject>", mail_5, 1052231158, 16, YES
+msg = 0FFF@n4a, "Boltar", "hello world", mail_6, 1061807219, 18, YES

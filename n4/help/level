@@ -1,0 +1,33 @@
+
+~BM*** Level ***
+
+~FTUsage:~RS level lockout    <level> [logout]
+       level remusermax <level>
+       level gatecrash  <level>
+       level invisible  <level>
+       level grpmod     <level>
+       level maxuserign <level>
+       level idleign    <level>
+       level netbcast   <level>
+
+This sets the user levels at which various system options are available or
+utilised.
+
+lockout    - Minimum level of user that can log into the talker. If the logout
+             option is used all users below the given level are logged out. 
+remusermax - Maximum level a remote user can be. Ie if their remote level
+             is > than this then it is reduced to this level.
+gatecrash  - Minimum level of user that can gatecrash a private group.
+invisible  - Minimum level of user that can go invisible.
+grpmod     - Minimum level of user than can modify public groups or a private
+             group not their own.
+maxuserign - Minimum level of user allowed to bypass the maximum number of
+             talker users check at login.
+idleign    - This sets the minimum level at which users will not be timed out
+             if they idle too long.
+netbcast   - This sets the minimum level of user who can will receive network
+             broadcast messages.
+
+User levels are: NOVICE, USER, MONITOR, OPERATOR & ADMIN
+
+~FYSee also:~RS user

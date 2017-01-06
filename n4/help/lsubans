@@ -1,0 +1,10 @@
+
+~BM*** Lsubans ***
+
+~FTUsage:~RS lsubans
+
+This lists all the current global user bans in place. Information shown
+includes user id and original location (if remote), ban level and user type.
+
+~FYSee also:~RS ban, unban, lsgbans, lssbans
+

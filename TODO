@@ -1,0 +1,26 @@
+                      *** Things I hope to add ***
+                      ============================
+
+Or in management speak - a "roadmap".
+
+This is a wish list of things I hope to add to the system as long as time
+and enthusiam permit. I was hoping to add IP6 in already but the shear amount
+of code modifications (albeit most of them minor) and #ifdefs (since not all
+platforms support it yet) required have put me off.  Its my own fault really,
+I should have built it in the from start. Oh well.
+
+Future updates:
+
+1.4.1
+-----
+- Users can set own invite expire times
+- Option to strip control codes from group logs
+- Put checkpoints & other notifications in group logs
+- Tell logging
+
+
+One day 
+-------
+- IP6
+- multiple mail recipients for mail commands
+- board & mail commands exit don't go into sub prompt if called with arguments

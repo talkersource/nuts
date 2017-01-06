@@ -1,0 +1,20 @@
+
+~BM*** board **
+
+~FTUsage:~RS board [<sub command> [<arguments>]]
+
+This command enters you into the message boards sub system. If you just
+enter the command on its own you will be given a listing of the current
+messages and then recieve the sub command prompt. If you pass sub commands
+they will be executed first and then you receive the prompt.
+
+eg: board write "Hello world"
+    board info
+
+The board command line works in more or less the same way as the mail 
+sub system and all the commands that can be used in it are available by
+entering "help" when at the command prompt. Normal commands cannot be used
+when in the board sub system.
+
+~FYSee also:~RS mail
+

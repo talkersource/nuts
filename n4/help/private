@@ -1,0 +1,12 @@
+
+~BM*** Private ***
+
+~FTUsage:~RS private
+
+This sets the current group you are in to private. Anyone can set the access
+to any group unless that group is fixed to its current access. Once a room is
+private only a user with an invite or one whos level is >= the gatecrash level
+can enter.
+
+~FYSee also:~RS public, fix, unfix, invite
+

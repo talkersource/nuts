@@ -1,0 +1,10 @@
+
+~BM*** Lsip ***
+
+~FTUsage:~RS lsip
+
+Returns a list of the IP addresses and resolved names of all the users and
+servers connected to the local server.
+
+~FYSee also:~RS who, people, lsservers
+

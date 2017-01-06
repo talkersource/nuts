@@ -1,0 +1,13 @@
+
+~BM*** Lsthreads ***
+
+~FTUsage:~RS lsthreads
+
+This lists all the current unix threads that the talker is using including
+the main thread. The types are NUTS4 types but the thread id is that which
+is returned by the OS and it varies wildly between *nixes. Currently this
+command is for informational purposes only, you cannot directly affect the
+threads from within the talker.
+
+~FYSee also:~RS sysinfo
+

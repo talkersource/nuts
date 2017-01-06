@@ -1,0 +1,10 @@
+
+~BM*** Reboot ***
+
+~FTUsage:~RS reboot now / cancel / <time delay> [seconds / minutes / hours / days]
+
+This operates in exactly the same way as the shutdown command except that after
+the talker has shutdown it will automatically reboot.
+
+~FYSee also:~RS shutdown
+

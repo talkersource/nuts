@@ -1,0 +1,8 @@
+
+~BM*** Version ***
+
+~FTUsage:~RS version
+
+This displays the version number of the server and the revision number of
+the NIVN protocol the server is using.
+

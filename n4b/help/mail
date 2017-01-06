@@ -1,0 +1,21 @@
+
+~BM*** Mail ***
+
+~FTUsage:~RS mail [<sub command> [<arguments>]]
+
+This command provides access to the mail system including the users mailbox
+and for obvious reasons can only be used by local users. The mail sub system
+has a number of sub commands you can use. To view them enter "help" when in
+the mailer.
+  Using the mail command will drop you info the mail sub system. If you 
+provide command line arguments to it these will be treated as a sub command
+plus its arguments and it will be run immediately after which you will be
+at the "Mail>" prompt. If you provide no arguments you will be given a list
+of the messages in the mailbox then dropped into the prompt (the equivalent
+of entering "mail list").
+
+eg: mail write 0eee hello world
+    mail read from 1
+
+~FYSee also:~RS board
+

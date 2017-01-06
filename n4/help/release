@@ -1,0 +1,11 @@
+
+~BM*** Release ***
+
+~FTUsage:~RS release <user id>
+
+This will release a user from prison (though it does not actually move them
+out of the prison group, they have to do that themselves) but you cannot
+release a user who has been imprisoned by a higher level user.
+
+~FYSee also:~RS imprison, lsprison
+

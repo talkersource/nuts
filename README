@@ -1,44 +1,129 @@
-*** README for triple three (3.3.3 :) ***
+                      **** NUTS-IV Readme ****
+                      ========================
 
-Read the DOCS/diffs file for update information.
+Copyright
+---------
+This code is Copyright (C) Neil Robertson 2003-2005 but it is GPL'd. Please
+read the GPL file for more information on the GNU Public License.
 
-Welcome to NUTS if you're a first time user. Hopefully you'll find it a
-simple system to use thanks to the helpfiles and the documentation , if not
-then please feel free to email me at the address at the end of this file.
-Before I continue though I must stress that I WILL NOT SORT OUT BUGS OF YOUR
-OWN MAKING OR WRITE CODE FOR YOU! If you write your own code or alter my
-code and fuck it up thats your problem, I have my own projects to do and I
-am *not* interested in sorting out yours. I've had one too many emails from
-people asking me to sort out the mess they've made and I'm getting rather sick 
-of it. However, despite me putting this request in the 3.3.1 docs some people 
-have seen fit to ignore it so heres an added incentive: mail me about your cock
-ups and not only will I not reply to the mail but I will keep a note of your 
-email address and I will not reply to *any* mails you send me even if its about
-problems with *my* code. Its your choice. 
 
-I know I've said this before but this time I really mean it. This is the final
-version of NUTS 3. I have ideas in mind for a version 4 but thats years away
-so in the meantime this is it :) And to prove I mean it this is the first
-version of NUTS for a long long time without a backdoor in it as I'm sure 101
-hackers will test and find out to be true :)
+Introduction
+------------
+NUTS_IV is a total rewrite of the NUTS system and is also somewhat of a change
+of direction (or "paradigm shift" if you're into spouting trendy catchphrases
+and are somewhat inarticulate) in that the MUD metaphor with its multiple rooms
+linked together in a route layout is gone, but instead we have multiple groups
+which have no interconnections but can be jumped to immediately if the user
+has appropriate permissions. Ie the system is similar to IRC in that respect.
+   User id's are used as unique user references in NUTS-IV rather than names
+which makes networking multiple servers with multiple users much easier. The id
+is a 16 bit number which the user sees as a 4 character hex code. Users still
+have names but these do not have to be unique on the server though lookups can
+be done using them.
+   Multiple servers can be linked together to provide a network and users can
+hop along this network up to a maximum of 255 hops from their local NUTS 
+server and tells, emotes and mails can be exchanged between users of 
+immediately connected servers.
 
-Unfortunately I still haven't found out what the colour reset code for
-SCO consoles and strict ansi terminals is so if you're using one of these 
-things may look messy. No one mailed me the code and the SCO terminfo 
-translation tools proved less than helpful so theres not much I can do. Sorry.
+For more detailed info see the appropriate file in DOCS/.
 
-Now go and read the DOCS/compiling file for info on how to get started if 
-you're new to NUTS and all the other files there will be usefull in time also.
+Platforms
+---------
+This software has been developed and tested on the following platforms:
 
-Neil Robertson - November 1996
+Solaris                 (SunOS 5.6 , 5.8)
+Slackware Linux 8.1 & 9 (with 2.4 kernel)
+FreeBSD 4.6
 
-email: neil@ogham.demon.co.uk
-home page     : http://www.wso.co.uk/neil.html
-NUTS home page: http://www.wso.co.uk/nuts.html
+It has been compiled up and run with a quick test on:
 
-NB: If anyone is also interested in MUDs I've written a MUD system called 
-    Ogham - ftp.ccs.neu.edu:/pub/mud/servers/misc/ogham/ogham262.tar.gz
-    Its not as complex as perhaps LPmuds or Dikumuds are but if you know C and 
-    want to set up a low to medium complexity mud then this is just what you 
-    need :) 
-    
+MacOS X
+AIX 4.3 & 5.1
+
+Whether it will run (or even compile) under other versions of unix is
+I'm afraid , pot luck. As for Windows, forget it.
+
+
+Compiling
+---------
+Switch to directory "n4/src" and compile there. Uncomment the appropriate
+lines for your unix system type in the Makefile. 
+
+** Solaris note **
+Solaris users must use the Forte C++ compiler which now comes standard with 
+Solaris. Some of the old Workshop compilers had serious issues with threading 
+under C++ which caused libc to abort with the following error when the program
+is started:
+
+libc internal error: _rmutex_unlock: rmutex not held.
+
+There is no way around this bug that I know of. If you get this when you start
+up NUTS and you do not have access to a forte compiler I'm afraid you're out
+of luck.
+
+
+Starting the servers
+--------------------
+When you have finished compiling there will be a binary called "nuts4" sitting
+in the source directory. Copy this into the n4b/src directory using the "bincp"
+script and then start both servers up (the order is not important) by just
+running that binary. The servers will link to each other and hence when you
+are logged on you can traverse between them. Do "telnet localhost 1413" for
+server A or "telnet localhost 1415" for server B to log in.
+
+Initial logging in
+------------------
+A default admin account with id 0FFF is setup for you to use. The password
+is "test". If for whatever reason you manage to delete this simply create a
+new user from the login prompt then edit the "level" field in the 
+users/<user id>/config file (eg users/0FFF/config) and change it from NOVICE
+to ADMIN. Once logged in enter "help commands" to see what commands are
+available.
+
+Log file
+--------
+If the optional -l command line option is used then almost all (barring a few
+fatal error messages) output from the server will be written to this file.
+If it does not contain a hardcoded path the file will initially be written
+to the directory you are in when you start the server and once it has read
+the working directory from the config file it will be moved to there.
+
+Colour scheme
+-------------
+There isn't one. There may be some logic and consistancy in the colours in
+some places but generally it had more to do with what looked good and what
+mood I was in at the time I wrote the particular bit of code. So if you
+think "but he used colour X for the same thing in that command, why is he
+using colour Y for it in this one?" just enjoy the variety. :)
+
+Feedback
+--------
+This project lives or dies on feedback, either about bugs or just about
+features you either love or loath or things you thing could be improved.
+Either way I'd like your opinion. Please send any musings your may have to
+the email address below. Thanks.
+
+
+Older versions
+--------------
+This version of the software runs the NIVN network protocol revision 5. This
+is not compatable with revision 1 (which was only releases with NUTS 4 0.1.0)
+and attempts to link to a revision 1 server will result either in an invalid
+service or an incompatable protocol error depending which server attempts the
+connect. Since its highly unlikely anyone is still using alpha release 0.1.0 I
+don't feel this is a problem. Any revision above 1 can be linked with but the
+functionality missing is as follows:
+
+NIVN Rev.   Missing functionality when linking to rev. 6 server
+=========   ===================================================
+        5   Home server name
+        4   as 5 + packet encryption
+        3   as 4 + user pings
+        2   as 3 + network broadcast messages + ping interval information
+
+
+Neil Robertson
+
+Email: neel@ogham.demon.co.uk (neil@ogham... address disabled due to spam)
+Web  : http://www.ogham.demon.co.uk/nuts4.html
+

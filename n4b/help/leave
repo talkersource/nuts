@@ -1,0 +1,14 @@
+
+~BM*** Leave ***
+
+~FTUsage:~RS leave
+
+This command causes you to leave the session you are on on a remote server.
+It performs the same function as the quit command when used on a remote server
+but the crucial difference is that used on your local server it does nothing
+and if used in the "/leave" format when on a remote server it will return you
+back to your local server no matter how many hops away you are. The quit 
+command would disconnect you completely.
+
+~FYSee also:~RS join, ujoin, quit
+

@@ -1,0 +1,10 @@
+
+~BM*** Svrinfo ***
+
+~FTUsage:~RS svrinfo <server>
+
+This gives information on a given server in the current stored server list
+whether or not the server is currently connected.
+
+~FYSee also:~RS server, lsservers
+

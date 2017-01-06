@@ -1,0 +1,15 @@
+
+~BM*** Emote ***
+
+~FTUsage:~RS emote <text>
+
+This displays an emotion message in the users current group. This is basically
+the same as the user speaking except that the text is run into the users name
+and this makes it grammatically easier to express thoughs and emotions. If
+the user has the NOSPEECH flag toggled on then they will not see the output
+of this command. The output gets stored in the groups review buffer.
+
+Shortcut: ";"
+
+~FYSee also:~RS pemote, tell, ftell, femote, say, shout, review, think
+

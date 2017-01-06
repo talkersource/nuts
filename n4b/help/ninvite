@@ -1,0 +1,11 @@
+
+~BM*** Ninvite ***
+
+~FTUsage:~RS ninvite <username>
+
+This acts in the same way as the invite command except that you invite the
+user by name instead of id. Since multiple users can have the same name it
+will invite all of them if this is the case.
+
+~FYSee also:~RS invite, uninvite
+

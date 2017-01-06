@@ -1,0 +1,10 @@
+
+~BM*** Lssbans ***
+
+~FTUsage:~RS lssbans
+
+This lists all the current site bans in place. Information shown includes
+site ip, ban level and type , ie user , server or all.
+
+~FYSee also:~RS ban, unban, lsgbans, lsubans
+

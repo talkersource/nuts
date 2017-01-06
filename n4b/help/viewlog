@@ -1,0 +1,11 @@
+
+~BM*** Viewlog ***
+
+~FTUsage:~RS viewlog system | group [<group id>]
+
+This shows the current system log file if there is one or the group log file
+if you specify the group option. If no group id is given it defaults to your
+current group.
+
+~FYSee also:~RS sysinfo
+

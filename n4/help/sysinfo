@@ -1,0 +1,10 @@
+
+~BM*** Sysinfo ***
+
+~FTUsage:~RS sysinfo [general / groups / users / servers]
+
+This gives various pieces of system information. The default option is
+"general" if none is given.
+
+~FYSee also:~RS svrinfo
+

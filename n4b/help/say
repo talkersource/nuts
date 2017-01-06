@@ -1,0 +1,12 @@
+
+~BM*** Say ***
+
+~FTUsage:~RS say <text>
+
+This is used to say something when the user is in command mode. It can also
+be used in converse mode but theres not much point in doing so. If a user has
+the NOSPEECH flag toggled on then they will not see the output of this command.
+The output gets stored in the groups review buffer.
+
+~FYSee also:~RS shout, emote, tell, pemote, review, think
+

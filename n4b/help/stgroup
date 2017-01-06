@@ -1,0 +1,13 @@
+
+~BM*** Stgroup ***
+
+~FTUsage:~RS stgroup <group id> / home
+
+This sets your start group, ie the group you start in when you first log on.
+You can either give a specific group is or the "home" option which means you
+start in your home group (the default) which is the group that has the same
+id as your user id. You cannot start in remote groups or groups you do not
+have permission to join.
+
+~FYSee also:~RS lsgroups, join
+
