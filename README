@@ -1,0 +1,64 @@
+A rough guide for would be sysops.
+-----------------------------------
+
+This is NUTS 2. Even though it appears the same as NUTS 1.x from the users
+point of view (bar some extra commands and slight changes) it has been 
+changed quite radically under the skin. To compile the program type
+"cc nuts203.c" and to run just type "a.out" or whatever name you give it.
+This software is guaranteed to compile on AIX & OSF/1 and Mach (NeXT)
+and should compile on SunOS & HP-UX. As for other unix's I haven't a clue.
+
+
+Format of the INITFILE:
+
+<port number> <no. of areas> <atmos on> <logging_on> <allow new> <mess life>
+<room name> <link> <status>
+.
+.
+.
+.
+
+The port number is the number of the port the talker runs on.
+The no. of areas is the number of areas you have defined (max 26)
+Atmos on is 1 or 0 depending on whether you want the atmospherics on or not.
+Ditto above for system logging.
+If allow new = 1 then new id's can be created else if 0 they can't.
+Mess life is how many days messages remain on the message boards befor being
+automatically erased.
+
+You then define the room names, their links to other rooms (using letters) and
+their status.
+
+Status = 0 - room can be set by uses to either private or public
+         1 - room is fixed to public
+         2 - room is fixed to private (ie for sysop (Wizards & gods) only use)
+
+
+Files in USERDIR:
+
+Using Fred as an example we could have the following files..
+Fred.D , Fred.M , Fred.P. They are all text files and they contain the 
+following data. Fred.M contains Freds mail, Fred.P contains Freds profile
+and Fred.D contains his userdata which has the following format:
+
+<last logged in time>
+<last site logged in from>
+<user description>
+<user level (0-2)>
+
+The rest you should be able to work out for yourself. Some final things to note
+are that use passwords are now encrypted and the user status is no longer
+contained in the password file and the data directory is no longer specified
+on the command line but stored as a macro in the program. There is also a
+second message of the day on logging in.
+
+I have set up a user called "Fred" who has the password "test" and use level
+of God so log in has him first to play around.
+
+You should be able to work the rest out for yourself.
+
+Have fun.
+
+Neil Robertson 15/6/94
+
+neil@realtime.demon.co.uk
