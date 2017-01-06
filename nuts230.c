@@ -1,15 +1,21 @@
 /*****************************************************************************
-	    Neils Unix Talk Server (NUTS) - (C) Neil Robertson 1992-1994
-			 Last update 7th December 1994  Version 2.2.1
+	    Neils Unix Talk Server (NUTS) - (C) Neil Robertson 1992-1995
+			 Last update: 12th January 1995   Version 2.3.0
+
+  This version now works with character mode clients.
 
   Feel free to modify to code in any way but remember the original copyright
   is mine - this means you can't sell it or pass it off as your own work!
   This INCLUDES modified source. If wish to sell something don't include ANY
-  of my code in whatever it is unless you ask my permission first.
+  of my code in whatever it is unless you ask my permission first. 
      If and when you make any changes to the code please leave the original 
-  copyright in the code header if you wish to distribute it. Thanks. 
+  copyright in the code header if you wish to distribute it. For all the
+  doubting Thomases out there yes I DO have the copyright to this - automatic
+  copyright to any written work or computer software applies in the UK where
+  this was written (unlike the states where you have to send something off 
+  I think).
 
-  Also thanks to:
+  Thanks to:
      Darren Seryck - who thought up the name NUTS.
      Simon Culverhouse - for being the bug hunter from hell.
      Steve Guest - my networks lecturer at Loughborough University.
@@ -31,12 +37,15 @@
   project and first went live on the net in November 1992 as Hectic House. 
   Since then it has spread and spread (bit like flu really). :-)
 
-  Neil Robertson 
-  neil@realtime.demon.co.uk
+  Bug reports, gripes, whines, ideas:
+  	Neil Robertson 
+  	neil@realtime.demon.co.uk  
+     (until I get sacked for spending too much time on this and not on my work
+      then it'll be neil@cardboard_box.under.bridge)
 
  *****************************************************************************/
 
-#define VERSION "2.2.1"
+#define VERSION "2.3.0"
 
 #include <stdio.h>
 #ifdef _AIX
@@ -91,8 +100,8 @@
 #define PRO_LINES 10  /* number of lines of profile user can store */
 #define PRINUM 2   /* no. of users in area befor it can be made private */
 #define PASSWORD_ECHO 0 /* set this to 1 if you want passwords echoed */
+#define CHAR_MODE_ECHO 0  /* see README about this */
 #define SALT "AB"  /* for password encryption */
-#define PROMPT 1   /* 0 if you dont want a prompt printed */
 
 void sigcall();
 char *timeline();
@@ -102,23 +111,22 @@ char *command[]={
 ".quit",".who",".shout",".tell",".listen",".ignore",".look",".go",
 ".private",".public",".invite",".emote",".areas",".letmein",".write",".read",
 ".wipe",".site",".topic",".vis",".invis",".kill",".shutdown",".search",
-".review",".help",".bcast",".news",".system",".move",".close",".open",
-".slon",".sloff",".aton",".atoff",".echo",".desc",".alnew",".disalnew",
-".version",".entpro",".examine",".people",".dmail",".rmail",".smail",".wake",
-".promote",".demote",".map",".passwd",".pemote",".semote",".bansite",".unbansite",
-".listbans","*"
+".review",".help",".bcast",".news",".system",".move",".access",".log",
+".atmos",".echo",".desc",".newusers",".version",".entpro",".examine",".people",
+".dmail",".rmail",".smail",".wake",".promote",".demote",".map",".passwd",
+".pemote",".semote",".bansite",".unbansite",".listbans",".prompt","*"
  };
 
-/* Alter this data to suit. It is the level of user that can run each command */
+/* Alter this data to suit. It is the level of user that can run each command 
+   in the above string array. */
 int com_level[]={
-0,0,1,1,1,1,0,0,
+0,0,1,1,1,1,0,1,
 1,1,1,1,0,1,1,0,
-2,2,1,2,2,2,3,0,
-0,0,2,0,2,2,3,3,
-3,3,3,3,1,1,3,3,
-0,1,1,2,1,1,1,2,
-3,3,0,0,1,1,3,3,
-2,
+2,2,1,2,2,2,3,1,
+1,0,2,0,2,2,3,3,
+3,1,1,3,0,1,1,2,
+1,1,0,2,3,3,0,0,
+1,1,3,3,2,0
 };
 
 char *syserror="Sorry - a system error has occured";
@@ -138,22 +146,18 @@ int checked=0;  /* see if messages have been checked */
 
 /* user structure */
 struct {
-	char name[NAME_LEN];
-	char desc[DESC_LEN]; /* user description */
-	char site[80]; /* internet site name (or number) */
-	char login_name[NAME_LEN];
-	char login_pass[NAME_LEN];
-	char page_file[80];
+	char buff[ARR_SIZE],name[NAME_LEN],desc[DESC_LEN]; 
+	char login_name[NAME_LEN],login_pass[NAME_LEN];
+	char site[80],page_file[80];
 	char *pro_start,*pro_end;
 	int area,listen,level,file_posn,pro_enter;
-	int sock,time,vis,invite,last_input;
-	int idle_mention,logging_in,attleft;
+	int buffpos,sock,time,vis,invite,last_input;
+	int idle_mention,logging_in,attleft,prompt;
 	} ustr[MAX_USERS];
 
 /* area structure */
 struct {
-	char name[NAME_LEN],topic[TOPIC_LEN+1];
-	char move[MAX_AREAS];  /* where you can move to from area */
+	char name[NAME_LEN],topic[TOPIC_LEN+1],move[MAX_AREAS];
 	int private,status,mess_num,conv_line;
 	} astr[MAX_AREAS];
 
@@ -173,11 +177,11 @@ struct hostent *host;
 fd_set readmask;  /* readmask for select() */
 unsigned int addr;
 int listen_sock,accept_sock;
-int len,area,size,user,new_user,on; 
+int l,len,area,size,user,new_user,on; 
 char inpstr[ARR_SIZE],filename[80],site_num[80];
 char *inet_ntoa();  /* socket library function */
 
-printf("\n -=- NUTS version %s -=-\n(C) Neil Robertson 1992-1994\n\n*** Talk server booting ***\n\n",VERSION);
+printf("\n -=- NUTS version %s -=-\n(C) Neil Robertson 1992-1995\n\n*** Talk server booting ***\n\n",VERSION);
 
 /* Make old system log backup */
 sprintf(filename,"%s.bak",SYSTEM_LOG);
@@ -246,7 +250,8 @@ close(0);
 close(1);
 close(2); 
 
-/* set up alarm & ignore all signals */
+/* Set up alarm & ignore all possible signals. Ok so we shouldnt really ignore 
+   signals but I can't think of any usefull trap function to write. */
 reset_alarm();
 signal(SIGILL,SIG_IGN);
 signal(SIGTRAP,SIG_IGN);
@@ -288,13 +293,13 @@ while(1) {
 		accept_sock=accept(listen_sock,(struct sockaddr *)&acc_addr,&size);
 		more(-1,accept_sock,MOTD1); /* send first message of the day */
 		if (!sys_access) {
-			strcpy(mess,"\nSorry - the system is closed to further logins at the moment\n\n");
+			strcpy(mess,"\n\rSorry - the system is closed to further logins at the moment\n\n\r");
 			write(accept_sock,mess,strlen(mess));
 			close(accept_sock);
 			continue;
 			}
 		if ((new_user=find_free_slot())==-1) {
-			strcpy(mess,"\nSorry - we are full at the moment, try again later\n\n");
+			strcpy(mess,"\n\rSorry - we are full at the moment, try again later\n\n\r");
 			write(accept_sock,mess,strlen(mess));
 			close(accept_sock);
 			continue;
@@ -309,7 +314,7 @@ while(1) {
 
 		/* check ban */
 		if (banned(new_user)) {
-			strcpy(mess,"\nSorry - you're site is banned\n\n");
+			strcpy(mess,"\n\rSorry - you're site is banned\n\n\r");
 			write(accept_sock,mess,strlen(mess));  close(accept_sock);
 			continue;
 			}
@@ -318,7 +323,8 @@ while(1) {
 		ustr[new_user].last_input=time((time_t *)0);
 		ustr[new_user].logging_in=3;
 		ustr[new_user].attleft=3;
-		write_user(new_user,"\nGive me a name: ");
+		echo_on(user);
+		write_user(new_user,"\n\rGive me a name: ");
 		}
 
 	/** cycle through users **/
@@ -336,10 +342,33 @@ while(1) {
 			}
 		/* ignore control code replies */
 		if ((unsigned char)inpstr[0]==255) continue;
-		
-		/* misc. operations */
-		inpstr[len]=0;  /* needed if telnet does not send newline */
-		terminate(inpstr);
+
+		/* see if delete key pressed in char. mode */
+		if (inpstr[0]==8 || inpstr[0]==127) {
+			if (ustr[user].buffpos) {
+				ustr[user].buffpos--;  write_user(user,"\b \b");
+				ustr[user].buff[ustr[user].buffpos]=0;
+				}
+			continue;
+			}
+
+          /* copy input into buffer - allows line or char. mode clients */
+          for(l=0;l<len;++l) {
+               ustr[user].buff[ustr[user].buffpos+l]=inpstr[l];
+               if (inpstr[l]<32 || ustr[user].buffpos+l+2==ARR_SIZE) {
+                    if (ustr[user].buffpos) write_user(user,"\n\r");
+                    goto GOT_LINE;
+                    }
+               }
+          if (CHAR_MODE_ECHO && (!ustr[user].logging_in || ustr[user].logging_in==3 || PASSWORD_ECHO)) write(ustr[user].sock,inpstr,len);
+          ustr[user].buffpos=ustr[user].buffpos+l;
+          continue;
+
+          GOT_LINE:
+		/* copy buffer back into inpstr */
+		strcpy(inpstr,ustr[user].buff);
+          terminate(inpstr);
+          ustr[user].buff[0]=0;  ustr[user].buffpos=0;
 		ustr[user].last_input=time((time_t *)0);  /* ie now */
 		ustr[user].idle_mention=0;
 
@@ -384,7 +413,7 @@ while(1) {
 
 		/* send speech to speaker & everyone else in same area */
 		if (!instr(inpstr,"help")) 
-			write_user(user,"* Type '.help' for help *\n");
+			write_user(user,"* Type '.help' for help *\n\r");
 		say_speech(user,inpstr);
 		prompt(user);
 		}
@@ -408,8 +437,8 @@ switch(inpstr[strlen(inpstr)-1]) {
 sprintf(mess,"You %s: %s",type,inpstr);
 write_user(user,mess);
 if (!ustr[user].vis) 
-	sprintf(mess,"A ghostly voice %ss: %s\n",type,inpstr);
-else sprintf(mess,"%s %ss: %s\n",ustr[user].name,type,inpstr);
+	sprintf(mess,"A ghostly voice %ss: %s\n\r",type,inpstr);
+else sprintf(mess,"%s %ss: %s\n\r",ustr[user].name,type,inpstr);
 write_alluser(user,mess,0,0);
 record(mess,ustr[user].area);
 }
@@ -424,16 +453,16 @@ int mins,hours;
 time_t tm_num;
 char timestr[30];
 
-if (PROMPT) {
+if (ustr[user].prompt) {
 	time(&tm_num);
 	midcpy(ctime(&tm_num),timestr,11,15);
 	mins=((int)tm_num-ustr[user].time)/60;
 	hours=mins/60;  mins=mins%60;
-	sprintf(mess,"\n<%s,%02d:%02d>\n",timestr,hours,mins);
+	sprintf(mess,"\n\r<%s,%02d:%02d>\n\r",timestr,hours,mins);
 	write_user(user,mess);
 	return;
 	}
-write_user(user,"\n");
+write_user(user,"\n\r");
 }
 
 
@@ -458,6 +487,7 @@ int u;
 for (u=0;u<ARR_SIZE;++u)  {
 	if (*(str+u)<32) {  *(str+u)=0;  return;  } 
 	}
+str[u-1]=0;
 }
 
 
@@ -489,7 +519,7 @@ char *initerror="BOOT FAILED: Error in init file\n";
 int a;
 FILE *fp;
 
-printf("Reading area data from file ./%s/%s\n",DATADIR,INITFILE);
+printf("Reading init data from file ./%s/%s\n",DATADIR,INITFILE);
 sprintf(filename,"%s/%s",DATADIR,INITFILE);
 if (!(fp=fopen(filename,"r"))) {
 	perror("\nNUTS: Couldn't read init file");
@@ -534,7 +564,8 @@ for (u=0;u<MAX_USERS;++u) {
 	ustr[u].area=-1;  ustr[u].listen=1;
 	ustr[u].invite=-1;  ustr[u].level=0;
 	ustr[u].vis=1;  ustr[u].logging_in=0; 
-	ustr[u].sock=-1; 
+	ustr[u].buffpos=0;  ustr[u].sock=-1; 
+	ustr[u].buff[0]=0;
 	}
 
 for (a=0;a<NUM_AREAS;++a) {
@@ -601,16 +632,15 @@ switch(ustr[user].logging_in) {
 	case 1: check_pass(user,inpstr);  return;
 
 	case 2:
-	/* See if user entering password ... 
-   	Need '\r' 'cos on OSF/1 '\n' doesn't work properly when not echoing */
+	/* See if user entering password ... */
 	passwd[0]=0;
 	sscanf(inpstr,"%s",passwd);
 	if (strlen(passwd)>NAME_LEN-1) {
-		write_user(user,"\n\rPassword too long\n\r\n\r");  
+		write_user(user,"\n\rPassword too long\n\n\r");  
 		attempts(user);  return;
 		}
 	if (strlen(passwd)<4) {
-		write_user(user,"\n\rPassword too short\n\r\n\r");
+		write_user(user,"\n\rPassword too short\n\n\r");
 		attempts(user);  return;
 		}
 
@@ -629,7 +659,7 @@ switch(ustr[user].logging_in) {
 		fgets(line,80,fp);
 		sscanf(line,"%s %s",name2,passwd2);
 		if (!strcmp(ustr[user].login_name,name2) && strcmp(crypt(passwd,SALT),passwd2)) {
-			write_user(user,"\n\rIncorrect login\n\r\n\r");
+			write_user(user,"\n\rIncorrect login\n\n\r");
 			attempts(user); fclose(fp);  return; 
 			}
 		if (!strcmp(ustr[user].login_name,name2) && !strcmp(crypt(passwd,SALT),passwd2)) {
@@ -642,7 +672,7 @@ switch(ustr[user].logging_in) {
 	fclose(fp);
 	NEW_USER:
 	if (!allow_new) {
-		write_user(user,"Incorrect login\n\n");
+		write_user(user,"\n\rIncorrect login\r\n\n");
 		attempts(user);  return;
 		}
 	write_user(user,"\n\rNew user...\n\rPlease re-enter password: ");
@@ -662,29 +692,35 @@ switch(ustr[user].logging_in) {
 		ustr[user].level=GOD;  return;
 		}
 	if (!strcmp(name,"quit")) {
-		write_user(user,"\nAbandoning login attempt\n\n");
+		write_user(user,"\n\rAbandoning login attempt\n\n\r");
 		user_quit(user);  return;
 		}
+	/* This allows someone to see who's on from the login prompt so they 
+	   needn't bother to log in if their mates arn't on. I think its a nice
+	   idea, you may find it intrusive , remove it if you must */
+	if (!strcmp(name,"who")) {
+		who(user,0);  write_user(user,"\n\rGive me a name: ");  return;
+		}
 	if (name[0]<32 || !strlen(name)) {
-		write_user(user,"Give me a name: ");  return;
+		write_user(user,"\n\rGive me a name: ");  return;
 		}
 	if (strlen(name)<3) {
-		write_user(user,"Name too short\n\n");
+		write_user(user,"Name too short\n\n\r");
 		attempts(user);  return;
 		}
 	if (strlen(name)>NAME_LEN-1) {
-		write_user(user,"Name too long\n\n");
+		write_user(user,"Name too long\n\n\r");
 		attempts(user);  return;
 		}
 	if (!strcmp(name,"Someone") || !strcmp(name,"someone")) {
-		write_user(user,"That name cannot be used\n\n");
+		write_user(user,"That name cannot be used\n\n\r");
 		attempts(user);  return;
 		}
 	
 	/* see if only letters in login */
 	for (f=0;f<strlen(name);++f) {
 		if (!isalpha(name[f])) {
-			write_user(user,"Only letters are allowed in login name\n\n");
+			write_user(user,"Only letters are allowed in login name\n\n\r");
 			attempts(user);  return;
 			}
 		}
@@ -707,13 +743,13 @@ char passwd[ARR_SIZE];
 
 sscanf(inpstr,"%s",passwd);
 if (strcmp(ustr[user].login_pass,passwd)) {
-	write_user(user,"\n\rPasswords do not match\n\r\n\r");
+	write_user(user,"\n\rPasswords do not match\n\n\r");
 	ustr[user].login_pass[0]=0;
 	attempts(user);  return;
 	}
 if (!(fp=fopen(PASSFILE,"a"))) {
 	echo_on(user);
-	sprintf(mess,"\n%s : can't add you to password file\n\n",syserror);
+	sprintf(mess,"\n\r%s : can't add you to password file\n\n\r",syserror);
 	write_user(user,mess);
 	write_syslog("ERROR: Couldn't open password file to append in check_pass()\n",0);
 	user_quit(user);
@@ -735,7 +771,7 @@ int user;
 {
 echo_on(user);
 if (!--ustr[user].attleft) {
-	write_user(user,"\nMaximum attempts reached...\n\n");
+	write_user(user,"\n\rMaximum attempts reached...\n\n\r");
 	user_quit(user); 
 	return;
 	}
@@ -845,7 +881,7 @@ timestr[0]=0;
 
 /* see if already logged on */
 if ((u=get_user_num(ustr[user].login_name))!=-1 && u!=user) {
-	write_user(user,"\nYou are already signed on - switching to old session\n\n");
+	write_user(user,"\n\rYou are already signed on - switching to old session\n\n\r");
 	/* switch user instances */
 	close(ustr[u].sock);
 	ustr[u].sock=ustr[user].sock;
@@ -869,6 +905,7 @@ ustr[user].last_input=time((time_t *)0);
 ustr[user].logging_in=0;
 ustr[user].file_posn=0;
 ustr[user].pro_enter=0;
+ustr[user].prompt=1;
 num_of_users++;
 
 /* Set socket to non-blocking. Not really needed but it does no harm. */
@@ -895,18 +932,18 @@ else {
 
 /* send intro stuff */
 if (PASSWORD_ECHO) {
-	for(i=0;i<6;++i) write_user(user,"\n\n\n\n\n\n\n\n\n\n");
+	for(i=0;i<6;++i) write_user(user,"\n\n\n\n\n\n\n\n\n\n\r");
 	}
 switch(ustr[user].level) {
-	case NEWBIE: 
-	case USER  : type[0]=0;  break;
+	case NEWBIE: strcpy(type,"newbie ");  break;
+	case USER  : strcpy(type,"user ");  break;
 	case WIZARD: strcpy(type,"wizard ");  break;
 	case GOD   : strcpy(type,"god ");
 	}
-sprintf(mess,"\n\n\nWelcome %s%s\n\n",type,ustr[user].name);
+sprintf(mess,"\n\n\n\rWelcome %s%s\n\n\r",type,ustr[user].name);
 write_user(user,mess);
 if (timestr[0]) {
-	sprintf(mess,"Last logged in on %s from %s\n",timestr,sitestr);
+	sprintf(mess,"Last logged in on %s from %s\n\r",timestr,sitestr);
 	write_user(user,mess);
 	}
 /* send 2nd message of the day */
@@ -916,14 +953,14 @@ more(-1,ustr[user].sock,MOTD2);
 sprintf(filename,"%s/%s.M",USERDATADIR,ustr[user].name);
 look(user);
 if (fp=fopen(filename,"r")) {
-	write_user(user,"\n** YOU HAVE MAIL **");
+	write_user(user,"\n\r** YOU HAVE MAIL **");
 	fclose(fp);
 	}
 prompt(user);
 
 /* send message to other users and to file */
 if (ustr[user].name[0]!='?') {
-	sprintf(mess,"SIGN ON: %s %s\n",ustr[user].name,ustr[user].desc);
+	sprintf(mess,"SIGN ON: %s %s\n\r",ustr[user].name,ustr[user].desc);
 	write_alluser(user,mess,1,0);
 	sprintf(mess,"%s signed on from %s\n",ustr[user].name,ustr[user].site);
 	write_syslog(mess,1);
@@ -938,7 +975,7 @@ more(user,socket,filename)
 int user,socket;
 char *filename;
 {
-int num_chars=0,lines=0,retval=1;
+int i,num_chars=0,lines=0,retval=1;
 FILE *fp;
 if (!(fp=fopen(filename,"r"))) {
 	ustr[user].file_posn=0;  return 0;
@@ -951,7 +988,10 @@ mess[0]=0;
 while(!feof(fp) && lines<23) {
 	lines+=strlen(mess)/80+1;
 	num_chars+=strlen(mess);
-	write(socket,mess,strlen(mess));
+	for (i=0;i<strlen(mess);++i) {
+		if (mess[i]=='\n') write(socket,"\n\r",2);
+		else write(socket,&mess[i],1);
+		}
 	fgets(mess,sizeof(mess)-1,fp);
 	}
 if (user==-1) goto SKIP;
@@ -1175,7 +1215,7 @@ switch(com_num) {
 			return;
 			}
 		write_user(user,"You listen to the gossip");
-		sprintf(mess,"%s is now listening\n",ustr[user].name);
+		sprintf(mess,"%s is now listening\n\r",ustr[user].name);
 		write_alluser(user,mess,0,0);
 		ustr[user].listen=1;  break;
 	case 5 : 
@@ -1184,7 +1224,7 @@ switch(com_num) {
 			return;
 			}
 		write_user(user,"You ignore the dull gossip");
-		sprintf(mess,"%s is ignoring everyone\n",ustr[user].name);
+		sprintf(mess,"%s is ignoring everyone\n\r",ustr[user].name);
 		write_alluser(user,mess,0,0);
 		ustr[user].listen=0;  break;
 	case 6 : look(user);  break;
@@ -1209,77 +1249,82 @@ switch(com_num) {
 	case 25: help(user,inpstr);  break;
 	case 26: broadcast(user,inpstr);  break;
 	case 27: 
-		write_user(user,"\n*** News ***\n\n");
+		write_user(user,"\n\r*** News ***\n\n\r");
 		if (!more(user,ustr[user].sock,NEWSFILE)) 
 			write_user(user,"There is no news today");
 		break;
 	case 28: system_status(user);  break;
 	case 29: move(user,inpstr);  break;
-	case 30: system_access(user,0);  break;  /* close */
-	case 31: system_access(user,1);  break;  /* open */
-	case 32: 
+	case 30:
+		if (sys_access) {
+     		write_area(-1,"*** System is now closed to further logins ***\n\r");
+			sprintf(mess,"%s CLOSED the system\n",ustr[user].name);
+			write_syslog(mess,1);  sys_access=0;  break;
+     		}
+		write_area(-1,"*** System is now open to further logins ***\n\r");
+		sprintf(mess,"%s OPENED the system\n",ustr[user].name);
+		write_syslog(mess,1);  sys_access=1;  break;
+	case 31: 
 		if (syslog_on) {
-			write_user(user,"System logging is already on");  break;
+			write_user(user,"System logging OFF");
+			sprintf(mess,"%s turned logging OFF\n",ustr[user].name);
+			write_syslog(mess,1);  syslog_on=0;  break;
 			}
-		write_user(user,"System logging ON");
-		syslog_on=1;  break;
-	case 33: 
-		if (!syslog_on) {
-			write_user(user,"System logging is already off");  break;
-			}
-		write_user(user,"System logging OFF");
-		syslog_on=0;  break;
-	case 34: 
+		write_user(user,"System logging ON");  syslog_on=1;
+		sprintf(mess,"%s turned logging ON\n",ustr[user].name);
+		write_syslog(mess,1);  break;
+	case 32: 
 		if (atmos_on) {
-			write_user(user,"Atmospherics are already on");  break;
+			write_user(user,"Atmospherics OFF");  atmos_on=0; 
+			sprintf(mess,"%s turned atmospherics OFF\n",ustr[user].name);
+			write_syslog(mess,1);  break;
 			}
 		write_user(user,"Atmospherics ON");
-		atmos_on=1;  break;
+		sprintf(mess,"%s turned atmospherics ON\n",ustr[user].name);
+		write_syslog(mess,1);  atmos_on=1;  break;
+	case 33: echo(user,inpstr);  break;
+	case 34: set_desc(user,inpstr);  break;
 	case 35: 
-		if (!atmos_on) {
-			write_user(user,"Atmospherics are already off");  break;
-			}
-		write_user(user,"Atmospherics OFF");
-		atmos_on=0;  break;
-	case 36: echo(user,inpstr);  break;
-	case 37: set_desc(user,inpstr);  break;
-	case 38: 
 		if (allow_new) {
-			write_user(user,"New users are already allowed");  break;
+			write_user(user,"New users DISALLOWED");  allow_new=0;
+			sprintf(mess,"%s DISALLOWED new users\n",ustr[user].name);
+			write_syslog(mess,1);  break;
 			}
 		write_user(user,"New users ALLOWED");
-		allow_new=1;  break;
-	case 39:
-		if (!allow_new) {
-			write_user(user,"New users are already disallowed");  break;
-			}
-		 write_user(user,"New users DISALLOWED");
-		 allow_new=0;  break;
-	case 40: 
+		sprintf(mess,"%s ALLOWED new users\n",ustr[user].name);
+		write_syslog(mess,1); allow_new=1;  break;
+	case 36: 
 		sprintf(mess,"NUTS version %s",VERSION);
 		write_user(user,mess);  break;
-	case 41: enter_pro(user,inpstr);  break;
-	case 42: exa_pro(user,inpstr);  break;
-	case 43: who(user,1);  break;  /* people */
-	case 44: dmail(user,inpstr);  break;
-	case 45: rmail(user);  break;
-	case 46: smail(user,inpstr);  break;
-	case 47: wake(user,inpstr);  break;
-	case 48: promote(user,inpstr);  break;
-	case 49: demote(user,inpstr);  break;
-	case 50:
+	case 37: enter_pro(user,inpstr);  break;
+	case 38: exa_pro(user,inpstr);  break;
+	case 39: who(user,1);  break;  /* people */
+	case 40: dmail(user,inpstr);  break;
+	case 41: rmail(user);  break;
+	case 42: smail(user,inpstr);  break;
+	case 43: wake(user,inpstr);  break;
+	case 44: promote(user,inpstr);  break;
+	case 45: demote(user,inpstr);  break;
+	case 46:
 		if (!more(user,ustr[user].sock,MAPFILE)) 
 			write_user(user,"There is no map");
 		break;
-	case 51: change_pass(user,inpstr);  break;
-	case 52: pemote(user,inpstr);  break;
-	case 53: semote(user,inpstr);  break;
-	case 54: bansite(user,inpstr);  break;
-	case 55: unbansite(user,inpstr);  break;
-	case 56: /* listbans */
-		write_user(user,"\n*** Banned sites ***\n\n");
+	case 47: change_pass(user,inpstr);  break;
+	case 48: pemote(user,inpstr);  break;
+	case 49: semote(user,inpstr);  break;
+	case 50: bansite(user,inpstr);  break;
+	case 51: unbansite(user,inpstr);  break;
+	case 52: /* listbans */
+		write_user(user,"\n\r*** Banned sites ***\n\n\r");
 		more(user,ustr[user].sock,BANFILE);
 		break;
+	case 53:
+		if (ustr[user].prompt) {
+			write_user(user,"Prompt OFF");  
+			ustr[user].prompt=0;  break;
+			}
+		write_user(user,"Prompt ON");
+		ustr[user].prompt=1;  break;
 	default: write_user(user,"Command not executed"); break;
 	}
 }
@@ -1303,23 +1348,23 @@ if (ustr[user].logging_in) {
 	}
 /* save stats */
 if (!save_stats(user)) {
-	sprintf(mess,"%s : Couldn't save your stats\n",syserror);
+	sprintf(mess,"%s : Couldn't save your stats\n\r",syserror);
 	write_user(user,mess);
 	sprintf(mess,"ERROR: Couldn't save %s's stats in user_quit()\n",ustr[user].name);
 	write_syslog(mess,0);
 	}
-write_user(user,"\nSigning off...\n\n"); 
+write_user(user,"\n\rSigning off...\n\n\r"); 
 close(ustr[user].sock);
 
 /* send message to other users & conv file  & reset some vars */
 if (ustr[user].name[0]!='?') {
-	sprintf(mess,"SIGN OFF: %s %s\n",ustr[user].name,ustr[user].desc);
+	sprintf(mess,"SIGN OFF: %s %s\n\r",ustr[user].name,ustr[user].desc);
 	write_alluser(user,mess,1,0);
-	sprintf(mess,"%s signed off\n",ustr[user].name);
+	sprintf(mess,"%s signed off\n\r",ustr[user].name);
 	write_syslog(mess,1);
 	}
 if (astr[area].private && astr[area].status!=2 && find_num_in_area(area)<=PRINUM) {
-	write_alluser(user,"Area access returned to public\n",0,0);
+	write_alluser(user,"Area access returned to public\n\r",0,0);
 	astr[area].private=0;
 	}
 num_of_users--;
@@ -1338,21 +1383,17 @@ who(user,people)
 int user,people;
 {
 int u,tm,idle,min,invis=0;
-char yesno[2][4],timestr[30],levstr[4][7];
-char temp[80];
-
-/* This is done instead of char *yesno[]= so it will compile with HP-UX cc */
-strcpy(yesno[0]," NO");  strcpy(yesno[1],"YES");
-strcpy(levstr[0],"NEWBIE");  strcpy(levstr[1],"USER");
-strcpy(levstr[2],"WIZARD");  strcpy(levstr[3],"GOD");
+char *yesno[]={ "NO","YES" };
+char *levstr[]={ "NEWBIE","USER","WIZARD","GOD" };
+char timestr[30],temp[80];
 
 /* display current time */
 time(&tm);
 strcpy(timestr,ctime(&tm));
 timestr[strlen(timestr)-1]=0;
-sprintf(mess,"\n*** Current users on %s ***\n\n",timestr);
+sprintf(mess,"\n\r*** Current users on %s ***\n\n\r",timestr);
 write_user(user,mess);
-if (people) write_user(user,"Name            : Lev     Line  Lstn  Vis  Idle  Mins  Site\n\n");
+if (people) write_user(user,"Name            : Lev     Line  Lstn  Vis  Idle  Mins  Site\n\n\r");
 
 /* display user list */
 for (u=0;u<MAX_USERS;++u) {
@@ -1361,24 +1402,24 @@ for (u=0;u<MAX_USERS;++u) {
 		min=(tm-ustr[u].time)/60;
 		idle=(tm-ustr[u].last_input)/60;
 		if (people) {
-			sprintf(mess,"%-15s : %-7s  %3d   %s  %s   %3d   %3d  %s\n",ustr[u].name,levstr[ustr[u].level],ustr[u].sock,yesno[ustr[u].listen],yesno[ustr[u].vis],idle,min,ustr[u].site);
+			sprintf(mess,"%-15s : %-7s  %3d   %s  %s   %3d   %3d  %s\n\r",ustr[u].name,levstr[ustr[u].level],ustr[u].sock,yesno[ustr[u].listen],yesno[ustr[u].vis],idle,min,ustr[u].site);
 			}
 		else {
 			sprintf(temp,"%s %s",ustr[u].name,ustr[u].desc);
-			sprintf(mess,"%-40s : %-7s : %s : %d mins.\n",temp,levstr[ustr[u].level],astr[ustr[u].area].name,min);
+			sprintf(mess,"%-40s : %-7s : %s : %d mins.\n\r",temp,levstr[ustr[u].level],astr[ustr[u].area].name,min);
 			}
 		write_user(user,mess);
 		}
 	if (ustr[u].area==-1 && ustr[u].logging_in && people) {
-		sprintf(mess,"LOGIN from %s on line %d\n",ustr[u].site,ustr[u].sock);	
+		sprintf(mess,"LOGIN from %s on line %d\n\r",ustr[u].site,ustr[u].sock);	
 		write_user(user,mess);
 		}
 	}
 if (invis) {
-	sprintf(mess,"\nThere are %d users invisible to you",invis);
+	sprintf(mess,"\n\rThere are %d users invisible to you",invis);
 	write_user(user,mess);
 	}
-sprintf(mess,"\nTotal of %d users signed on\n",num_of_users);
+sprintf(mess,"\n\rTotal of %d users signed on\n\r",num_of_users);
 write_user(user,mess);
 }
 
@@ -1392,9 +1433,9 @@ char *inpstr;
 if (!inpstr[0]) {
 	write_user(user,"Shout what?");  return;
 	}
-sprintf(mess,"%s shouts: %s\n",ustr[user].name,inpstr);
+sprintf(mess,"%s shouts: %s\n\r",ustr[user].name,inpstr);
 if (!ustr[user].vis)
-	sprintf(mess,"Someone shouts: %s\n",inpstr);
+	sprintf(mess,"Someone shouts: %s\n\r",inpstr);
 write_alluser(user,mess,1,0);
 sprintf(mess,"You shout: %s",inpstr);
 write_user(user,mess);
@@ -1436,21 +1477,21 @@ switch(inpstr[strlen(inpstr)-1]) {
 	case '?':
 		sprintf(mess,"You ask %s: %s",ustr[user2].name,inpstr);
 		write_user(user,mess);
-		sprintf(mess,"%s asks you: %s\n",name,inpstr);
+		sprintf(mess,"%s asks you: %s\n\r",name,inpstr);
 		write_user(user2,mess);   break;
 	case '!':
 		sprintf(mess,"You exclaim to %s: %s",ustr[user2].name,inpstr);
 		write_user(user,mess);
-		sprintf(mess,"%s exclaims to you: %s\n",name,inpstr);
+		sprintf(mess,"%s exclaims to you: %s\n\r",name,inpstr);
 		write_user(user2,mess);   break; 
 	default:
 		sprintf(mess,"You tell %s: %s",ustr[user2].name,inpstr);
 		write_user(user,mess);
-		sprintf(mess,"%s tells you: %s\n",name,inpstr);
+		sprintf(mess,"%s tells you: %s\n\r",name,inpstr);
 		write_user(user2,mess);
 	}
 if (ustr[user].vis && ustr[user2].vis && ustr[user].area==ustr[user2].area) {
-	sprintf(mess,"%s whispers something to %s\n",name,ustr[user2].name);
+	sprintf(mess,"%s whispers something to %s\n\r",name,ustr[user2].name);
 	temp=ustr[user2].area;
 	ustr[user2].area=-1;
 	write_alluser(user,mess,0,0);
@@ -1468,7 +1509,7 @@ int f,u,area,occupied=0;
 char filename[80];
 
 area=ustr[user].area;
-sprintf(mess,"\nArea: %s\n\n",astr[area].name);
+sprintf(mess,"\n\rArea: %s\n\n\r",astr[area].name);
 write_user(user,mess);
 
 /* open and read area description file */
@@ -1476,25 +1517,25 @@ sprintf(filename,"%s/%s",DATADIR,astr[area].name);
 more(user,ustr[user].sock,filename);
 
 /* show exits from area */
-write_user(user,"\nExits are:  ");
+write_user(user,"\n\rExits are:  ");
 for (f=0;f<strlen(astr[area].move);++f) {
 	write_user(user,astr[astr[area].move[f]-65].name);
 	write_user(user,"  ");
 	}
 	
-write_user(user,"\n\n");
+write_user(user,"\n\n\r");
 for (u=0;u<MAX_USERS;++u) {
 	if (ustr[u].area!=area || u==user || !ustr[u].vis) continue;
-	if (!occupied) write_user(user,"You can see:\n");
-	sprintf(mess,"	 %s %s\n",ustr[u].name,ustr[u].desc);
+	if (!occupied) write_user(user,"You can see:\n\r");
+	sprintf(mess,"	 %s %s\n\r",ustr[u].name,ustr[u].desc);
 	write_user(user,mess);
 	occupied++;	
 	}
-if (!occupied) write_user(user,"You are alone here\n");
-write_user(user,"\nThe area is set to ");
-if (astr[ustr[user].area].private) write_user(user,"private\n");
-	else write_user(user,"public\n");
-sprintf(mess,"There are %d messages on the board\n",astr[area].mess_num);
+if (!occupied) write_user(user,"You are alone here\n\r");
+write_user(user,"\n\rThe area is set to ");
+if (astr[ustr[user].area].private) write_user(user,"private\n\r");
+	else write_user(user,"public\n\r");
+sprintf(mess,"There are %d messages on the board\n\r",astr[area].mess_num);
 write_user(user,mess);
 if (!strlen(astr[area].topic)) 
 	write_user(user,"There is no current topic here");
@@ -1560,19 +1601,19 @@ if (astr[new_area].private && ustr[user].invite!=new_area && ustr[user].level<WI
 
 /* output to old area */
 if (teleport && ustr[user].vis) { 
-	sprintf(mess,"%s disappears in a puff of magic!\n",ustr[user].name);
+	sprintf(mess,"%s disappears in a puff of magic!\n\r",ustr[user].name);
 	write_alluser(user,mess,0,0);
 	}
 if (!teleport && ustr[user].vis) {
-	sprintf(mess,"%s goes to the %s\n",ustr[user].name,astr[new_area].name);
+	sprintf(mess,"%s goes to the %s\n\r",ustr[user].name,astr[new_area].name);
 	write_alluser(user,mess,0,0);
 	}
 /* gods dont show any entry message, wizards show this */
 if (!ustr[user].vis && ustr[user].level==WIZARD) {
-	write_alluser(user,"Some magic disturbs the air\n",0,0);
+	write_alluser(user,"Some magic disturbs the air\n\r",0,0);
 	}
 if (astr[area].private && astr[area].status!=2 && find_num_in_area(area)<=PRINUM) {
-	write_alluser(user,"Area access returned to public\n",0,0);
+	write_alluser(user,"Area access returned to public\n\r",0,0);
 	astr[area].private=0;
 	}
 
@@ -1581,10 +1622,10 @@ if (astr[area].private && astr[area].status!=2 && find_num_in_area(area)<=PRINUM
 ustr[user].area=new_area;
 if (!ustr[user].vis) {
 	if (ustr[user].level==WIZARD) 
-		write_alluser(user,"Some magic disturbs the air\n",0,0);
+		write_alluser(user,"Some magic disturbs the air\n\r",0,0);
 	}
 else {
-	sprintf(mess,"%s %s\n",ustr[user].name,entmess);
+	sprintf(mess,"%s %s\n\r",ustr[user].name,entmess);
 	write_alluser(user,mess,0,0);
 	}
 
@@ -1607,14 +1648,14 @@ if (!astr[new_area].private) {
 	}
 sprintf(mess,"You shout into the %s asking to be let in!",astr[new_area].name);
 write_user(user,mess);
-sprintf(mess,"%s shouts asking to be let in!\n",ustr[user].name);
-if (!ustr[user].vis) sprintf(mess,"Someone shouts asking to be let in!n");
+sprintf(mess,"%s shouts asking to be let in!\n\r",ustr[user].name);
+if (!ustr[user].vis) sprintf(mess,"Someone shouts asking to be let in!\n\r");
 write_area(new_area,mess);
 
 /* send message to users in current area */
 if (!ustr[user].vis) strcpy(name,"Someone");
 else strcpy(name,ustr[user].name);
-sprintf(mess,"%s shouts into the %s asking to be let in!\n",name,astr[new_area].name);
+sprintf(mess,"%s shouts into the %s asking to be let in!\n\r",name,astr[new_area].name);
 write_alluser(user,mess,0,0);
 }
 
@@ -1626,11 +1667,9 @@ int user,priv;
 {
 int area;
 char *noset="This areas access can't be changed";
-char pripub[2][8];
+char *pripub[]={ "public","private" };
 
 area=ustr[user].area;
-strcpy(pripub[0],"public");
-strcpy(pripub[1],"private");
 
 /* see if areas access can be set */
 if (astr[area].status) {
@@ -1646,9 +1685,9 @@ if (priv==astr[area].private) {
 /* set to public */
 if (!priv) {
 	write_user(user,"Area now set to public");
-	sprintf(mess,"%s has set the area to public\n",ustr[user].name);
+	sprintf(mess,"%s has set the area to public\n\r",ustr[user].name);
 	if (!ustr[user].vis) 
-		sprintf(mess,"Someone has set the area to public\n");
+		sprintf(mess,"Someone has set the area to public\n\r");
 	write_alluser(user,mess,0,0);
 	astr[area].private=0;
 	return;
@@ -1661,9 +1700,9 @@ if (find_num_in_area(area)<PRINUM && ustr[user].level<WIZARD) {
 	return;
 	};
 write_user(user,"Area now set to private");
-sprintf(mess,"%s has set the area to private\n",ustr[user].name);
+sprintf(mess,"%s has set the area to private\n\r",ustr[user].name);
 if (!ustr[user].vis)
-	sprintf(mess,"Someone has set the area to private\n");
+	sprintf(mess,"Someone has set the area to private\n\r");
 write_alluser(user,mess,0,0);
 astr[area].private=1;
 }
@@ -1703,8 +1742,8 @@ if (ustr[u].area==ustr[user].area) {
 	}
 write_user(user,"Ok");
 if (!ustr[user].vis) 
-	sprintf(mess,"Someone has invited you to the %s\n",astr[area].name);
-else sprintf(mess,"%s has invited you to the %s\n",ustr[user].name,astr[area].name);
+	sprintf(mess,"Someone has invited you to the %s\n\r",astr[area].name);
+else sprintf(mess,"%s has invited you to the %s\n\r",ustr[user].name,astr[area].name);
 write_user(u,mess);
 ustr[u].invite=area;
 }
@@ -1724,7 +1763,7 @@ else sprintf(mess,"%s %s",ustr[user].name,inpstr);
 
 /* write & record output */
 write_user(user,mess);
-strcat(mess,"\n");
+strcat(mess,"\n\r");
 write_alluser(user,mess,0,0);
 record(mess,ustr[user].area);
 }
@@ -1736,23 +1775,20 @@ areas(user)
 int user;
 {
 int area;
-char pripub[2][8],yesno[2][4];
+char *pripub[]={ "public","private" };
+char *yesno[]={ "NO","YES" };
 
-/* strcpy used for the benefit of the HP-UX compiler */
-strcpy(pripub[0],"public");  strcpy(pripub[1],"private");
-strcpy(yesno[0],"NO");  strcpy(yesno[1],"YES");
-
-write_user(user,"\nArea name        : Pri/pub Fixed Usrs Msgs     Topic\n\n");
+write_user(user,"\n\rArea name        : Pri/pub Fixed Usrs Msgs     Topic\n\n\r");
 for (area=0;area<NUM_AREAS;++area) {
 	sprintf(mess,"%-15s  : %-7s   %3s   %2d  %3d   ",astr[area].name,pripub[astr[area].private],yesno[(astr[area].status>0)],find_num_in_area(area),astr[area].mess_num);
 	if (!strlen(astr[area].topic)) strcat(mess,"<no topic>");
 	else strcat(mess,astr[area].topic);
-	strcat(mess,"\n");
+	strcat(mess,"\n\r");
 	mess[0]=toupper(mess[0]);
 	write_user(user,mess);
 	}
 
-sprintf(mess,"\nTotal of %d areas\n",NUM_AREAS);
+sprintf(mess,"\n\rTotal of %d areas\n\r",NUM_AREAS);
 write_user(user,mess);
 }
 
@@ -1789,9 +1825,9 @@ fclose(fp);
 
 /* send output */
 write_user(user,"You write the message on the board");
-sprintf(mess,"%s writes a message on the board\n",ustr[user].name);
+sprintf(mess,"%s writes a message on the board\n\r",ustr[user].name);
 if (!ustr[user].vis) 
-	sprintf(mess,"A ghostly hand writes a message on the board\n");
+	sprintf(mess,"A ghostly hand writes a message on the board\n\r");
 write_alluser(user,mess,0,0);
 astr[ustr[user].area].mess_num++;
 }
@@ -1806,15 +1842,15 @@ char filename[30];
 
 /* send output to user */
 sprintf(filename,"%s/board%d",MESSDIR,ustr[user].area);
-sprintf(mess,"\n*** The %s message board ***\n\n",astr[ustr[user].area].name);
-mess[8]=toupper(mess[8]);
+sprintf(mess,"\n\r*** The %s message board ***\n\n\r",astr[ustr[user].area].name);
+mess[10]=toupper(mess[10]);
 write_user(user,mess);
 
 if (!more(user,ustr[user].sock,filename) || !astr[ustr[user].area].mess_num) 
-	write_user(user,"There are no messages on the board\n");
+	write_user(user,"There are no messages on the board\n\r");
 
 /* send output to others */
-sprintf(mess,"%s reads the message board\n",ustr[user].name);
+sprintf(mess,"%s reads the message board\n\r",ustr[user].name);
 if (ustr[user].vis) write_alluser(user,mess,0,0);
 }
 
@@ -1874,9 +1910,9 @@ astr[ustr[user].area].mess_num-=lines;
 
 /* print messages */
 write_user(user,"Ok");
-sprintf(mess,"%s wipes some messages from the board\n",ustr[user].name);
+sprintf(mess,"%s wipes some messages from the board\n\r",ustr[user].name);
 if (!ustr[user].vis)
-	sprintf(mess,"The message board has messages wiped from it\n");
+	sprintf(mess,"A ghostly hand wipes some messages from the board\n\r");
 write_alluser(user,mess,0,0);
 }
 
@@ -1929,9 +1965,9 @@ strcpy(astr[ustr[user].area].topic,inpstr);
 /* send output to users */
 sprintf(mess,"Topic set to %s",inpstr);
 write_user(user,mess);
-sprintf(mess,"%s has set the topic to %s\n",ustr[user].name,inpstr);
+sprintf(mess,"%s has set the topic to %s\n\r",ustr[user].name,inpstr);
 if (!ustr[user].vis)
-	sprintf(mess,"Someone set the topic to %s\n",inpstr);
+	sprintf(mess,"Someone set the topic to %s\n\r",inpstr);
 write_alluser(user,mess,0,0);
 }
 
@@ -1951,12 +1987,12 @@ if (!ustr[user].vis && !vis) {
 ustr[user].vis=vis;
 if (vis) {
 	write_user(user,"POP! You reappear!");
-	sprintf(mess,"POP! %s materialises in the area!\n",ustr[user].name);
+	sprintf(mess,"POP! %s materialises in the area!\n\r",ustr[user].name);
 	write_alluser(user,mess,0,0);
 	}
 else   { 
 	write_user(user,"You fade, shimmer and vanish...");
-	sprintf(mess,"%s fades, shimmers and vanishes!\n",ustr[user].name);
+	sprintf(mess,"%s fades, shimmers and vanishes!\n\r",ustr[user].name);
 	write_alluser(user,mess,0,0);
 	}
 }
@@ -1988,22 +2024,21 @@ if (victim==user) {
 /* can't kill god */
 if (ustr[victim].level==GOD) {
 	write_user(user,"That wouldn't be wise....");
-	sprintf(mess,"%s thought about killing you\n",ustr[user].name);
+	sprintf(mess,"%s thought about killing you\n\r",ustr[user].name);
 	write_user(victim,mess);
 	return;
 	}
 
 /* record killing */
-sprintf(mess,"%s KILLED %s\n",ustr[user].name,ustr[victim].name);
+sprintf(mess,"%s KILLED %s\n\r",ustr[user].name,ustr[victim].name);
 write_syslog(mess,1);
 
 /* kill user */
-sprintf(mess,"A bolt of white lighting streaks from the heavens and blasts %s!!\n",ustr[victim].name);
+sprintf(mess,"A bolt of white lighting streaks from the heavens and blasts %s!!\n\r",ustr[victim].name);
 write_alluser(victim,mess,0,0);
-write_user(victim,"A bolt of white lighting streaks from the heavens and blasts you!!\n");
-write_user(victim,"You have been removed from this reality...\n");
+write_user(victim,"A bolt of white lighting streaks from the heavens and blasts you!!\n\rYou have been removed from this reality...\n\r");
 user_quit(victim);
-write_area(-1,"There is a rumble of thunder\n");
+write_area(-1,"There is a rumble of thunder\n\r");
 write_user(user,"Ok");
 }
 
@@ -2017,19 +2052,19 @@ int u;
 char name[NAME_LEN];
 
 if (shutd==-1) {
-	write_user(user,"\nAre you sure about this (y/n)? ");
+	write_user(user,"\n\rAre you sure about this (y/n)? ");
 	shutd=user; noprompt=1;
 	return;
 	}
 
-write_user(user,"Quitting users...\n");
+write_user(user,"Quitting users...\n\r");
 for (u=0;u<MAX_USERS;++u) {
 	if (ustr[u].area==-1 || u==user) continue;
-	write_user(u,"\n*** Talker shutting down ***\n\n");
+	write_user(u,"\n\r*** Talker shutting down ***\n\r");
 	user_quit(u);
 	}
 
-write_user(user,"Now quitting you...\n\n*** Goodbye from NUTS ***\n");
+write_user(user,"\n\rNow quitting you...\n\n\r*** Goodbye from NUTS ***\n\r");
 strcpy(name,ustr[user].name);
 user_quit(user);
 sprintf(mess,"*** Talker SHUTDOWN by %s on %s ***\n",name,timeline(1));
@@ -2065,7 +2100,7 @@ for (b=0;b<NUM_AREAS;++b) {
 		if (instr(line,word)==-1) {
 			fgets(line,300,fp);  continue;
 			}
-		sprintf(mess,"%s : %s",astr[b].name,line);
+		sprintf(mess,"%s : %s\r",astr[b].name,line);
 		mess[0]=toupper(mess[0]);
 		write_user(user,mess);	
 		++occured;
@@ -2075,7 +2110,7 @@ for (b=0;b<NUM_AREAS;++b) {
 	}
 if (!occured) write_user(user,"No occurences found");
 else {
-	sprintf(mess,"\n%d occurences found\n",occured);
+	sprintf(mess,"\n\r%d occurences found\n\r",occured);
 	write_user(user,mess);
 	}
 }
@@ -2103,6 +2138,7 @@ int user;
 char *inpstr;
 {
 int com,nl=0;
+char *levstr[]={ "NEWBIE","USER","WIZARD","GOD" };
 char filename[ARR_SIZE],word[ARR_SIZE],word2[ARR_SIZE];
 
 /* help for one command */
@@ -2116,8 +2152,7 @@ if (strlen(inpstr)) {
 		}
 	sprintf(word2,".%s\n",word);
 	if (get_com_num(word2)==-1) {
-		write_user(user,"There is no such command");
-		return;
+		write_user(user,"There is no such command");  return;
 		}
 	sprintf(filename,"%s/%s",HELPDIR,word);
 	if (!more(user,ustr[user].sock,filename)) 
@@ -2126,22 +2161,18 @@ if (strlen(inpstr)) {
 	}
 
 /* general help */
-write_user(user,"\n*** Commands available ***\n\n");
+sprintf(mess,"\n\r*** Commands available for user level %s ***\n\n\r",levstr[ustr[user].level]);
+write_user(user,mess);
 com=0;
 while(command[com][0]!='*') {
-	sprintf(mess,"%-10s ",command[com]);
-	mess[0]=' ';
-	if (ustr[user].level<com_level[com]) { 
-		++com;  continue; 
-		}
+	if (ustr[user].level<com_level[com]) { ++com;  continue; }
+	sprintf(mess,"%-10s ",command[com]);  mess[0]=' ';
 	write_user(user,mess);
 	++nl; ++com;
-	if (nl==5) {  
-		write_user(user,"\n");  nl=0;  
-		}
+	if (nl==5) {  write_user(user,"\n\r");  nl=0; }
 	}
-write_user(user,"\n\nAll commands start with a '.' and can be abbreviated.\n");
-write_user(user,"For further help type  .help <command> or .help general for general help.\n");
+write_user(user,"\n\n\rAll commands start with a '.' and can be abbreviated.\n\r");
+write_user(user,"For further help type  .help <command> or .help general for general help.\n\r");
 }
 
 
@@ -2154,7 +2185,7 @@ char *inpstr;
 if (!inpstr[0]) {
 	write_user(user,"Usage: .bcast <message>");  return;
 	}
-sprintf(mess,"*** %s ***\n",inpstr);
+sprintf(mess,"*** %s ***\n\r",inpstr);
 write_area(-1,mess);
 }
 
@@ -2164,30 +2195,27 @@ write_area(-1,mess);
 system_status(user)
 int user;
 {
-char onoff[2][4],clop[2][7],newuser[2][11];
+char *onoff[]={ "OFF","ON" };
+char *clop[]={ "CLOSED","OPEN" };
+char *newuser[]={ "DISALLOWED","ALLOWED" };
 
-strcpy(onoff[0],"OFF");  strcpy(onoff[1],"ON");
-strcpy(clop[0],"CLOSED");  strcpy(clop[1],"OPEN");
-strcpy(newuser[0],"DISALLOWED");  strcpy(newuser[1],"ALLOWED");
-
-
-sprintf(mess,"\n*** NUTS version %s - System status ***\n\n",VERSION);
+sprintf(mess,"\n\r*** NUTS version %s - System status ***\n\n\r",VERSION);
 write_user(user,mess);
 
 /* first show system params */
-sprintf(mess,"Booted              : %s\nProcess ID          : %d\nPort number         : %d\n",start_time,getpid(),PORT);
+sprintf(mess,"Booted              : %s\n\rProcess ID          : %d\n\rPort number         : %d\n\r",start_time,getpid(),PORT);
 write_user(user,mess);
-sprintf(mess,"System logging      : %s\nAtmospherics        : %s\n",onoff[syslog_on],onoff[atmos_on]);
+sprintf(mess,"System logging      : %s\n\rAtmospherics        : %s\n\r",onoff[syslog_on],onoff[atmos_on]);
 write_user(user,mess);
-sprintf(mess,"Talker is           : %s\nNew users           : %s\n",clop[sys_access],newuser[allow_new]);
+sprintf(mess,"Talker login status : %s\n\rNew users           : %s\n\r",clop[sys_access],newuser[allow_new]);
 write_user(user,mess);
-sprintf(mess,"Alarm time          : %d secs.\nTime out            : %d secs.\nMax topic length    : %d\n",ALARM_TIME,TIME_OUT,TOPIC_LEN);
+sprintf(mess,"Alarm time          : %d secs.\n\rTime out            : %d secs.\n\rMax topic length    : %d\n\r",ALARM_TIME,TIME_OUT,TOPIC_LEN);
 write_user(user,mess);
-sprintf(mess,"No. of review lines : %d\nNo. of profile lines: %d\n",NUM_LINES,PRO_LINES);
+sprintf(mess,"No. of review lines : %d\n\rNo. of profile lines: %d\n\r",NUM_LINES,PRO_LINES);
 write_user(user,mess);
-sprintf(mess,"No. of areas        : %d\nMax no. of users    : %d\n",NUM_AREAS,MAX_USERS);
+sprintf(mess,"No. of areas        : %d\n\rMax no. of users    : %d\n\r",NUM_AREAS,MAX_USERS);
 write_user(user,mess);
-sprintf(mess,"Current no. of users: %d\nMessage lifetime    : %d days\n",num_of_users,MESS_LIFE);
+sprintf(mess,"Current no. of users: %d\n\rMessage lifetime    : %d days\n\r",num_of_users,MESS_LIFE);
 write_user(user,mess);
 }
 
@@ -2222,7 +2250,7 @@ if (user==user2) {
 /* see if user to be moved is god */
 if (ustr[user2].level==GOD) {
 	write_user(user,"Hmm .. inadvisable");
-	sprintf(mess,"%s thought about moving you\n",ustr[user].name);
+	sprintf(mess,"%s thought about moving you\n\r",ustr[user].name);
 	write_user(user2,mess);
 	return;
 	}
@@ -2241,13 +2269,13 @@ if (area==ustr[user2].area) {
 	}
 	
 /** send output **/
-write_user(user2,"\nA force grabs you and pulls you through the ether!!\n");
+write_user(user2,"\n\rA force grabs you and pulls you through the ether!!\n\r");
 
 /* to old area */
-sprintf(mess,"%s is pulled into the beyond!\n",ustr[user2].name);
+sprintf(mess,"%s is pulled into the beyond!\n\r",ustr[user2].name);
 write_alluser(user2,mess,0,0);
 if (astr[ustr[user2].area].private && astr[ustr[user2].area].status!=2 && find_num_in_area(ustr[user2].area)<=PRINUM) {
-	write_alluser(user2,"Area access returned to public\n",0,0);
+	write_alluser(user2,"Area access returned to public\n\r",0,0);
 	astr[ustr[user2].area].private=0;
 	}
 ustr[user2].area=area;
@@ -2255,7 +2283,7 @@ look(user2);
 prompt(user2);
 
 /* to new area */
-sprintf(mess,"%s appears from nowhere!\n",ustr[user2].name);
+sprintf(mess,"%s appears from nowhere!\n\r",ustr[user2].name);
 write_alluser(user2,mess,0,0);
 write_user(user,"Ok");
 }
@@ -2267,11 +2295,11 @@ system_access(user,co)
 int user,co;
 {
 if (!co) {
-	write_area(-1,"*** System is now closed to further logins ***\n");
+	write_area(-1,"*** System is now closed to further logins ***\n\r");
 	sys_access=0;
 	return;
 	}
-write_area(user,"*** System is now open to further logins ***\n");
+write_area(-1,"*** System is now open to further logins ***\n\r");
 sys_access=1;
 }
 
@@ -2307,7 +2335,7 @@ for (u=0;u<MAX_USERS;++u) {
 strcpy(mess,inpstr);
 mess[0]=toupper(mess[0]);
 write_user(user,mess);
-strcat(mess,"\n");
+strcat(mess,"\n\r");
 write_alluser(user,mess,0,0);
 }
 
@@ -2344,14 +2372,14 @@ int ret_val;
 if (!ustr[user].pro_enter) {
 	if (!(ustr[user].pro_start=(char *)malloc(82*PRO_LINES))) {
 		write_syslog("ERROR: Couldn't allocate mem. in enter_pro()\n",0);
-		sprintf(mess,"%s : can't allocate buffer mem.\n",syserror);
+		sprintf(mess,"%s : can't allocate buffer memory\n\r",syserror);
 		write_user(user,mess);  return;
 		}
 	ustr[user].pro_enter=1;
 	ustr[user].pro_end=ustr[user].pro_start;
-	sprintf(mess,"%s is entering a profile...\n",ustr[user].name);
+	sprintf(mess,"%s is entering a profile...\n\r",ustr[user].name);
 	write_alluser(user,mess,0,0);
-	sprintf(mess,"\n** Entering profile **\n\nMaximum of %d lines. Enter a '.' by itself to quit.\n\nLine 1: ",PRO_LINES);  
+	sprintf(mess,"\n\r** Entering profile **\n\n\rMaximum of %d lines. Enter a '.' by itself to quit.\n\n\rLine 1: ",PRO_LINES);  
 	write_user(user,mess);  noprompt=1;  ustr[user].listen=0;
 	return;
 	}
@@ -2361,12 +2389,12 @@ inpstr[80]=0;  c=inpstr;
 ret_val=0;
 if (*c=='.' && *(c+1)==0) {
 	if (ustr[user].pro_enter!=1)  ret_val=write_pro(user);
-	if (ret_val) write_user(user,"\nProfile stored\n");
-	else write_user(user,"\nProfile not stored\n");
+	if (ret_val) write_user(user,"\n\rProfile stored\n\r");
+	else write_user(user,"\n\rProfile not stored\n\r");
 	free(ustr[user].pro_start);  ustr[user].pro_enter=0;
 	ustr[user].listen=1;
 	noprompt=0;  prompt(user); 
-	sprintf(mess,"%s finishes entering a profile\n",ustr[user].name);
+	sprintf(mess,"%s finishes entering a profile\n\r",ustr[user].name);
 	write_alluser(user,mess,0,0);
 	return;
 	}
@@ -2378,12 +2406,12 @@ while(*c) *ustr[user].pro_end++=*c++;
 /* end of lines */
 if (ustr[user].pro_enter==PRO_LINES) {
 	ret_val=write_pro(user);  free(ustr[user].pro_start);
-	if (ret_val) write_user(user,"\nProfile stored\n");
-	else write_user(user,"\nProfile not stored\n");
+	if (ret_val) write_user(user,"\n\rProfile stored\n\r");
+	else write_user(user,"\n\rProfile not stored\n\r");
 	ustr[user].pro_enter=0; 
 	ustr[user].listen=1;
 	noprompt=0;  prompt(user);  
-	sprintf(mess,"%s finishes entering a profile\n",ustr[user].name);
+	sprintf(mess,"%s finishes entering a profile\n\r",ustr[user].name);
 	write_alluser(user,mess,0,0);
 	return;
 	}
@@ -2404,7 +2432,7 @@ sprintf(filename,"%s/%s.P",USERDATADIR,ustr[user].name);
 if (!(fp=fopen(filename,"w"))) {
 	sprintf(mess,"ERROR: Couldn't open %s's profile file to write in write_pro()\n",ustr[user].name);
 	write_syslog(mess,0);
-	sprintf(mess,"%s : can't write to file\n",syserror);
+	sprintf(mess,"%s : can't write to file\n\r",syserror);
 	write_user(user,mess);  return 0;
 	}
 for (c=ustr[user].pro_start;c<ustr[user].pro_end;++c) putc(*c,fp);
@@ -2420,7 +2448,8 @@ int user;
 char *inpstr;
 {
 int u;
-char filename[80],user2[20];
+char filename[80],user2[20],line[81];
+FILE *fp;
 
 if (!inpstr[0]) {
 	write_user(user,"Usage: .examine <user>");  return;
@@ -2430,17 +2459,24 @@ user2[0]=toupper(user2[0]);
 if (!user_exists(user,user2)) {
 	write_user(user,"There is no such user");  return;
 	}
-sprintf(filename,"%s/%s.P",USERDATADIR,user2);
-sprintf(mess,"\n** Profile of %s **\n\n",user2);
-write_user(user,mess);
-if (!more(user,ustr[user].sock,filename))
-	write_user(user,"No profile.\n");
-else {
-	if ((u=get_user_num(user2))!=-1 && u!=user) {
-		sprintf(mess,"%s examines you ...\n",ustr[user].name);
-		write_user(u,mess);
-		}
+if ((u=get_user_num(user2))!=-1 && u!=user) {
+	sprintf(mess,"%s examines you ...\n\r",ustr[user].name);
+	write_user(u,mess);
 	}
+sprintf(filename,"%s/%s.P",USERDATADIR,user2);
+sprintf(mess,"\n\r** Profile of %s **\n\n\r",user2);
+write_user(user,mess);
+if (!more(user,ustr[user].sock,filename))  write_user(user,"No profile.\n\r");
+sprintf(filename,"%s/%s.D",USERDATADIR,user2);
+if (get_user_num(user2)!=-1) {
+	sprintf(mess,"\n\r%s is currently logged in\n\r",user2);
+	write_user(user,mess);  return;
+	}
+if (!(fp=fopen(filename,"r"))) return;
+fgets(line,80,fp);
+sprintf(mess,"\n\r%s was last logged in on %s\r",user2,line);
+write_user(user,mess);
+fclose(fp);
 }
 
 
@@ -2527,7 +2563,7 @@ if (!(fp=fopen(filename,"r"))) {
 	return;
 	}
 fclose(fp);
-write_user(user,"\n*** Your mail ***\n\n");
+write_user(user,"\n\r*** Your mail ***\n\n\r");
 more(user,ustr[user].sock,filename);
 }
 
@@ -2577,7 +2613,7 @@ sprintf(mess,"%s mailed %s\n",ustr[user].name,name);
 write_syslog(mess,1);
 
 /* if recipient is logged on at the moment notify them */
-if ((user2=get_user_num(name))!=-1) write_user(user2,"YOU HAVE NEW MAIL\n");
+if ((user2=get_user_num(name))!=-1) write_user(user2,"YOU HAVE NEW MAIL\n\r");
 }
 
 
@@ -2603,7 +2639,7 @@ if (user==user2) {
 	write_user(user,"You are already awake!");
 	return;
 	}
-write_user(user2,"*** WAKE UP!! ***\07\07\07\n");
+write_user(user2,"*** WAKE UP!! ***\07\07\07\n\r");
 write_user(user,"Ok");
 }
 
@@ -2615,10 +2651,8 @@ int user;
 char *inpstr;
 {
 int user2;
-char name[NAME_LEN],levstr[4][7];
-strcpy(levstr[1],"USER");
-strcpy(levstr[2],"WIZARD");
-strcpy(levstr[3],"GOD");
+char name[NAME_LEN];
+char *levstr[]={ "","USER","WIZARD","GOD" };
 
 if (!inpstr[0]) {
 	write_user(user,"Usage: .promote <user>");  return;
@@ -2634,7 +2668,7 @@ if (ustr[user2].level==GOD) {
 	write_user(user,mess);  return;
 	}
 ustr[user2].level++;
-sprintf(mess,"%s has promoted you to the level of %s!\n",ustr[user].name,levstr[ustr[user2].level]);
+sprintf(mess,"%s has promoted you to the level of %s!\n\r",ustr[user].name,levstr[ustr[user2].level]);
 write_user(user2,mess);
 sprintf(mess,"%s PROMOTED %s to %s\n",ustr[user].name,ustr[user2].name,levstr[ustr[user2].level]);
 write_syslog(mess,1);
@@ -2665,7 +2699,7 @@ if (ustr[user2].level<USER || ustr[user2].level>WIZARD) {
 	write_user(user,"You can only demote a normal user or wizard");
 	return;
 	}
-sprintf(mess,"%s has demoted you!\n",ustr[user].name);
+sprintf(mess,"%s has demoted you!\n\r",ustr[user].name);
 write_user(user2,mess);
 sprintf(mess,"%s DEMOTED %s\n",ustr[user].name,ustr[user2].name);
 write_syslog(mess,1);
@@ -2784,8 +2818,8 @@ if (user2==user) {
 	return;
 	}
 if (ustr[user].vis)
-	sprintf(mess,"> %s %s\n",ustr[user].name,inpstr);
-else sprintf(mess,"> Someone %s\n",inpstr);
+	sprintf(mess,">> %s %s\n\r",ustr[user].name,inpstr);
+else sprintf(mess,">> Someone %s\n\r",inpstr);
 write_user(user2,mess);
 if (ustr[user].vis)
 	sprintf(mess,"You emote to %s: %s %s",ustr[user2].name,ustr[user].name,inpstr);
@@ -2802,10 +2836,10 @@ char *inpstr;
 if (!inpstr[0]) {	
 	write_user(user,"Usage: .semote <text>");  return;
 	}
-if (!ustr[user].vis) sprintf(mess,"! Someone %s",inpstr);
-else sprintf(mess,"! %s %s",ustr[user].name,inpstr);
+if (!ustr[user].vis) sprintf(mess,"!! Someone %s",inpstr);
+else sprintf(mess,"!! %s %s",ustr[user].name,inpstr);
 write_user(user,mess);
-strcat(mess,"\n");
+strcat(mess,"\n\r");
 write_alluser(user,mess,1,0);
 }
 
@@ -2837,7 +2871,7 @@ if ((fp=fopen(BANFILE,"r"))) {
 	while(!feof(fp)) {
 		line[strlen(line)-1]=0;
 		if (!strcmp(line,site)) {
-			write_user(user,"That site is already banned\n");
+			write_user(user,"That site is already banned\n\r");
 			fclose(fp);  return;
 			}
 		fgets(line,80,fp);
@@ -2847,7 +2881,7 @@ if ((fp=fopen(BANFILE,"r"))) {
 
 /* Add new ban */
 if (!(fp=fopen(BANFILE,"a"))) {
-	sprintf(mess,"%s : couldn't write to banned file\n",syserror);
+	sprintf(mess,"%s : couldn't write to banned file\n\r",syserror);
 	write_user(user,mess);
 	write_syslog("ERROR: Couldn't open banned file to append in bansite()\n",0);
 	return;
@@ -2882,7 +2916,7 @@ if (!(fpi=fopen(BANFILE,"r"))) {
 	write_user(user,"Site not found in file");  return;
 	}
 if (!(fpo=fopen("tempfile","w"))) {
-	sprintf(mess,"%s : couldn't open a temporary file\n",syserror);
+	sprintf(mess,"%s : couldn't open a temporary file\n\r",syserror);
 	write_user(user,mess);
 	write_syslog("ERROR: Couldn't open tempfile to write in unbansite()\n",0);
 	fclose(fpi);  return;
@@ -2906,12 +2940,12 @@ if (!found) {
 
 /* Make the temp file the ban file. */
 if (rename("tempfile",BANFILE)==-1) {
-	sprintf(mess,"%s : renaming failure\n",syserror);
+	sprintf(mess,"%s : renaming failure\n\r",syserror);
 	write_user(user,mess);
 	write_syslog("ERROR: Couldn't rename temp file to ban file in banfile()\n",0);
 	return;
 	}
-sprintf(mess,"%s UNBANNED site %s\n",ustr[user].name,site);
+sprintf(mess,"%s UNBANNED site %s\n\r",ustr[user].name,site);
 write_syslog(mess,1);
 write_user(user,"Site ban removed");
 }
@@ -2948,7 +2982,7 @@ alarm(ALARM_TIME);
 atmospherics()
 {
 FILE *fp;
-char filename[80],probch[10],line[81];
+char filename[80],probch[10],line[82];
 int probint,area;
 
 for (area=0;area<NUM_AREAS;++area) {
@@ -2962,7 +2996,8 @@ for (area=0;area<NUM_AREAS;++area) {
 		probint=atoi(probch);
 		fgets(line,80,fp);
 		if (random()%100<probint) { 
-			write_area(area,line);  break;
+			sprintf(mess2,"%s\r",line);
+			write_area(area,mess2);  break;
 			} 
 		fgets(probch,6,fp);
 		}
@@ -3057,16 +3092,16 @@ for (user=0;user<MAX_USERS;++user) {
 	if (ustr[user].sock==-1) continue;
 	idle=((int)time((time_t *)0)-ustr[user].last_input)/60;
 	if (!ustr[user].logging_in && !ustr[user].idle_mention && idle>=IDLE_MENTION) {
-		sprintf(mess2,"%s's eyes glaze over...\n",ustr[user].name);
+		sprintf(mess2,"%s's eyes glaze over...\n\r",ustr[user].name);
 		write_alluser(user,mess2,0,0);
-		write_user(user,"Your eyes glaze over...\n");
+		write_user(user,"Your eyes glaze over...\n\r");
 		ustr[user].idle_mention=1;
 		}
 	if (!ustr[user].logging_in || ustr[user].sock==-1) continue;
 	secs=(int)time((time_t *)0)-ustr[user].last_input;
 	if (secs>=TIME_OUT) {
 		echo_on(user);
-		write_user(user,"\n\nTime out\n\n");
+		write_user(user,"\n\n\rTime out\n\n\r");
 		user_quit(user);
 		}
 	}

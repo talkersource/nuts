@@ -1,3 +1,43 @@
+NUTS 2.3 specifics.
+------------------
+
+NUTS finally works with character mode clients. For some reason Unix telnet
+defaults to line mode (easy to work with) whereas PC and Mac telnet defaults
+to character mode and some dont even have a line mode. Whatever idiot is 
+responsible for this mess should be shot. At any rate , users with char. mode
+clients should now be able to log in and use NUTS with no probs. There is one 
+thing though - some clients in char mode will echo the characters themselves,
+others wont and the server has to do it for them (maybe theres a control 
+option for this , I dunno). This is what the CHAR_MODE_ECHO macro is for. It
+is set to 0 currently so that the NUTS server won't echo back any character it 
+recieves from a client running in char. mode. If the client doesnt echo either
+despite being told to (windows NT telnet is a case in point here) then the
+user will see nothing of what he types in. If you set the macro to 1 and the
+client does echo then the user will see 2 of everything he types in.You can't
+win. Also , some clients (unix telnet) takes things literally when you send
+an echo command and they are in char. mode - they echo everything eg ^M for 
+newlines, ^H for deletes etc. Since its unlikely anyone would use unix telnet 
+with NUTS in char. mode this shouldnt be a problem but you never know. 
+Thankfully , most decent clients can run in line mode *phew*.
+
+Other changes in this version are:
+
+- New .prompt command. Allows user to switch his prompt on or off. I would have
+  made the server store his preference but I wanted the data files to be 
+  compatible with 2.2. Prompt defaults to on. PROMPT macro is gone.
+
+- A number of double commands - aton, atoff, slon, sloff, open, close have 
+  become a single toggled command - atmos, log and access respectively.
+
+- A "who" option at the login prompt. This allows people to see whos on and
+  whether its worth them bothering to log in. Of course this could lead to the
+  age old problem of no ones on so no one bothers to log in...
+
+- You are now told when someone was last logged in on examining them.
+
+
+This is the README for NUTS 2.2.x and is still valid...
+
 A rough guide for would be sysops.
 -----------------------------------
 

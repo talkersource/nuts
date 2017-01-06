@@ -1,5 +1,7 @@
 *** Talker BOOTING ***
-*** Talker BOOTED (PID 27959) on Tue Nov 29 12:25:26 1994 ***
-Nov 29 12:25: Fred signed on from self1
-Nov 29 12:25: Fred signed off
-*** Talker SHUTDOWN by Fred on Tue Nov 29 12:25:40 1994 ***
+*** Talker BOOTED (PID 4435) on Thu Jan 12 16:26:01 1995 ***
+Jan 12 16:26: Fred signed on from odin
+Jan 12 16:26: Fred signed off
+Jan 12 16:26: Fred signed on from odin
+Jan 12 16:26: Fred signed off
+*** Talker SHUTDOWN by Fred on Thu Jan 12 16:26:24 1995 ***

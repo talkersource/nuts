@@ -1,4 +1,4 @@
-Tue Nov 29 12:25:40 1994
-self1
+Thu Jan 12 16:26:24 1995
+odin
 is the boss
 3
