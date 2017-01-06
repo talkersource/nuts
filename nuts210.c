@@ -1,21 +1,27 @@
 /*****************************************************************************
-         Neils Unix Talk Server (NUTS) - (C) Neil Robertson 1992-1994
-                Last update 25th July 1994  Version 2.0.3
+	    Neils Unix Talk Server (NUTS) - (C) Neil Robertson 1992-1994
+			 Last update 9th August 1994  Version 2.1.0
 
   Feel free to modify to code in any way but remember the original copyright
   is mine - this means you can't sell it or pass it off as your own work!
   If you make any changes to the code please leave the original copyright in
   the code somewhere. Thanks. 
-     Also thanks to lots and lots of people who I don't have room to mention 
+	Also thanks to lots and lots of people who I don't have room to mention 
   (or whose names I can't remember).
 
   Rewritten from NUTS 1.X at RTC in Watford, England during the times that I 
   was too bored to stare out the window.
 
   Neil Robertson 
+
+  NB: 
+  NUTS 2.0.3 was due to be the last NUTS version but Werewolf from the Crypt 
+  talker (IP address 147.143.1.17 3000) wanted a modified version which became 
+  2.1 , so here it is.
+
  *****************************************************************************/
 
-#define VERSION "2.0.3"
+#define VERSION "2.1.0"
 
 #include <stdio.h>
 #ifdef _AIX
@@ -80,7 +86,7 @@ char *command[]={
 ".review",".help",".bcast",".news",".system",".move",".close",".open",
 ".slon",".sloff",".aton",".atoff",".echo",".desc",".alnew",".disalnew",
 ".version",".entpro",".examine",".people",".dmail",".rmail",".smail",".wake",
-".promote",".demote",".map","*"
+".promote",".demote",".map",".passwd","*"
  };
 
 int com_level[]={
@@ -90,7 +96,7 @@ int com_level[]={
 0,0,1,0,1,1,2,2,
 2,2,2,2,0,0,2,2,
 0,0,0,1,0,0,0,1,
-2,2,0
+2,2,0,0
 };
 
 char *syserror="Sorry - a system error has occured";
@@ -101,7 +107,8 @@ char start_time[30];  /* startup time */
 
 int PORT,NUM_AREAS,num_of_users=0;
 int MESS_LIFE=0;  /* message lifetime in days */
-int noprompt,signl,atmos_on,syslog_on,allow_new,com_num;
+int noprompt,atmos_on,allow_new,com_num;
+int syslog_on=1;
 int shutd=-1;
 int sys_access=1;
 int checked=0;  /* see if messages have been checked */
@@ -132,9 +139,9 @@ struct {
 /**** START OF FUNCTIONS ****/
 
 /****************************************************************************
-     Main function - 
-     Sets up TCP sockets, ignores signals, accepts user input and acts as 
-     the switching centre for speach output.
+	Main function - 
+	Sets up TCP sockets, ignores signals, accepts user input and acts as 
+	the switching centre for speach output.
 *****************************************************************************/ 
 main()
 {
@@ -146,13 +153,14 @@ int listen_sock,accept_sock;
 int len,area,size,user,new_user,on; 
 char inpstr[ARR_SIZE],filename[80],site_num[80];
 char *inet_ntoa();  /* socket library function */
+int temp;
 
 printf("\n-=- NUTS version %s -=-\n (C) Neil Robertson 1994\n\n*** Talk server booting ***\n\n",VERSION);
 
 /* Make old system log backup */
 sprintf(filename,"%s.bak",SYSTEM_LOG);
 if (rename(SYSTEM_LOG,filename)==-1)
-     printf("NUTS: Warning: Couldn't make old system log backup\n\n");
+	printf("NUTS: Warning: Couldn't make old system log backup\n\n");
 write_syslog("*** Talker BOOTING ***\n",0);
 
 /* read system data */
@@ -191,7 +199,7 @@ puts("Checking for out of date messages");
 check_mess(1);
 messcount();
 
-/* set socket to non_blocking */
+/* Set socket to non-blocking. Not really needed but it does no harm. */
 fcntl(listen_sock,F_SETFL,O_NDELAY);
 
 /* Set to run in background automatically  - no '&' needed */
@@ -239,8 +247,8 @@ signal(SIGTTOU,SIG_IGN);
 
 /**** main program loop *****/
 while(1) {
+	noprompt=0;
 	FD_ZERO(&readmask);
-	noprompt=0;  signl=0;
 
 	/* set up readmask */
 	for (user=0;user<MAX_USERS;++user) {
@@ -250,8 +258,7 @@ while(1) {
 	FD_SET(listen_sock,&readmask);
 
 	/* wait */
-	select(FD_SETSIZE,&readmask,0,0,0);
-	if (signl)  continue; 
+	if (select(FD_SETSIZE,&readmask,0,0,0)==-1) continue;
 
 	/* check for connection to listen socket */
 	if (FD_ISSET(listen_sock,&readmask)) {
@@ -623,6 +630,10 @@ switch(ustr[user].logging_in) {
 	/* see if user entering login name ...... */
 	name[0]=0;
 	sscanf(inpstr,"%s",name);
+	if (!strcmp(name,"quit")) {
+		write_user(user,"\nAbandoning login attempt\n\n");
+		user_quit(user);  return;
+		}
 	if (name[0]<32 || !strlen(name)) {
 		write_user(user,"Give me a name: ");  return;
 		}
@@ -757,12 +768,12 @@ char timestr[15],line[160];
 
 if (!syslog_on || !(fp=fopen(SYSTEM_LOG,"a"))) return;
 if (write_time) {
-     time(&tm_num);
-     midcpy(ctime(&tm_num),timestr,4,15);
-     sprintf(line,"%s: %s",timestr,str);
+	time(&tm_num);
+	midcpy(ctime(&tm_num),timestr,4,15);
+	sprintf(line,"%s: %s",timestr,str);
 
-     fputs(line,fp);
-     }
+	fputs(line,fp);
+	}
 else fputs(str,fp);
 fclose(fp);
 }
@@ -829,14 +840,14 @@ ustr[user].file_posn=0;
 ustr[user].pro_enter=0;
 num_of_users++;
 
-/* set socket to non-blocking */
+/* Set socket to non-blocking. Not really needed but it does no harm. */
 fcntl(ustr[user].sock,F_SETFL,O_NDELAY); 
 
 /* Load user data */
 sprintf(filename,"%s/%s.D",USERDATADIR,ustr[user].name);
 if (!(fp=fopen(filename,"r"))) {
 	ustr[user].level=0;
-	strcpy(ustr[user].desc,"- a newbie");
+	strcpy(ustr[user].desc,"- a new user");
 	}
 else {
 	/* load data */
@@ -880,7 +891,7 @@ prompt(user);
 
 /* send message to other users and to file */
 sprintf(mess,"SIGN ON: %s %s\n",ustr[user].name,ustr[user].desc);
-write_alluser(user,mess,0,0);
+write_alluser(user,mess,1,0);
 sprintf(mess,"%s signed on from %s\n",ustr[user].name,ustr[user].site);
 write_syslog(mess,1);
 }
@@ -1015,7 +1026,7 @@ fclose(fp);
 
 
 /**** mid copy copies chunk from string strf to string strt
-      (used in write_board & prompt) ***/
+	 (used in write_board & prompt) ***/
 midcpy(strf,strt,fr,to)
 char *strf,*strt;
 int fr,to;
@@ -1221,7 +1232,8 @@ switch(com_num) {
 		if (!more(user,ustr[user].sock,MAPFILE)) 
 			write_user(user,"There is no map");
 		break;
-	default: write_user(user,"Command not implemented"); break;
+	case 51: change_pass(user,inpstr);  break;
+	default: write_user(user,"Command not executed"); break;
 	}
 }
 
@@ -1244,10 +1256,10 @@ if (ustr[user].logging_in) {
 	}
 /* save stats */
 if (!save_stats(user)) {
-     sprintf(mess,"%s : Couldn't save your stats\n",syserror);
-     write_user(user,mess);
-     sprintf(mess,"ERROR: Couldn't save %s's stats in user_quit()\n",ustr[user].name);
-     write_syslog(mess,0);
+	sprintf(mess,"%s : Couldn't save your stats\n",syserror);
+	write_user(user,mess);
+	sprintf(mess,"ERROR: Couldn't save %s's stats in user_quit()\n",ustr[user].name);
+	write_syslog(mess,0);
 	}
 write_user(user,"\nSigning off...\n\n"); 
 close(ustr[user].sock);
@@ -1346,13 +1358,12 @@ char *inpstr;
 char other_user[ARR_SIZE],name[ARR_SIZE];
 int user2,temp;
 
-if (!inpstr[0]) {
-	write_user(user,"Tell who what?");  return;
-	}
 sscanf(inpstr,"%s ",other_user);
 other_user[0]=toupper(other_user[0]);
-
 inpstr=remove_first(inpstr);
+if (!inpstr[0]) {  
+	write_user(user,"Usage: .tell <user> <message>");  return;
+	}
 if ((user2=get_user_num(other_user))==-1) {
 	sprintf(mess,"%s is not signed on",other_user);
 	write_user(user,mess);  return;
@@ -1364,11 +1375,6 @@ if (user2==user) {
 
 if (!ustr[user2].listen)  {
 	sprintf(mess,"%s is not listening",other_user);
-	write_user(user,mess);
-	return;
-	}
-if (!inpstr[0]) {
-	sprintf(mess,"Tell %s what?",other_user);
 	write_user(user,mess);
 	return;
 	}
@@ -1428,7 +1434,7 @@ write_user(user,"\n\n");
 for (u=0;u<MAX_USERS;++u) {
 	if (ustr[u].area!=area || u==user || !ustr[u].vis) continue;
 	if (!occupied) write_user(user,"You can see:\n");
-	sprintf(mess,"      %s %s\n",ustr[u].name,ustr[u].desc);
+	sprintf(mess,"	 %s %s\n",ustr[u].name,ustr[u].desc);
 	write_user(user,mess);
 	occupied++;	
 	}
@@ -1459,8 +1465,8 @@ char area_char,area_name[ARR_SIZE];
 char entmess[30];
 
 if (!inpstr[0]) {
-	if (user_letin) write_user(user,"Where do you want to be let into?");
-		else write_user(user,"Go where?");
+	if (user_letin) write_user(user,"Usage: .letmein <area>");
+		else write_user(user,"Usage: .go <area>");
 	return;
 	}
 sscanf(inpstr,"%s ",area_name);
@@ -1618,11 +1624,11 @@ char *inpstr;
 int u,area=ustr[user].area;
 char other_user[ARR_SIZE];
 
+if (!inpstr[0]) {
+	write_user(user,"Usage: .invite <user>");  return;
+	}
 if (!astr[area].private) {
 	write_user(user,"The area is public anyway");  return;
-	}
-if (!inpstr[0]) {
-	write_user(user,"Invite who?");  return;
 	}
 sscanf(inpstr,"%s ",other_user);
 other_user[0]=toupper(other_user[0]);
@@ -1657,7 +1663,7 @@ int user;
 char *inpstr;
 {
 if (!inpstr[0]) {
-	write_user(user,"Emote what?");  return;
+	write_user(user,"Usage: .emote <text>");  return;
 	}
 if (!ustr[user].vis) sprintf(mess,"Someone %s",inpstr);
 else sprintf(mess,"%s %s",ustr[user].name,inpstr);
@@ -1707,7 +1713,7 @@ FILE *fp;
 char filename[30],name[NAME_LEN];
 
 if (!inpstr[0]) {
-	write_user(user,"You forgot the message"); return;
+	write_user(user,"Usage: .write <message>"); return;
 	}
 
 /* open board file */
@@ -1772,7 +1778,7 @@ FILE *bfp,*tfp;
 
 lines=atoi(inpstr);
 if (lines<1) {
-	write_user(user,"Number of lines must be greater than zero");  return;
+	write_user(user,"Usage: .wipe <int greater than 0>");  return;
 	}
 sprintf(filename,"%s/board%d",MESSDIR,ustr[user].area);
 if (!(bfp=fopen(filename,"r"))) {
@@ -1833,7 +1839,7 @@ char other_user[20];
 int unum;
 
 if (!inpstr[0]) {
-	write_user(user,"Whose site?");  return;
+	write_user(user,"Usage .site <user>");  return;
 	}
 sscanf(inpstr,"%s",other_user);
 other_user[0]=toupper(other_user[0]);
@@ -1914,7 +1920,7 @@ char name[ARR_SIZE];
 int victim;
 
 if (!inpstr[0]) {
-	write_user(user,"Kill who?");  return;
+	write_user(user,"Usage: .kill <user>");  return;
 	}
 sscanf(inpstr,"%s ",name);
 name[0]=toupper(name[0]);
@@ -1994,7 +2000,7 @@ char word[ARR_SIZE],filename[20],line[ARR_SIZE];
 FILE *fp;
 
 if (!inpstr[0]) {
-	write_user(user,"Search for what?");  return;
+	write_user(user,"Usage: .search <search string>");  return;
 	}
 sscanf(inpstr,"%s ",word);
 
@@ -2094,7 +2100,7 @@ int user;
 char *inpstr;
 {
 if (!inpstr[0]) {
-	write_user(user,"Broadcast what?");  return;
+	write_user(user,"Usage: .bcast <message>");  return;
 	}
 sprintf(mess,"*** %s ***\n",inpstr);
 write_area(-1,mess);
@@ -2143,21 +2149,24 @@ char *inpstr;
 char other_user[ARR_SIZE],area_name[260];
 int area,user2;
 
-/* check user */
-if (!inpstr[0]) {
-	write_user(user,"Move who?");  return;
-	}
+/* do checks */
 sscanf(inpstr,"%s %s",other_user,area_name);
 other_user[0]=toupper(other_user[0]);
+inpstr=remove_first(inpstr);
+if (!inpstr[0]) {
+	write_user(user,"Usage: .move <user> <area>");  return;
+	}
 if ((user2=get_user_num(other_user))==-1) {
 	sprintf(mess,"%s is not signed on",other_user);
 	write_user(user,mess);  return;
 	}
+
 /* see if user is moving himself */
 if (user==user2) {
 	write_user(user,"There is an easier way to move yourself");
 	return;
 	}
+
 /* see if user to be moved is god */
 if (ustr[user2].level==2) {
 	write_user(user,"Hmm .. inadvisable");
@@ -2167,11 +2176,6 @@ if (ustr[user2].level==2) {
 	}
 	
 /* check area */
-inpstr=remove_first(inpstr);
-if (!inpstr[0]) {
-	sprintf(mess,"Move %s where?",other_user);
-	write_user(user,mess);  return;
-	}
 for (area=0;area<NUM_AREAS;++area) 
 	if (!strcmp(astr[area].name,area_name)) goto FOUND;	
 write_user(user,"There is no such area");
@@ -2185,7 +2189,7 @@ if (area==ustr[user2].area) {
 	}
 	
 /** send output **/
-write_user(user2,"\nA force grabs you and pulls you through the ether!!");
+write_user(user2,"\nA force grabs you and pulls you through the ether!!\n");
 
 /* to old area */
 sprintf(mess,"%s is pulled into the beyond!\n",ustr[user2].name);
@@ -2231,7 +2235,7 @@ char *err="Sorry - you can't echo that";
 int u=0;
 
 if (!inpstr[0]) {
-	write_user(user,"Echo what?");  return;
+	write_user(user,"Usage: .echo <text>");  return;
 	}
 
 /* get first word & check it for illegal words */
@@ -2264,7 +2268,7 @@ int user;
 char *inpstr;
 {
 if (!inpstr[0]) {
-	sprintf(mess,"Your description is : %s",ustr[user].desc);
+	sprintf(mess,"Your description is: %s",ustr[user].desc);
 	write_user(user,mess);  return;
 	}
 if (strlen(inpstr)>DESC_LEN-1) {
@@ -2368,11 +2372,7 @@ int u;
 char filename[80],user2[20];
 
 if (!inpstr[0]) {
-	write_user(user,"Examine who?");  return;
-	}
-if (inpstr[0]=='.' || inpstr[0]=='/') {
-	write_user(user,"Oi! Don't get smart!");
-	return;
+	write_user(user,"Usage: .examine <user>");  return;
 	}
 sscanf(inpstr,"%s",user2);
 user2[0]=toupper(user2[0]);
@@ -2441,17 +2441,14 @@ char filename[80],name[NAME_LEN],name2[NAME_LEN];
 int user2;
 FILE *fp;
 
-if (!inpstr[0]) {
-	write_user(user,"Mail who?");  return;
-	}
 sscanf(inpstr,"%s ",name);
 name[0]=toupper(name[0]);
-if (!strcmp(name,ustr[user].name)) {
-	write_user(user,"You can't mail yourself");  return;
-	}
 inpstr=remove_first(inpstr);
 if (!inpstr[0]) {
-	write_user(user,"Mail them what?");  return;
+	write_user(user,"Usage: .smail <user> <message>");  return;
+	}
+if (!strcmp(name,ustr[user].name)) {
+	write_user(user,"You can't mail yourself");  return;
 	}
 
 /* see if user exists at all .. */
@@ -2492,7 +2489,7 @@ int user2;
 char name[NAME_LEN];
 
 if (!inpstr[0]) {
-	write_user(user,"Wake up who?");  return;
+	write_user(user,"Usage: .wake <user>");  return;
 	}
 sscanf(inpstr,"%s",name);
 name[0]=toupper(name[0]);
@@ -2517,11 +2514,11 @@ char *inpstr;
 {
 int user2;
 char name[NAME_LEN],levstr[2][8];
-
 strcpy(levstr[0],"wizard");
 strcpy(levstr[1],"god");
+
 if (!inpstr[0]) {
-	write_user(user,"Promote who?");  return;
+	write_user(user,"Usage: .promote <user>");  return;
 	}
 sscanf(inpstr,"%s",name);
 name[0]=toupper(name[0]);
@@ -2553,7 +2550,7 @@ int user2;
 char name[NAME_LEN];
 
 if (!inpstr[0]) {
-	write_user(user,"Demote who?");  return;
+	write_user(user,"Usage: .demote <user>");  return;
 	}
 sscanf(inpstr,"%s",name);
 name[0]=toupper(name[0]);
@@ -2576,6 +2573,92 @@ write_user(user,"Ok");
 
 
 
+/*** Change users password ***/
+change_pass(user,inpstr)
+int user;
+char *inpstr;
+{
+char line[81],name[NAME_LEN],passwd[NAME_LEN],word[2][ARR_SIZE];
+int found;
+FILE *fpi,*fpo;
+
+word[0][0]=0;  word[1][0]=0;
+sscanf(inpstr,"%s %s",word[0],word[1]);
+if (!word[0][0] || !word[1][0]) {
+	write_user(user,"Usage: passwd <old pass> <new pass>");
+	return;
+	}
+if (strlen(word[1])>NAME_LEN-1) {
+	write_user(user,"New password is too long");  return;
+	}
+if (strlen(word[1])<4) {
+	write_user(user,"New password is too short");  return;
+	}
+if (!strcmp(word[0],word[1])) {
+	write_user(user,"Old and new passwords are the same");  return;
+	}
+
+/* search though password file */
+if (!(fpi=fopen(PASSFILE,"r"))) {
+	sprintf(mess,"%s : couldn't open the password file",syserror);
+	write_user(user,mess);
+	write_syslog("ERROR: Couldn't open password file to read in change_pass()\n",0);
+	return;
+	}
+if (!(fpo=fopen("tempfile","w"))) {
+	sprintf(mess,"%s : couldn't open a temporary file",syserror);
+	write_user(user,mess);
+	write_syslog("ERROR: Couldn't open tempfile to write in change_pass()\n",0);
+	fclose(fpi);  return;
+	}
+
+/* go through password file */
+found=0;
+fgets(line,80,fpi);
+while(!feof(fpi)) {
+	if (found) { fputs(line,fpo);  fgets(line,80,fpi);  continue; }
+	sscanf(line,"%s %s",name,passwd);
+	if (!strcmp(name,ustr[user].name) && strcmp(passwd,crypt(word[0],SALT))) {
+		write_user(user,"Incorrect old password");
+		fclose(fpi);  fclose(fpo);  unlink("tempfile");
+		return;
+		}
+	if (!strcmp(name,ustr[user].name) && !strcmp(passwd,crypt(word[0],SALT))) {
+		sprintf(mess,"%s %s\n",ustr[user].name,crypt(word[1],SALT));
+		fputs(mess,fpo);  found=1;
+		}
+	else fputs(line,fpo);
+	fgets(line,80,fpi);
+	}
+fclose(fpi);  fclose(fpo);
+
+/* this shouldn't happen */
+if (!found) {
+	sprintf(mess,"%s : bad read",syserror);
+	write_user(user,mess);
+	write_syslog("ERROR: Bad read of password file in change_pass()\n",0);
+	return;
+	}
+
+/* Make the temp file the password file. */
+if (rename("tempfile",PASSFILE)==-1) {
+	sprintf(mess,"%s : renaming failure",syserror);
+	write_user(user,mess);
+	write_syslog("ERROR: Couldn't rename temp file to password file in change_pass()\n",0);
+	return;
+	}
+
+/* Output fact of changed password. We save to syslog in case change is not done
+   by accounts owner and the owner complains and so we know the time it occured
+*/
+sprintf(mess,"Your password has been changed to: \"%s\"",word[1]);
+write_user(user,mess);
+sprintf(mess,"User %s changed their password\n",ustr[user].name);
+write_syslog(mess,1);
+}
+
+
+
 
 /***************************** EVENT FUNCTIONS *****************************/
 
@@ -2588,7 +2671,6 @@ if (num_of_users && atmos_on) atmospherics();
 
 /* reset alarm */
 reset_alarm();
-signl=1;
 }
 
 

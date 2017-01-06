@@ -1,4 +1,4 @@
-Wed Jun 15 12:44:00 1994
-alpha
+Wed Aug 10 13:47:29 1994
+odin
 is the boss
 2

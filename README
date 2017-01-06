@@ -4,7 +4,7 @@ A rough guide for would be sysops.
 This is NUTS 2. Even though it appears the same as NUTS 1.x from the users
 point of view (bar some extra commands and slight changes) it has been 
 changed quite radically under the skin. To compile the program type
-"cc nuts203.c" and to run just type "a.out" or whatever name you give it.
+"cc nuts210.c" and to run just type "a.out" or whatever name you give it.
 This software is guaranteed to compile on AIX & OSF/1 and Mach (NeXT)
 and should compile on SunOS & HP-UX. As for other unix's I haven't a clue.
 
