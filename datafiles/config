@@ -12,10 +12,10 @@ login_idle_time    180
 user_idle_time     600
 ban_swearing       YES
 auto_connect       YES
-logging            YES
 password_echo      NO
 ignore_sigterm     NO
 allow_caps_in_name YES
+system_logging     ON
 colour_def         ON
 prompt_def         ON
 charecho_def       OFF
@@ -28,6 +28,7 @@ rem_user_maxlevel  WIZ
 rem_user_deflevel  USER
 wizport_level      ARCH
 gatecrash_level    ARCH
+time_out_maxlevel  WIZ
 crash_action       REBOOT
 
 ROOMS:
@@ -43,4 +44,5 @@ lg lounge   co        BOTH ACCEPT
 # depends on how the /etc/hosts file is set up and also the resolver.
 SITES:
 talker2    localhost 5002    fred123 
+talker2    spirit 5002    fred123 
 

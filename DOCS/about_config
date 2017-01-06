@@ -45,7 +45,7 @@ ban_swearing - If YES then any speech, shouts or emotes said by a user that
 auto_connect - If YES then talker will try to connect to configured remote 
    sites when booted.
 
-logging - If YES then talker will write to the system log.
+system_logging - If ON then talker will write to the system log.
 
 password_echo - If YES then talker will echo passwords at login.
 
@@ -102,6 +102,8 @@ charecho_def - Either ON or OFF. Defines whether characters will be echoed
 
 time_out_afks - Either YES or NO. If yes then even users who are afk will get
    timed out if they idle for too long.
+
+time_out_maxlevel - Maximum level of user which can be timed out.
 
 allow_caps_in_name - YES or NO. If YES then users can have capital letters in
    their names , else everything gets converted to lower case except for the

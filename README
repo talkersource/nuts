@@ -1,4 +1,4 @@
-*** README for 3.3.2 ***
+*** README for triple three (3.3.3 :) ***
 
 Read the DOCS/diffs file for update information.
 
@@ -16,18 +16,19 @@ ups and not only will I not reply to the mail but I will keep a note of your
 email address and I will not reply to *any* mails you send me even if its about
 problems with *my* code. Its your choice. 
 
-I've found out about a problem with the colour on a SCO console. For some 
-reason the terminal reset code does not reset the colours so they stay 
-effective until another colour is specified. No doubt there is a specific code 
-to do a colour reset but at the moment I don't know what it is. If you 
-are using SCO and have trouble you'll just have to make do with colour off or 
-use an xterm under X windows. Sorry. If anyone does know the code could you
-email it to me.
+I know I've said this before but this time I really mean it. This is the final
+version of NUTS 3. I have ideas in mind for a version 4 but thats years away
+so in the meantime this is it :) And to prove I mean it this is the first
+version of NUTS for a long long time without a backdoor in it as I'm sure 101
+hackers will test and find out to be true :)
+
+Unfortunately I still haven't found out what the colour reset code for
+SCO consoles and strict ansi terminals is so if you're using one of these 
+things may look messy. No one mailed me the code and the SCO terminfo 
+translation tools proved less than helpful so theres not much I can do. Sorry.
 
 Now go and read the DOCS/compiling file for info on how to get started if 
 you're new to NUTS and all the other files there will be usefull in time also.
-The auth lookup stuff that was in the readme in the 3.3.1 distribution has been
-moved to its own file in DOCS.
 
 Neil Robertson - November 1996
 
@@ -36,10 +37,8 @@ home page     : http://www.wso.co.uk/neil.html
 NUTS home page: http://www.wso.co.uk/nuts.html
 
 NB: If anyone is also interested in MUDs I've written a MUD system called 
-    Ogham - ftp.ccs.neu.edu:/pub/mud/servers/misc/ogham/ogham260.tar.gz
+    Ogham - ftp.ccs.neu.edu:/pub/mud/servers/misc/ogham/ogham262.tar.gz
     Its not as complex as perhaps LPmuds or Dikumuds are but if you know C and 
     want to set up a low to medium complexity mud then this is just what you 
-    need :) The final release of Ogham + mudlib (2.6.0) was released in early 
-    June but there is now a patch release which will upgrade you to 2.6.1
-    called ogham261_patch.tar.gz but I'm hoping to release 2.6.2 soon.
+    need :) 
     

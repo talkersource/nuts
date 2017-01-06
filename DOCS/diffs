@@ -172,7 +172,7 @@ mess so I took it out again. See README for details.
 The talker now passes across the users level on a netlink so the use of 
 rem_user_maxlevel has been changed. This used to apply to remote users who had 
 a local account , it now only applies to those who *don't* have a local account
-users with local accounts have their level set to that of the local account 
+(users with local accounts have their level set to that of the local account 
 regardless) and rem_user_deflevel is only used to backwards compatability with
 older version servers that don't pass the user level.
 
@@ -219,3 +219,35 @@ Altered some of the command levels in .h file and increased MAX_LINES to 15.
 9. 
 Amendments and bug fixes including removing a large lump of code from 
 create_clone() that shouldn't have been there.
+
+
+3.3.3 (November)
+-----
+
+1.
+You now get a + indicator in the prompt if you are invisible. This indicates
+your *local* invisible state, it won't work on a remote site.
+
+2.
+Added time_out_maxlevel option to config file.
+
+3.
+Changed config file "logging" option to "system_logging" and it now takes
+ON and OFF as parameters rather than YES or NO. This is for consistency.
+
+4.
+The minlogin command now boots off any logged on users below the set level.
+
+5.
+Added has_room_access() function to replace some duplicated code.
+
+6.
+Swapped the positions of the help and home commands so that .h is now short
+for .help. This may cause slight confusion if people try to do .h on a 
+remote site to go home as they will be told that they are already on it.
+
+7.
+Bug fixes and general code amendments.
+
+
+*** THE END ***

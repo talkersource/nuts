@@ -12,12 +12,12 @@ it seems to work fine though I have not done soak tests on these systems.
 
 To compile:
 
-Linux & AIX: cc nuts332.c
+Linux & AIX: cc nuts333.c
 IRIX & OSF : ditto above?
-HP-UX      : cc -Ae nuts332.c  (you need the ANSI compiler)
-SCO 3.2    : cc nuts332.c -lsocket -lcrypt_i  
-DYNIX 4    : cc nuts332.c -lsocket -lnsl
-Solaris    : cc -lsocket -lnsl nuts332.c  (not guaranteed to work)
+HP-UX      : cc -Ae nuts333.c  (you need the ANSI compiler)
+SCO 3.2    : cc nuts333.c -lsocket -lcrypt_i  
+DYNIX 4    : cc nuts333.c -lsocket -lnsl
+Solaris    : cc -lsocket -lnsl nuts333.c  (not guaranteed to work)
 SunOS 4    : dont even bother unless you have gcc
 
 Running...

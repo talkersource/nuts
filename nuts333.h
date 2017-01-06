@@ -1,4 +1,4 @@
-/****************** Header file for NUTS version 3.3.2 ******************/
+/****************** Header file for NUTS version 3.3.3 ******************/
 
 #define DATAFILES "datafiles"
 #define USERFILES "userfiles"
@@ -28,7 +28,7 @@
 #define BUFSIZE 1000
 #define ROOM_NAME_LEN 20
 #define ROOM_LABEL_LEN 5
-#define ROOM_DESC_LEN 811 /* 10 lines of 80 chars each + 10 nl + 1 \0*/
+#define ROOM_DESC_LEN 810 /* 10 lines of 80 chars each + 10 nl */
 #define TOPIC_LEN 60
 #define MAX_LINKS 10
 #define SERV_NAME_LEN 80
@@ -43,6 +43,7 @@
 
 #define PUBLIC 0
 #define PRIVATE 1
+#define FIXED 2
 #define FIXED_PUBLIC 2
 #define FIXED_PRIVATE 3
 
@@ -158,8 +159,8 @@ char *command[]={
 "go",      "ignall",   "prompt",    "desc",   "inphr",
 "outphr",  "public",   "private",   "letmein","invite",
 "topic",   "move",     "bcast",     "who",    "people",
-"home",    "shutdown", "news",      "read",   "write",
-"wipe",    "search",   "review",    "help",   "status",
+"help",    "shutdown", "news",      "read",   "write",
+"wipe",    "search",   "review",    "home",   "status",
 "version", "rmail",    "smail",     "dmail",  "from",
 "entpro",  "examine",  "rmst",      "rmsn",   "netstat",
 "netdata", "connect",  "disconnect","passwd", "kill",
@@ -182,8 +183,8 @@ TELL,     EMOTE,    SEMOTE,   PEMOTE, ECHO,
 GO,       IGNALL,   PROMPT,   DESC,   INPHRASE,
 OUTPHRASE,PUBCOM,   PRIVCOM,  LETMEIN,INVITE,
 TOPIC,    MOVE,     BCAST,    WHO,    PEOPLE,
-HOME,     SHUTDOWN, NEWS,     READ,   WRITE,
-WIPE,     SEARCH,   REVIEW,   HELP,   STATUS,
+HELP,     SHUTDOWN, NEWS,     READ,   WRITE,
+WIPE,     SEARCH,   REVIEW,   HOME,   STATUS,
 VER,      RMAIL,    SMAIL,    DMAIL,  FROM,
 ENTPRO,   EXAMINE,  RMST,     RMSN,   NETSTAT,
 NETDATA,  CONN,     DISCONN,  PASSWD, KILL,
@@ -207,8 +208,8 @@ USER,USER,USER,USER,USER,
 USER,USER,NEW, USER,USER,
 USER,USER,USER,USER,USER,
 USER,WIZ, WIZ ,NEW, WIZ,
-USER,GOD, USER,NEW, USER,
-WIZ, USER,USER,NEW, NEW,
+NEW, GOD, USER,NEW, USER,
+WIZ, USER,USER,USER, NEW,
 NEW, NEW, USER,USER,USER,
 USER,USER,NEW, NEW, WIZ,
 ARCH,GOD, GOD, USER,ARCH,
@@ -292,8 +293,10 @@ int force_listen,gatecrash_level,min_private_users;
 int ignore_mp_level,rem_user_maxlevel,rem_user_deflevel;
 int destructed,mesg_check_hour,mesg_check_min,net_idle_time;
 int keepalive_interval,auto_connect,ban_swearing,crash_action;
-int time_out_afks,allow_caps_in_name,rs_countdown,charecho_def,*bdv;
+int time_out_afks,allow_caps_in_name,rs_countdown;
+int charecho_def,time_out_maxlevel;
 time_t rs_announce,rs_which;
 UR_OBJECT rs_user;
 
 extern char *sys_errlist[];
+char *long_date();
