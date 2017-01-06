@@ -1,6 +1,6 @@
 /*****************************************************************************
 	    Neils Unix Talk Server (NUTS) - (C) Neil Robertson 1992-1994
-			 Last update 29th November 1994  Version 2.2.0
+			 Last update 7th December 1994  Version 2.2.1
 
   Feel free to modify to code in any way but remember the original copyright
   is mine - this means you can't sell it or pass it off as your own work!
@@ -28,14 +28,15 @@
      Anyone who has ever used NUTS.
 
   This program (or its ancestor at any rate) was originally a university 
-  project and first went live on the net in the winter of 1992/93 as
-  Hectic House. Since then it has spread and spread (bit like flu really). :-)
+  project and first went live on the net in November 1992 as Hectic House. 
+  Since then it has spread and spread (bit like flu really). :-)
 
   Neil Robertson 
+  neil@realtime.demon.co.uk
 
  *****************************************************************************/
 
-#define VERSION "2.2.0"
+#define VERSION "2.2.1"
 
 #include <stdio.h>
 #ifdef _AIX
@@ -84,7 +85,7 @@
 #define TIME_OUT 180  /* time out in seconds at login - can't be less than ALARM_TIME */
 #define IDLE_MENTION 5  /* Used in check_timeout(). Is in minutes */
 #define TOPIC_LEN 35 
-#define DESC_LEN 31
+#define DESC_LEN 35
 #define NAME_LEN 16
 #define NUM_LINES 15  /* number of lines of conv. to store in areas */
 #define PRO_LINES 10  /* number of lines of profile user can store */
@@ -264,6 +265,7 @@ signal(SIGURG,SIG_IGN);
 signal(SIGPIPE,SIG_IGN);
 signal(SIGTTIN,SIG_IGN);
 signal(SIGTTOU,SIG_IGN);
+signal(SIGXCPU,SIG_IGN);
 
 
 /**** Main program loop. Its a bit too long but what the hell...  *****/
@@ -882,7 +884,7 @@ else {
 	/* load data */
 	fgets(timestr,30,fp);
 	fgets(sitestr,80,fp);
-	fgets(ustr[user].desc,DESC_LEN-1,fp);
+	fgets(ustr[user].desc,80,fp);
 	fgets(levstr,2,fp);	
 	fclose(fp);
 	ustr[user].level=atoi(levstr);
@@ -2254,8 +2256,7 @@ prompt(user2);
 
 /* to new area */
 sprintf(mess,"%s appears from nowhere!\n",ustr[user2].name);
-write_alluser(user,mess,0,0);
-
+write_alluser(user2,mess,0,0);
 write_user(user,"Ok");
 }
 
@@ -2321,7 +2322,7 @@ if (!inpstr[0]) {
 	sprintf(mess,"Your description is: %s",ustr[user].desc);
 	write_user(user,mess);  return;
 	}
-if (strlen(inpstr)>DESC_LEN-1) {
+if (strlen(inpstr)>=DESC_LEN) {
 	write_user(user,"Description too long");  return;
 	}
 strcpy(ustr[user].desc,inpstr);
@@ -2455,13 +2456,18 @@ int lines,cnt,any_left;
 FILE *fp,*tfp;
 
 lines=atoi(inpstr);
-if (lines<1) {
-	write_user(user,"Usage: .dmail <number of lines to delete>");
+if (lines<1 && strcmp(inpstr,"all")) {
+	write_user(user,"Usage: .dmail <number of lines to delete>/all");
 	return;
 	}
 sprintf(filename,"%s/%s.M",USERDATADIR,ustr[user].name);
 if (!(fp=fopen(filename,"r"))) {
 	write_user(user,"You don't have any mail to delete");
+	return;
+	}
+if (!strcmp(inpstr,"all")) {
+	unlink(filename); 
+	write_user(user,"All mail deleted");  
 	return;
 	}
 if (!(tfp=fopen("tempfile","w"))) {
