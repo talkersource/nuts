@@ -1,6 +1,6 @@
 NUKyNCCLvgLH.
-841659244 18542 934 839423288 4 1 0 0 0 1
-osiris
+845116985 9970 19 831563811 4 1 0 0 0 1
+spirit
 is Mr Big
 bounces in
 rolls and tumbles out

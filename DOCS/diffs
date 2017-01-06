@@ -127,7 +127,7 @@ Initial alpha release.
 4. Bug fixes, minor code changes and more colour added.
 
 
-3.3.0
+3.3.0 (September)
 -----
 
 1. Added revtell command and associated extra bits in user structure.
@@ -158,3 +158,28 @@ Initial alpha release.
 
 12. Other bug and omission fixes and minor code changes.
 
+
+3.3.1 (October)
+-----
+
+1.
+Talker now stores the users local port number (visible in .site and the syslog
+and following the SIGN ON: for wizes and above) so manual authentication can be 
+done on user id. I put it in the .people command too at first but it looked a 
+mess so I took it out again. See README for details.
+
+2.
+The talker now passes across the users level on a netlink so the use of 
+rem_user_maxlevel has been changed. This used to apply to remote users who had 
+a local account , it now only applies to those who *don't* have a local account
+users with local accounts have their level set to that of the local account 
+regardless) and rem_user_deflevel is only used to backwards compatability with
+older version servers that don't pass the user level.
+
+3.
+Improved the viewlog command so that you can now specify the number of lines
+from the end to start reading it from. This saves paging though days or weeks
+worth of log to see what happened recently.
+
+4.
+Bug fixes and minor changes.

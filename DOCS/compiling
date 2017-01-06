@@ -7,14 +7,18 @@ and once its compiled its unlikely to be done again unless you decide to
 hack it about a bit or move to a different system.
 This software was developed in parallel on HP-UX 10.01 using the ANSI compiler 
 and Linux 1.2.13 using gcc 2.5.8 so there should be no probs with either of 
-these. The talker should also compile fine on AIX and OSF/1 (I hope) though 
-apparently there have been problems on certain versions of Solaris/SunOS in 
-that it doesnt load up the sockets library. See below.
-	Generally you'll just need to enter "cc nuts330.c" to compile though
-for HP-UX you need to type "cc -Ae nuts330.c" and for SunOS you may need
-to enter "cc -lsocket -lnsl nuts330.c".
-Please note that you NEED the ANSI compiler for HP-UX, the bundled K&R one
-is useless. You'll soon know if you don't have it when you try to compile :)
+these. I have also compiled and run it on SCO 3.2 and AIX 3.2 and it seems to
+work fine though I have not done soak tests on these systems. The talker should
+also compile fine OSF/1.
+
+To compile:
+
+Linux & AIX: cc nuts331.c
+IRIX       : ditto above?
+HP-UX      : cc -Ae nuts331.c  (you need the ANSI compiler)
+SCO 3.2    : cc nuts331.c -lsocket -lcrypt_i  (put the .c file first!)
+Solaris    : cc -lsocket -lnsl nuts331.c  (not guaranteed to work)
+SunOS 4    : dont even bother unless you have gcc
 
 Running...
 

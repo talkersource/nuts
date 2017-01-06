@@ -30,7 +30,7 @@ gatecrash_level    ARCH
 crash_action       REBOOT
 
 ROOMS:
-dr drive    ha        PUB  CONNECT cyber_decay
+dr drive    ha        PUB  CONNECT talker2
 ha hallway  dr,co,wz  PUB  
 wz wizroom  ha        PRIV
 co corridor ha,lg     
@@ -41,5 +41,5 @@ lg lounge   co        BOTH ACCEPT
 # localhost here when youre running the 2nd talker on the same machine , it
 # depends on how the /etc/hosts file is set up and also the resolver.
 SITES:
-cyber_decay    localhost 5002    fred123 
+talker2    localhost 5002    fred123 
 

@@ -2,22 +2,64 @@
 
 Read the DOCS/diffs file for update information.
 
-OK , so 3.2.1 was going to be the final version. So I lied (but not 
-intentionally :) This version has a number of bug fixes as usual and some
-new features. Can't think of much else to say about it really so I'll leave
-it at that.
+Welcome to NUTS if you're a first time user. Hopefully you'll find it a
+simple system to use thanks to the helpfiles and the documentation , if not
+then please feel free to email me at the address at the end of this file.
+Before I continue though I must stress that I WILL NOT SORT OUT BUGS OF YOUR
+OWN MAKING OR WRITE CODE FOR YOU! If you write your own code or alter my
+code and fuck it up thats your problem, I have my own projects to do and I
+am *not* interested in sorting out yours. I've had one too many emails from
+people asking me to sort out the mess they've made and I'm getting rather sick 
+of it. If however theres a problem with my code please feel free to email
+me about it.
 
-I've tried to create a newsgroup called alt.talkers.nuts but it doesnt
-seem to be propagating very fast. Anyway , hopefully it'll arrive at
-your site at some point :) Theres always alt.talkers in the meantime. 
-I will crosspost anything I put on alt.talkers.nuts to alt.talkers for the
-time being.
+This versions main change is that the local port number of the user connected 
+is available using .site command, is stored in the syslog and follows the
+SIGN ON: when seen by wizes and above. It appears after a colon following the 
+address eg ogham.demon.co.uk:1234
+The reason I have done this is so manual user identity lookups can be done on 
+a site if you so desire (automatic lookups means lots of extra code) to 
+supposedly verify a users real identity though bear in mind that fake auth 
+daemons can be easily written (about 2 hours work I'd say for an experienced 
+tcp/ip C programmer starting from scratch).
+To do a manual lookup telnet to port 113 on the users site (if you get a 
+connection refused message they don't have an auth daemon running) and enter 
+the following:
+
+<their local port number>,<talkers port number>
+
+So for instance if they're logging in on the talkers main port on 7000 and
+their local port is 1234 enter:
+
+1234,7000
+
+You should see something like the following:
+
+Trying sad.hackers.org...
+Connected to sad.hackers.org.
+Escape character is '^]'.
+1234,7000
+1234 , 7000 : USERID : UNIX : weenie     <--- The reply
+Connection closed by foreign host.
+
+As you can see the final field is the user id but if you see this...
+
+1234 , 7000 : ERROR : NO-USER
+
+then something is wrong. Bear in mind that this will only work while the user
+is logged onto the talker so if you wish to do it do it quick! Also YOU MUST 
+TELNET FROM THE SAME MACHINE THAT THE TALKER IS RUNNING ON. There ends the 
+lesson on manual auth lookups. If you're wondering whether I'll put automatic
+lookups in future NUTS releases (assuming there'll be any) the answer is no
+as the majority of sites do not have auth daemons in the first place eg a
+windows PC is very unlikely to have one :), so the effort would not be worth
+it , besides doing the lookup could hang the talker if there's net lag.
 
 Now go and read the DOCS/compiling file for info on how to get started if 
 you're new to NUTS. 
 
 
-Neil Robertson - September 1996
+Neil Robertson - October 1996
 
 email: neil@ogham.demon.co.uk
 home page     : http://www.wso.co.uk/neil.html

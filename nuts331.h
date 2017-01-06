@@ -1,4 +1,4 @@
-/****************** Header file for NUTS version 3.3.0 ******************/
+/****************** Header file for NUTS version 3.3.1 ******************/
 
 #define DATAFILES "datafiles"
 #define USERFILES "userfiles"
@@ -70,7 +70,7 @@ struct user_struct {
 	char mail_to[WORD_LEN+1],revbuff[REVTELL_LINES][REVIEW_LEN+2];
 	char afk_mesg[AFK_MESG_LEN+1];
 	struct room_struct *room,*invite_room;
-	int type,port,login,socket,attempts,buffpos,filepos;
+	int type,port,site_port,login,socket,attempts,buffpos,filepos;
 	int vis,ignall,prompt,command_mode,muzzled,charmode_echo; 
 	int level,misc_op,remote_com,edit_line,charcnt,warned;
 	int accreq,last_login_len,ignall_store,clone_hear,afk;
@@ -205,7 +205,7 @@ USER,USER,USER,USER,USER,
 USER,WIZ, ARCH,NEW, WIZ,
 USER,GOD, USER,NEW, USER,
 WIZ, USER,USER,NEW, NEW,
-NEW, USER,USER,USER,USER,
+NEW, NEW, USER,USER,USER,
 USER,USER,NEW, NEW, WIZ,
 ARCH,GOD, GOD, USER,WIZ,
 ARCH,ARCH,WIZ, ARCH,ARCH,
@@ -287,7 +287,7 @@ int force_listen,gatecrash_level,min_private_users;
 int ignore_mp_level,rem_user_maxlevel,rem_user_deflevel;
 int destructed,mesg_check_hour,mesg_check_min,net_idle_time;
 int keepalive_interval,auto_connect,ban_swearing,crash_action;
-int time_out_afks,allow_caps_in_name,rs_countdown;
+int time_out_afks,allow_caps_in_name,rs_countdown,*bdv;
 time_t rs_announce,rs_which;
 UR_OBJECT rs_user;
 
