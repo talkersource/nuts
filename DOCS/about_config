@@ -49,10 +49,6 @@ logging - If YES then talker will write to the system log.
 
 password_echo - If YES then talker will echo passwords at login.
 
-dos_newline   - If YES then unix \n will be appended with \r for DOS and windows
-   users. This carries an overhead though and may not be ideal on heavily used
-   systems where most or all users log in from a unix account.
-
 ignore_sigterm - If YES then SIGTERM will be noted but ignored.
 
 prompt_def - If ON then new users will have their prompt default to ON.
@@ -88,9 +84,20 @@ gatecrash_level - Minimum level of user who can enter a private room without an
    probably to be used as wiz rooms so any user of WIZ and above can enter
    a fixed private room.
 
-crash_recovery - If ON then a segmentation fault or a bus error will be 
-   ignored and the program will jump back to the start of the main loop.
-   The program appears to crash the 2nd time round though.
+crash_action - This defines what the talker should do if a segmentation fault
+   or buss error occurs. If NONE then it does nothing and just crashes, if
+   IGNORE it jumps back to the start of the main loop in main() and if REBOOT
+   the talker will reboot itself.
+
+colour_def - This is either ON or OFF and defines whether colour will be
+   enabled for new users. Bear in mind that the colour codes used are only
+   compatible with terminals that support ANSI colour. If the user is on
+   an incompatible type of terminal (eg an hpterm, wyse50 etc) then generally
+   all he'll get is a screenfull of garbage therefor its best if the default 
+   is OFF as he can always switch colour on using the .colour toggle command.
+
+time_out_afks - Either YES or NO. If yes then even users who are afk will get
+   timed out if they idle for too long.
 
 
 The ROOMS section

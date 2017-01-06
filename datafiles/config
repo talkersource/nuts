@@ -14,7 +14,7 @@ ban_swearing      YES
 auto_connect      YES
 logging           YES
 password_echo     NO
-dos_newline       YES
+colour_def        ON
 ignore_sigterm    NO
 prompt_def        ON
 minlogin_level    NONE
@@ -26,7 +26,7 @@ rem_user_maxlevel WIZ
 rem_user_deflevel USER
 wizport_level     ARCH
 gatecrash_level   ARCH
-crash_recovery    ON    #this isnt guaranteed to work
+#crash_action      IGNORE
 
 ROOMS:
 dr drive    ha        PUB  CONNECT talker2
@@ -38,5 +38,5 @@ lg lounge   co        BOTH ACCEPT
 
 # Link to the 2nd talker
 SITES:
-talker2    localhost 5002    fred123  
+talker2    localhost 5002    fred123 
 

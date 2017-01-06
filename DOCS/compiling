@@ -1,0 +1,34 @@
+*** Compiling and running the talker ***
+
+I had thought of dividing this version of NUTS up into separate source files
+then compiling and linking them together using a makefile but in the end
+I decided that it there was very little point as the code isn't that large
+and once its compiled its unlikely to be done again unless you decide to
+hack it about a bit or move to a different system.
+This particular version of the software was developed in parallel on 
+HP-UX 10.01 using the ANSI compiler and Linux 1.2.13 using gcc 2.5.8 so 
+there should be no probs with either of these. The talker should also compile
+fine on AIX and OSF/1 (I hope).
+	Generally you'll just need to enter "cc nuts320.c" to compile though
+for HP-UX you need to type "cc -Ae nuts320.c". 
+Please note that you NEED the ANSI compiler for HP-UX, the bundled K&R one
+is useless.
+
+Running...
+
+The talker comes with a config file ready made (datadir/config) which will
+be a good starting point for you. There are some network addresses in there
+but they are more of a guide as to how to set up talker links rather than
+being genuine links themselves. 
+	To start the talker just type "go" and it will boot and automatically 
+run itself in the background. All its actions are written to the syslog file. 
+To log in you then just telnet to port 7000 and log in as "fred" with the 
+password "test" as this is an account set up with GOD status. The "go" script
+assumes the executable is called a.out.
+
+I have included a 2nd config file called config2. This is so you can set up
+another talker (by copying the files from this current one) and have them
+link together. The only file that need to be different is the config file.
+Move config2 into the 2nd datafiles directory as config and run the 2nd 
+talker.
+

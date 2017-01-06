@@ -1,9 +1,10 @@
-/****************** Header file for NUTS version 3.1.2 ******************/
+/****************** Header file for NUTS version 3.2.0 ******************/
 
 #define DATAFILES "datafiles"
 #define USERFILES "userfiles"
 #define HELPFILES "helpfiles"
 #define MAILSPOOL "mailspool"
+#define CONFIGFILE "config"
 #define NEWSFILE "newsfile"
 #define MAPFILE "mapfile"
 #define SITEBAN "siteban"
@@ -14,7 +15,7 @@
 
 #define OUT_BUFF_SIZE 80
 #define MAX_WORDS 10
-#define WORD_LEN 20
+#define WORD_LEN 40
 #define ARR_SIZE 1000
 #define MAX_LINES 10
 
@@ -53,7 +54,7 @@
 #define CLONE_HEAR_SWEARS 1
 #define CLONE_HEAR_ALL 2
 
-/* The elements vis, listen, prompt, command_mode etc could all be bits in 
+/* The elements vis, ignall, prompt, command_mode etc could all be bits in 
    one flag variable as they're only ever 0 or 1, but I tried it and it
    made the code unreadable. Better to waste a few bytes */
 struct user_struct {
@@ -65,9 +66,10 @@ struct user_struct {
 	char mail_to[WORD_LEN+1];
 	struct room_struct *room,*invite_room;
 	int type,port,login,socket,attempts,buffpos,filepos;
-	int vis,listen,prompt,command_mode,muzzled,charmode_echo; 
+	int vis,ignall,prompt,command_mode,muzzled,charmode_echo; 
 	int level,misc_op,remote_com,edit_line,charcnt,warned;
-	int accreq,last_login_len,listen_store,clone_hear,afk;
+	int accreq,last_login_len,ignall_store,clone_hear,afk;
+	int edit_op,colour,ignshout,igntell;
 	time_t last_input,last_login,total_login,read_mail;
 	char *malloc_start,*malloc_end;
 	struct netlink_struct *netlink;
@@ -111,7 +113,6 @@ struct netlink_struct {
 	char service[SERV_NAME_LEN+1];
 	char site[SITE_NAME_LEN+1];
 	char verification[SERV_NAME_LEN+1];
-	char remote_ver[11];
 	char buffer[ARR_SIZE*2];
 	char mail_to[WORD_LEN+1];
 	char mail_from[WORD_LEN+1];
@@ -119,6 +120,7 @@ struct netlink_struct {
 	time_t last_recvd; 
 	int port,socket,type,connected;
 	int stage,lastcom,allow,warned,keepalive_cnt;
+	int ver_major,ver_minor,ver_patch;
 	struct user_struct *mesg_user;
 	struct room_struct *connect_room;
 	struct netlink_struct *prev,*next;
@@ -144,21 +146,23 @@ char *level_name[]={
 char *command[]={
 "quit",    "look",     "mode",      "say",    "shout",
 "tell",    "emote",    "semote",    "pemote", "echo",
-"go",      "listen",   "prompt",    "desc",   "inphr",
+"go",      "ignall",   "prompt",    "desc",   "inphr",
 "outphr",  "public",   "private",   "letmein","invite",
-"topic",   "move",     "bcast",     "who",     "people",
-"home",    "shutdown", "news",      "read",    "write",
-"wipe",    "search",   "review",    "help",    "status",
-"version", "rmail",    "smail",     "dmail",   "from",
-"entpro",  "examine",  "rmst",      "rmsn",    "netstat",
-"netdata", "connect",  "disconnect","passwd",  "kill",
-"promote", "demote",   "lban",      "ban",     "unban",
-"vis",     "invis",    "site",      "wake",    "wizshout",
-"muzzle",  "unmuzzle", "map",       "logging", "minlogin",
-"system",  "charecho", "clearline", "fix",     "unfix",
-"viewlog", "accreq",   "revclr",    "clone",   "destroy",
-"myclones","allclones","switch","clsay","clhear",
-"rstat",   "swban",    "afk","*"
+"topic",   "move",     "bcast",     "who",    "people",
+"home",    "shutdown", "news",      "read",   "write",
+"wipe",    "search",   "review",    "help",   "status",
+"version", "rmail",    "smail",     "dmail",  "from",
+"entpro",  "examine",  "rmst",      "rmsn",   "netstat",
+"netdata", "connect",  "disconnect","passwd", "kill",
+"promote", "demote",   "lban",      "ban",    "unban",
+"vis",     "invis",    "site",      "wake",   "wizshout",
+"muzzle",  "unmuzzle", "map",       "logging","minlogin",
+"system",  "charecho", "clearline", "fix",    "unfix",
+"viewlog", "accreq",   "revclr",    "clone",  "destroy",
+"myclones","allclones","switch",    "csay",   "chear",
+"rstat",   "swban",    "afk",       "cls",    "colour",
+"ignshout","igntell",  "suicide",   "delete", "reboot",
+"*"
 };
 
 
@@ -166,7 +170,7 @@ char *command[]={
 enum comvals {
 QUIT,     LOOK,     MODE,     SAY,    SHOUT,
 TELL,     EMOTE,    SEMOTE,   PEMOTE, ECHO,
-GO,       LISTEN,   PROMPT,   DESC,   INPHRASE,
+GO,       IGNALL,   PROMPT,   DESC,   INPHRASE,
 OUTPHRASE,PUBCOM,   PRIVCOM,  LETMEIN,INVITE,
 TOPIC,    MOVE,     BCAST,    WHO,    PEOPLE,
 HOME,     SHUTDOWN, NEWS,     READ,   WRITE,
@@ -179,8 +183,9 @@ VIS,      INVIS,    SITE,     WAKE,   WIZSHOUT,
 MUZZLE,   UNMUZZLE, MAP,      LOGGING,MINLOGIN,
 SYSTEM,   CHARECHO, CLEARLINE,FIX,    UNFIX,
 VIEWLOG,  ACCREQ,   REVCLR,   CREATE, DESTROY,
-MYCLONES, ALLCLONES,SWITCH,   CLSAY,  CLHEAR,
-RSTAT,    SWBAN,    AFK
+MYCLONES, ALLCLONES,SWITCH,   CSAY,   CHEAR,
+RSTAT,    SWBAN,    AFK,      CLS,    COLOUR,
+IGNSHOUT, IGNTELL,  SUICIDE,  DELETE, REBOOT
 } com_num;
 
 
@@ -189,7 +194,7 @@ RSTAT,    SWBAN,    AFK
 int com_level[]={
 NEW, NEW, NEW, NEW, USER,
 USER,USER,USER,USER,USER,
-USER,USER,USER,USER,USER,
+USER,USER,NEW, USER,USER,
 USER,USER,USER,USER,USER,
 USER,WIZ, ARCH,NEW, WIZ,
 USER,GOD, USER,NEW, USER,
@@ -198,13 +203,43 @@ NEW, USER,USER,USER,USER,
 USER,USER,NEW, NEW, WIZ,
 ARCH,GOD, GOD, USER,WIZ,
 ARCH,ARCH,WIZ, ARCH,ARCH,
-ARCH,ARCH,WIZ, WIZ, WIZ,
+ARCH,ARCH,WIZ, USER,WIZ,
 WIZ, WIZ, USER,GOD, GOD,
 WIZ, NEW, WIZ, GOD, GOD,
 ARCH,NEW, USER,ARCH,ARCH,
 ARCH,USER,ARCH,ARCH,ARCH,
-GOD, ARCH,USER
+GOD, ARCH,USER,NEW ,NEW,
+USER,USER,NEW, GOD, GOD
 };
+
+/* 
+Colcode values equal the following:
+RESET,BOLD,BLINK,REVERSE
+
+Foreground & background colours in order..
+BLACK,RED,GREEN,YELLOW/ORANGE,
+BLUE,MAGENTA,TURQUIOSE,WHITE
+*/
+
+char *colcode[]={
+"\033[0m", "\033[1m", "\033[5m", "\033[7m",
+/* Foreground */
+"\033[30m","\033[31m","\033[32m","\033[33m",
+"\033[34m","\033[35m","\033[36m","\033[37m",
+/* Background */
+"\033[40m","\033[41m","\033[42m","\033[43m",
+"\033[44m","\033[45m","\033[46m","\033[47m"
+};
+
+/* Codes used in a string to produce the colours when prepended with a '~' */
+char *colcom[]={
+"RS","OL","LI","RV",
+"FK","FR","FG","FY",
+"FB","FM","FT","FW",
+"BK","BR","BG","BY",
+"BB","BM","BT","BW"
+};
+
 
 char *month[12]={
 "January","February","March","April","May","June",
@@ -217,6 +252,7 @@ char *day[7]={
 
 char *noyes1[]={ " NO","YES" };
 char *noyes2[]={ "NO ","YES" };
+char *offon[]={ "OFF","ON " };
 
 /* These MUST be in upper case - the contains_swearing() function converts
    the string to be checked to upper case before it compares it against
@@ -226,14 +262,15 @@ char *swear_words[]={
 };
 
 char verification[SERV_NAME_LEN+1];
-char text[ARR_SIZE];
+char text[ARR_SIZE*2];
 char word[MAX_WORDS][WORD_LEN+1];
 char wrd[8][81];
+char progname[40],confile[40];
 time_t boot_time;
 jmp_buf jmpvar;
 
-int mainport,wizport,linkport,wizport_level,minlogin_level;
-int password_echo,dos_newline,ignore_sigterm,listen_sock[3];
+int port[3],listen_sock[3],wizport_level,minlogin_level;
+int colour_def,password_echo,ignore_sigterm;
 int max_users,max_clones,num_of_users,num_of_logins,heartbeat;
 int login_idle_time,user_idle_time,config_line,word_count;
 int tyear,tmonth,tday,tmday,twday,thour,tmin,tsec;
@@ -241,6 +278,7 @@ int mesg_life,system_logging,prompt_def,no_prompt;
 int force_listen,gatecrash_level,min_private_users;
 int ignore_mp_level,rem_user_maxlevel,rem_user_deflevel;
 int destructed,mesg_check_hour,mesg_check_min,net_idle_time;
-int keepalive_interval,auto_connect,ban_swearing,crash_recovery;
+int keepalive_interval,auto_connect,ban_swearing,crash_action;
+int time_out_afks;
 
 extern char *sys_errlist[];
