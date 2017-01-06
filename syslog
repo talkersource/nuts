@@ -1,3 +1,5 @@
-Aug 31 16:00: Fred signed on from andromeda
-Aug 31 16:00: Fred signed off
-*** Talker SHUTDOWN by Fred on Wed Aug 31 16:00:27 1994 ***
+*** Talker BOOTING ***
+*** Talker BOOTED (PID 27959) on Tue Nov 29 12:25:26 1994 ***
+Nov 29 12:25: Fred signed on from self1
+Nov 29 12:25: Fred signed off
+*** Talker SHUTDOWN by Fred on Tue Nov 29 12:25:40 1994 ***

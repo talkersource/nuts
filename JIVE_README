@@ -1,0 +1,69 @@
+A rough guide fo' would be sysops.
+-----------------------------------
+
+NUTS 2.2 gots'ta one majo' change fum NUTS 2.1 oda' dan some new commands.
+De usa' levels gots' changed as dere be now one 'estra level - NEWBIE
+which be level 0. De oda' 3 levels gots' been shifted down so's usa' is
+level 1, wizard be level 2 and god level 3. Bear dis in mind if ya' are 
+downgradin' fum 2.1
+
+To compile dis  honky code plum type "cc nuts220.c" and t'run plum type "a.  Sheeeiit.out" 
+o' whuteva' dojigger ya' give it.
+Dis software be guaranteed t'compile on AIX, OSF/1, Mach (NeXT) and
+Linux 1.0 (wid some warnin's).
+and should compile on SunOS & HP-UX. As fo' oda'  slow mo-fo's ah' aint some clue.  What it is, Mama!
+
+
+Fo'mat uh de INITFILE:
+
+<po't number> <no. uh areas> <atmos on> <loggin'_on> <allow new> <mess life>
+<room dojigger> <link> <status>
+.
+.
+.
+.
+
+De po't numba' is de numba' of de po't da damn rapa' runs on.  'S coo', bro.
+De no. uh areas be de numba' of areas ya' gots' defined (max 26)
+Atmos on be 1 o' 0 dependin' on wheda' ya' wants' de atmospherics on o' not.
+Ditto above fo' system loggin'.
+If allow new = 1 den new id's kin be created else if 0 dey kin't.
+Mess life be how many days messages remain on de message bo'ds befo' bein'
+automatically erased.
+
+You's den define da damn room dojiggers, deir links t'oda' rooms (usin' letters) and
+deir status.
+
+Status = 0 - room kin be set by uses t'eida' private o' public
+         1 - room be fixed t'public
+         2 - room be fixed t'private (ie fo' sysop (Wizards & gods) only use)
+
+
+Files in USERDIR:
+
+Usin' Fred as an 'esample we could gots' de followin'  stashs..
+Fred.D , Fred.M , Fred.P. Dey are all text  stashs and dey contain de 
+followin' data.  Sheeeiit. Fred.M contains Freds mail, Fred.P contains Freds pro stash
+and Fred.D contains his userdata which gots'ta de followin' fo'mat, dig dis:
+
+<last logged in time>
+<last site logged in fum>
+<usa' descripshun>
+<usa' level (0-3)>
+
+De rest ya' should be able t'wo'k out fo' yo'self.  What it is, Mama! Some final wahtahmelluns t'note
+are dat use passwo'ds are now encrypted and da damn usa' status be no longer
+contained in de passwo'd  stash and da damn data directo'y be no longa' specified
+on de command line but sto'ed as some macro in de  honky code. Dere be also a
+second message uh de day on loggin' in.  'S coo', bro.
+
+I gots' set down some usa' called "Fred" who gots'ta de passwo'd "test" and use level
+of God so's log in gots'ta him fust t'play around.
+
+You's should be able t'wo'k de rest out fo' yo'self.  What it is, Mama!
+
+Have fun.  'S coo', bro.
+
+Neil Leroyson 1994
+
+neil@realtime.  What it is, Mama!demon.  'S coo', bro.co.uk

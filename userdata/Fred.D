@@ -1,4 +1,4 @@
-Wed Aug 31 16:00:27 1994
-andromeda
+Tue Nov 29 12:25:40 1994
+self1
 is the boss
-2
+3

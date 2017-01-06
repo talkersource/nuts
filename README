@@ -1,39 +1,16 @@
-A Note from the New Author
---------------------------
-
-Neil Robertson has decided to pass the baton to someone else in the
-maintenance and development of the NUTS software.  The NUTS-based
-talker community owes many thanks to Neil for his efforts and time
-spent on this software.
-
-As the new developer of NUTS, I will make every effort possible 
-(time-permitting) to continue the usefulness of this program.  This
-is not in any way ignoring the fun factor with this program, I believe
-that it provides the medium for a great deal of entertainment both for
-any would-be sysops and also users.
-
-As of version 2.1.1, all bugs reports and suggestions should be addressed
-to me at sven@borderbase.utep.edu.  I appreciate any constructive comments,
-but if you wish to make unproductive comments ("this code is no good",etc)
-please keep them to yourself.  All such messages will be routed to /dev/null.
-
-Thank you
-
-Sven Barzanallana  31-Aug-94
-sven@borderbase.utep.edu
-
-P.S.  Questions about NUTS 2.1.0 and earlier should be addressed to
-      Neil Robertson at neil@realtime.demon.co.uk
-
-
-A rough guide for would-be sysops.
+A rough guide for would be sysops.
 -----------------------------------
 
-This is NUTS 2. Even though it appears the same as NUTS 1.x from the users
-point of view (bar some extra commands and slight changes) it has been 
-changed quite radically under the skin. To compile the program type
-"cc nuts211.c" and to run just type "a.out" or whatever name you give it.
-This software is guaranteed to compile on AIX & OSF/1 and Mach (NeXT)
+NUTS 2.2 has one major change from NUTS 2.1 other than some new commands.
+The user levels have changed as there is now one extra level - NEWBIE
+which is level 0. The other 3 levels have been shifted up so user is
+level 1, wizard is level 2 and god level 3. Bear this in mind if you are 
+upgrading from 2.1
+
+To compile this program just type "cc nuts220.c" and to run just type "a.out" 
+or whatever name you give it.
+This software is guaranteed to compile on AIX, OSF/1, Mach (NeXT) and
+Linux 1.0 (with some warnings).
 and should compile on SunOS & HP-UX. As for other unix's I haven't a clue.
 
 
@@ -72,7 +49,7 @@ and Fred.D contains his userdata which has the following format:
 <last logged in time>
 <last site logged in from>
 <user description>
-<user level (0-2)>
+<user level (0-3)>
 
 The rest you should be able to work out for yourself. Some final things to note
 are that use passwords are now encrypted and the user status is no longer
@@ -86,3 +63,7 @@ of God so log in has him first to play around.
 You should be able to work the rest out for yourself.
 
 Have fun.
+
+Neil Robertson 1994
+
+neil@realtime.demon.co.uk
