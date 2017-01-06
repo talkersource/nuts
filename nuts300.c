@@ -1,6 +1,6 @@
 /*****************************************************************************
-        NUTS version 3.0.0a (alpha release)  - (C) Neil Robertson 1996
-                      Last update: 19th February 1996
+                NUTS version 3.0.0 - (C) Neil Robertson 1996
+                      Last update: 10th March 1996
 
  This software is provided as is. It is not intended as any sort of bullet
  proof system for commercial operation and I accept no liability for any
@@ -16,7 +16,12 @@
 
  Read the README file for further information.
 
+ Thanks to Jesse Walton for help in finding bugs in the alpha release.
+
  Neil Robertson.
+
+ NB: This program listing looks best when the tab length is 5 chars which is
+ "set ts=5" in vi.
 
  *****************************************************************************/
 
@@ -37,7 +42,7 @@
 
 #include "nuts300.h"
 
-#define VERSION "3.0.0a"
+#define VERSION "3.0.0"
 
 main()
 {
@@ -1389,7 +1394,7 @@ int temp1,temp2,temp3;
 sprintf(filename,"%s/%s.D",USERFILES,user->name);
 if (!(fp=fopen(filename,"r"))) return 0;
 fscanf(fp,"%s",user->pass); /* password */
-fscanf(fp,"%d %d %d %d %d %d %d %d",&temp1,&temp2,&temp3,&user->level,&user->prompt,&user->muzzled,&user->charmode_echo,&user->command_mode);
+fscanf(fp,"%d %d %d %d %d %d %d %d %d",&temp1,&temp2,&user->last_login_len,&temp3,&user->level,&user->prompt,&user->muzzled,&user->charmode_echo,&user->command_mode);
 user->last_login=(time_t)temp1;
 user->total_login=(time_t)temp2;
 user->read_mail=(time_t)temp3;
@@ -1405,6 +1410,8 @@ strcpy(user->in_phrase,line);
 fgets(line,PHRASE_LEN+2,fp);
 line[strlen(line)-1]=0;
 strcpy(user->out_phrase,line); 
+fclose(fp);
+return 1;
 }
 
 
@@ -1428,7 +1435,7 @@ if (!(fp=fopen(filename,"w"))) {
 if (user->level<0) user->level=0;
 if (user->level>GOD) user->level=GOD;
 fprintf(fp,"%s\n",user->pass);
-fprintf(fp,"%d %d %d %d %d %d %d %d\n",(int)time(0),(int)user->total_login,(int)user->read_mail,user->level,user->prompt,user->muzzled,user->charmode_echo,user->command_mode);
+fprintf(fp,"%d %d %d %d %d %d %d %d %d\n",(int)time(0),(int)user->total_login,(int)(time(0)-user->last_login),(int)user->read_mail,user->level,user->prompt,user->muzzled,user->charmode_echo,user->command_mode);
 fprintf(fp,"%s\n",user->site);
 fprintf(fp,"%s\n",user->desc);
 fprintf(fp,"%s\n",user->in_phrase);
@@ -1450,7 +1457,6 @@ char temp[30];
 for(u=user_first;u!=NULL;u=u->next) {
 	if (user!=u && !strcmp(user->name,u->name)) {
 		rm=u->room;
-		num_of_users--;
 		if (u->socket==-1) {
 			write_user(u,"\nYou are pulled back through cyberspace...\n");
 			sprintf(text,"REMVD %s\n",u->name);
@@ -1459,6 +1465,7 @@ for(u=user_first;u!=NULL;u=u->next) {
 			destruct_user(u);
 			write_room(rm,text);
 			reset_access(rm);
+			num_of_users--;
 			break;
 			}
 		write_user(user,"\n\nYou are already connected - switching to old session...\n");
@@ -1533,7 +1540,9 @@ if (user->room==NULL) {
 	sprintf(text,"REL %s\n",user->name);
 	write_sock(user->netlink->socket,text);
 	for(nl=nl_first;nl!=NULL;nl=nl->next) 
-		if (nl->mesg_user==user) {  nl->mesg_user=(UR_OBJECT)-1;  break;  }
+		if (nl->mesg_user==user) {  
+			nl->mesg_user=(UR_OBJECT)-1;  break;  
+			}
 	destruct_user(user);
 	return;
 	}
@@ -1632,10 +1641,10 @@ if (!word_count) {
 	*user->malloc_end++='\n';
 	if (user->edit_line!=MAX_LINES) {
 		sprintf(text,"%d>",++user->edit_line);
-     	write_user(user,text);
+     		write_user(user,text);
 		user->charcnt=0;
-     	return;
-     	}
+     		return;
+     		}
 	goto CALL_FUNC;
 	}
 if (!user->charcnt && !strcmp(inpstr,".")) goto CALL_FUNC;
@@ -1832,11 +1841,11 @@ text[0]=0;  buffpos=0;  num_chars=0;
 retval=1;  len=0;
 
 /* This is a hack to fix an annoying bug I cannot solve */
-if (user->socket==-1) lines=1; else lines=0; 
+if (sock==-1) lines=1; else lines=0; 
 
 /* Go through file */
 while(!feof(fp) && (lines<23 || user==NULL)) {
-	if (user->socket==-1) {
+	if (sock==-1) {
 		lines++;
 		fgets(text2,81,fp);
 		sprintf(text,"MSG %s\n%sEMSG\n",user->name,text2);
@@ -1861,7 +1870,7 @@ while(!feof(fp) && (lines<23 || user==NULL)) {
 	lines+=len/80+(len<80);
 	fgets(text,sizeof(text)-1,fp);
 	}
-if (buffpos && user->socket!=-1) write(sock,buff,buffpos);
+if (buffpos && sock!=-1) write(sock,buff,buffpos);
 
 /* if user is logging in only give him 1 page */
 if (user==NULL) {  fclose(fp);  return 2;  };
@@ -2007,7 +2016,7 @@ char *to,*ptr;
 NL_OBJECT nl;
 FILE *infp,*outfp;
 char *c,d,*service,filename[80],line[DNL+1];
-int copy,l;
+int l;
 
 /* See if remote mail */
 c=to;  service=NULL;
@@ -2030,9 +2039,6 @@ while(*c) {
 	}
 
 /* Local mail */
-sprintf(filename,"%s/%s.M",USERFILES,to);
-if (!(infp=fopen(filename,"r"))) copy=0;
-else copy=1;
 if (!(outfp=fopen("tempfile","w"))) {
 	write_user(user,"Error in mail delivery.\n");
 	sprintf(text,"ERROR: Couldn't open tempfile in send_mail().\n",filename);
@@ -2042,7 +2048,8 @@ if (!(outfp=fopen("tempfile","w"))) {
 	}
 /* Write current time on first line of tempfile */
 fprintf(outfp,"%d\r",(int)time(0));
-if (copy) {
+sprintf(filename,"%s/%s.M",USERFILES,to);
+if (infp=fopen(filename,"r")) {
 	/* Discard first line of mail file. */
 	fgets(line,DNL,infp);
 
@@ -2155,6 +2162,7 @@ user->remote_com=-1;
 user->netlink=NULL;
 user->last_input=time(0);
 user->last_login=time(0);
+user->last_login_len=0;
 user->total_login=0;
 user->prompt=prompt_def;
 user->charmode_echo=0;
@@ -2309,14 +2317,14 @@ for(nl2=nl_first;nl2!=NULL;nl2=nl2->next)
 	if (!strcmp(nl2->site,site)) goto OK;
 write_sock(sock,"DENIED CONNECT 1\n");
 close(sock);
-write_syslog("NETLINK: Request denied, error 1.\n");
+write_syslog("NETLINK: Request denied, error 1.\n",1);
 return;
 
 OK:
 if ((nl=create_netlink())==NULL) {
 	write_sock(sock,"DENIED CONNECT 2\n");  
 	close(sock);  
-	write_syslog("NETLINK: Request denied, error 2.\n");
+	write_syslog("NETLINK: Request denied, error 2.\n",1);
 	return;
 	}
 /* Find free room link */
@@ -2331,13 +2339,13 @@ for(rm=room_first;rm!=NULL;rm=rm->next) {
 		strcpy(nl->service,"<verifying>");
 		strcpy(nl->site,site);
 		write_sock(sock,"GRANTED CONNECT\n");
-		write_syslog("NETLINK: Request granted.\n");
+		write_syslog("NETLINK: Request granted.\n",1);
 		return;
 		}
 	}
 write_sock(sock,"DENIED CONNECT 3\n");
 close(sock);
-write_syslog("NETLINK: Request denied, error 3.\n");
+write_syslog("NETLINK: Request denied, error 3.\n",1);
 }
 		
 
@@ -2393,7 +2401,7 @@ while(*inpstr) {
 		nl->stage=2;
 		if (nl->type==OUTGOING) {
 			if (strcmp(w1,"NUTS")) {
-				sprintf(text,"NETLINK: Incorrect logon message from service %s, link closed.\n",nl->service);
+				sprintf(text,"NETLINK: Incorrect logon message from service %s.\n",nl->service);
 				write_syslog(text,1);
 				shutdown_netlink(nl);
 				return;
@@ -2407,7 +2415,7 @@ while(*inpstr) {
 			/* Incoming */
 			if (netcom_num!=9) {
 				/* No verification, no connection */
-				sprintf(text,"NETLINK: No verification sent by site %s, link closed.\n",nl->site);
+				sprintf(text,"NETLINK: No verification sent by site %s.\n",nl->site);
 				write_syslog(text,1);
 				shutdown_netlink(nl);  
 				return;
@@ -2466,6 +2474,7 @@ nl->buffer[0]='\0';
 }
 
 
+/*** Deal with user being transfered over from remote site ***/
 nl_transfer(nl,name,pass,inpstr)
 NL_OBJECT nl;
 char *name,*pass,*inpstr;
@@ -2531,6 +2540,7 @@ write_sock(nl->socket,text);
 }
 		
 
+/*** User is leaving this system ***/
 nl_release(nl,name)
 NL_OBJECT nl;
 char *name;
@@ -2551,6 +2561,7 @@ write_syslog(text,1);
 }
 
 
+/*** Remote user performs an action on this system ***/
 nl_action(nl,name,inpstr)
 NL_OBJECT nl;
 char *name,*inpstr;
@@ -2588,6 +2599,7 @@ if (!u->misc_op) prompt(u);
 }
 
 
+/*** Grant received from remote system ***/
 nl_granted(nl,name)
 NL_OBJECT nl;
 char *name;
@@ -2629,6 +2641,7 @@ if (u->remote_com==GO) {
 }
 
 
+/*** Deny recieved from remote system ***/
 nl_denied(nl,name,inpstr)
 NL_OBJECT nl;
 char *name,*inpstr;
@@ -2667,6 +2680,7 @@ u->remote_com=-1;
 }
 
 
+/*** Text received to display to a user on here ***/
 nl_mesg(nl,name)
 NL_OBJECT nl;
 char *name;
@@ -2683,6 +2697,7 @@ nl->mesg_user=u;
 }
 
 
+/*** Remote system asking for prompt to be displayed ***/
 nl_prompt(nl,name)
 NL_OBJECT nl;
 char *name;
@@ -2703,6 +2718,7 @@ prompt(u);
 }
 
 
+/*** Verification recieved from remote site ***/
 nl_verification(nl,w2,com)
 NL_OBJECT nl;
 char *w2;
@@ -2737,7 +2753,7 @@ if (!strcmp(w2,"OK")) {
 	return;
 	}
 if (!strcmp(w2,"BAD")) {
-	sprintf(text,"NETLINK: Connection to %s has bad verification, link closed.\n",nl->service);
+	sprintf(text,"NETLINK: Connection to %s has bad verification.\n",nl->service);
 	write_syslog(text,1);
 	shutdown_netlink(nl);  
 	return;
@@ -2832,7 +2848,7 @@ else {
 	sprintf(text2,"There is no user named %s at service %s, your mail bounced.\n",to,nl->service);
 	send_mail(NULL,from,text2);
 	}
-sprintf(filename,"%s/%s/OUT_%s_%s@%s",MAILSPOOL,from,to,nl->service);
+sprintf(filename,"%s/OUT_%s_%s@%s",MAILSPOOL,from,to,nl->service);
 unlink(filename);
 }
 
@@ -2893,6 +2909,7 @@ strcpy(nl->mail_from,from);
 }
 
 
+/*** End of mail message being sent from remote site ***/
 nl_endmail(nl)
 NL_OBJECT nl;
 {
@@ -3179,6 +3196,7 @@ switch(com_num) {
 		more(user,user->socket,"syslog");
 		break;
 	case ACCREQ: account_request(user,inpstr);  break;
+	case REVCLR: clear_conv(user);  break;
 	default: write_user(user,"Command not executed in exec_com().\n");
 	}	
 }
@@ -4441,7 +4459,7 @@ int num,valid,cnt;
 char filename[80],w1[ARR_SIZE],line[ARR_SIZE];
 
 if (word_count<2 || ((num=atoi(word[1]))<1 && strcmp(word[1],"all"))) {
-	write_user(user,"Usage: dmail <num>/all\n");  return;
+	write_user(user,"Usage: dmail <number of messages>/all\n");  return;
 	}
 sprintf(filename,"%s/%s.M",USERFILES,user->name);
 if (!(infp=fopen(filename,"r"))) {
@@ -4535,7 +4553,7 @@ UR_OBJECT user;
 UR_OBJECT u;
 FILE *fp;
 char filename[80],line[82];
-int last_login,total_login,last_read,new_mail,level;
+int last_login,total_login,last_read,new_mail,level,loglen;
 int days,hours,mins,ago,onfor,days2,hours2,mins2;
 
 if (word_count<2) {
@@ -4548,7 +4566,7 @@ if (!(fp=fopen(filename,"r"))) {
 	}
 else {
 	fgets(line,20,fp);
-	fscanf(fp,"%d %d %d %d",&last_login,&total_login,&last_read,&level);
+	fscanf(fp,"%d %d %d %d %d",&last_login,&total_login,&loglen,&last_read,&level);
 	}
 fclose(fp);
 
@@ -4581,7 +4599,9 @@ if (!(u=get_user(word[1]))) {
 
 	sprintf(text,"\nLevel      : %s\nLast login : %s",level_name[level],ctime((time_t *)&last_login));
 	write_user(user,text);
-	sprintf(text,"Which was  : %d days, %d hours, %d minutes ago\nTotal login: %d days, %d hours, %d minutes\n",days2,hours2,mins2,days,hours,mins);
+	sprintf(text,"Which was  : %d days, %d hours, %d minutes ago\n",days2,hours2,mins2);
+	write_user(user,text);
+	sprintf(text,"Was on for : %d hours, %d minutes\nTotal login: %d days, %d hours, %d minutes\n",loglen/3600,(loglen%3600)/60,days,hours,mins);
 	write_user(user,text);
 	if (new_mail>last_read) {
 		sprintf(text,"%s has unread mail.\n",word[1]);
@@ -4594,12 +4614,11 @@ days=u->total_login/86400;
 hours=(u->total_login%86400)/3600;
 mins=(u->total_login%3600)/60;
 onfor=(int)(time(0) - u->last_login);
-days2=onfor/86400;
 hours2=(onfor%86400)/3600;
 mins2=(onfor%3600)/60;
 sprintf(text,"\nLevel      : %s\nListening  : %s\n",level_name[u->level],noyes2[u->listen]);
 write_user(user,text);
-sprintf(text,"On since   : %sOn for     : %d days, %d hours, %d minutes\n",ctime((time_t *)&u->last_login),days2,hours2,mins2);
+sprintf(text,"On since   : %sOn for     : %d hours, %d minutes\n",ctime((time_t *)&u->last_login),hours2,mins2);
 write_user(user,text);
 sprintf(text,"Total login: %d days, %d hours, %d minutes\n",days,hours,mins);
 write_user(user,text);
@@ -4793,7 +4812,7 @@ if (nl==NULL) {
 	return;
 	}
 if (nl->type==UNCONNECTED) {
-	write_user(user,"That rooms netlink is already down.\n");  return;
+	write_user(user,"That rooms netlink is not connected.\n");  return;
 	}
 /* If link has hung at verification stage don't bother announcing it */
 if (nl->stage==2) {
@@ -5749,6 +5768,20 @@ write_user(user,"Account request logged.\n");
 user->accreq=1;
 }
 
+
+/*** Clear the conversation buffer in room ***/
+clear_conv(user)
+UR_OBJECT user;
+{
+int c;
+
+for(c=0;c<CONV_LINES;++c) user->room->conv_line[c][0]='\0';
+user->room->cln=0;
+write_user(user,"Buffer cleared.\n");
+sprintf(text,"%s has cleared the conversation buffer.\n",user->name);
+write_room_except(user->room,text,user);
+}
+	
 
 
 /**************************** EVENT FUNCTIONS ******************************/

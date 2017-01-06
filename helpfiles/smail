@@ -1,0 +1,4 @@
+Usage: smail <user> or smail <user>@<service>
+
+You can send mail to a remote service/talker if your talker is currently
+connected to it.

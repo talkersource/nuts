@@ -1,4 +1,4 @@
-/****************** Header file for NUTS version 3.0.0a ******************/
+/****************** Header file for NUTS version 3.0.0 ******************/
 
 #define DATAFILES "datafiles"
 #define USERFILES "userfiles"
@@ -51,9 +51,9 @@ char *level_name[]={
    bits in one flag var. as they're only ever 0 or 1 but I tried it and it
    made the code unreadable. Better to waste a few bytes */
 struct user_struct {
-     /* general (used by 2 or more types) */
-     char name[USER_NAME_LEN+1];
-     char desc[USER_DESC_LEN+1];
+	/* general (used by 2 or more types) */
+	char name[USER_NAME_LEN+1];
+	char desc[USER_DESC_LEN+1];
 	char pass[PASS_LEN+6];
 	char in_phrase[PHRASE_LEN+1],out_phrase[PHRASE_LEN+1];
 	char buff[BUFSIZE],site[81],last_site[81],page_file[81];
@@ -61,7 +61,8 @@ struct user_struct {
 	struct room_struct *room,*invite_room;
 	int port,login,socket,attempts,buffpos,filepos;
 	int vis,listen,prompt,command_mode,muzzled,charmode_echo; 
-	int level,misc_op,remote_com,edit_line,charcnt,warned,accreq;
+	int level,misc_op,remote_com,edit_line,charcnt,warned;
+	int accreq,last_login_len;
 	time_t last_input,last_login,total_login,read_mail;
 	char *malloc_start,*malloc_end;
 	struct netlink_struct *netlink;
@@ -144,7 +145,7 @@ char *command[]={
 "invis","site","wake","wizshout","muzzle",
 "unmuzzle","map","logging","minlogin","system",
 "charecho","clearline","fix","unfix","viewlog",
-"accreq","*"
+"accreq","revclr","*"
 };
 
 /* These are the minimum levels at which the commands can be executed. 
@@ -164,7 +165,7 @@ ARCH,WIZ,ARCH,ARCH,ARCH,
 ARCH,WIZ,WIZ,WIZ,WIZ,
 WIZ,USER,GOD,GOD,WIZ,
 NEW,WIZ,GOD,GOD,ARCH,
-NEW
+NEW,USER
 };
 
 enum comvals {
@@ -182,7 +183,7 @@ DEMOTE,LBAN,BAN,UNBAN,VIS,
 INVIS,SITE,WAKE,WIZSHOUT,MUZZLE,
 UNMUZZLE,MAP,LOGGING,MINLOGIN,SYSTEM,
 CHARECHO,CLEARLINE,FIX,UNFIX,VIEWLOG,
-ACCREQ
+ACCREQ,REVCLR
 } com_num;
 
 char *month[12]={

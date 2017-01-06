@@ -1,10 +1,12 @@
 
 *** NUTS 3 readme file ***
 
-This is an alpha release. As such this means the documentation may be a bit
-ropey and the server itself may have problems and bugs. PLease mail me with
-any problems be they functional or presentation wise and I'll try to put a
-fix in the final release version.
+Well , only 1 person bothered to test the alpha release for me and he
+didnt have time to do much of that so if there are still bugs in this
+final release blame yourselfs. I've got rid of all the bugs I can find but
+the program still needs and effective soak test with many users. The user
+data files are incompatible with the alpha release by the way. If you have
+a problem with that, well its just tough titties.
 
 From a initial glance this version of the talker looks pretty similar to all
 the other versions. Up to a point this is correct, after all there are only
@@ -37,7 +39,7 @@ but they are more of a guide as to how to set up talker links rather than
 being genuine links themselves. 
 	To start the talker just type "a.out" and it will boot and 
 automatically run itself in the background. All its actions are written to the
-syslog file. To log in you then just telnet to port 5000 and log in as "fred"
+syslog file. To log in you then just telnet to port 7000 and log in as "fred"
 with the password "test" as this is an account set up with GOD status.
 
 I have included a 2nd config file called config2. This is so you can set up
@@ -49,4 +51,4 @@ talker.
 More detailed information is in the specific documentation in the DOCS
 directory.
 
-Neil Robertson , Feb 1996
+Neil Robertson , March 1996

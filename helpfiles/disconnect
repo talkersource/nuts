@@ -1,0 +1,3 @@
+Usage: disconnect <room>
+
+Bring down the netlink in a room.

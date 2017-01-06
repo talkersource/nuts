@@ -1,0 +1,12 @@
+Initial alpha release 3.0.0a
+
+3.0.0
+-----
+
+1. Added revclr command
+
+2. Added last_login_len element in user structure for examine command
+   and saving this in the user data files makes these files incompatible with 
+   the alpha version. Tough titties.
+
+3. Various bug fixes

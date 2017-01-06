@@ -1,0 +1,20 @@
+
+Here are some things I have in mind for future release but dont assume
+this means I'll ever actually implement them...
+
+- Cloning of user objects for gods so that they can be in more than one
+  room at once and listen in to multiple conversations.
+
+- Mail forwarding.
+
+- "Copies to" functionality on sending mail
+
+- Ability of users to traverse more than 1 remote link (this is a v. complex
+  thing to code believe it or not.)
+
+- Ban individual users from logging in from connected sites (though I'm not
+  sure how much practical use this will be)
+
+- Have various channels for wizes to talk on
+
+- Get stats on remote system from home system
