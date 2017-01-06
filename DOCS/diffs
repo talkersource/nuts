@@ -109,7 +109,7 @@ Initial alpha release.
 10. Bug fixes and other minor code changes.
 
 
-3.2.1 (July, final version)
+3.2.1 (July)
 -----
 
 1. Added allow_caps_in_name field to config file which allows you to decide
@@ -125,4 +125,36 @@ Initial alpha release.
 3. The command "lban" has been renamed to "listbans" because it looks nicer :)
 
 4. Bug fixes, minor code changes and more colour added.
+
+
+3.3.0
+-----
+
+1. Added revtell command and associated extra bits in user structure.
+
+2. Added recount command for recounting the number of messages on the
+   boards if the files have been edited manually.
+
+3. Added "lock" and message to display while away options to afk command.
+
+4. Added room option to public and private commands.
+
+6. Abbreviation of user names in commands is now allowed.
+
+7. Colour commands can now be displayed literally if a '/' is put before
+   the '~'. I used a forward slash instead of a backward one as when the
+   backward one was put inside sprintf statements before the '~' the compiler 
+   complained as it thought it was an unknown literal. This facility won't
+   work across a netlink if linked to an earlier version of the talker.
+
+8. Message board and mail headers now display day and month as words.
+
+9. Swear words are now stored as lower case instead of upper case since it
+   looks nicer :) Trivial reason for changing it but what the hell...
+
+10. Added "swear" option to listbans.
+
+11. Added timed countdown option to reboot and shutdown commands.
+
+12. Other bug and omission fixes and minor code changes.
 

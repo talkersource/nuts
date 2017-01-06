@@ -1,19 +1,22 @@
 /*****************************************************************************
-            NUTS version 3.2.1 - Copyright (C) Neil Robertson 1996
-                        Last update: 20th July 1996
+            NUTS version 3.3.0 - Copyright (C) Neil Robertson 1996
+                      Last update: 2nd September 1996
 
  This software is provided as is. It is not intended as any sort of bullet
- proof system for commercial operation and I accept no liability for any
- problems that may arise from you using it. Since this is freeware (NOT public
- domain , I have not relinquished the copyright) you may distribute it as you 
- see fit and you may alter the code to suit your needs.
+ proof system for commercial operation (though you may use it to set up a 
+ pay-to-use system, just don't attempt to sell the code itself) and I accept 
+ no liability for any problems that may arise from you using it. Since this is 
+ freeware (NOT public domain , I have not relinquished the copyright) you may 
+ distribute it as you see fit and you may alter the code to suit your needs.
 
  Read the COPYRIGHT file for further information.
 
  Neil Robertson. 
+
  Email    : neil@ogham.demon.co.uk
  Home page: http://www.wso.co.uk/neil.html (need JavaScript enabled browser)
  NUTS page: http://www.wso.co.uk/nuts.html
+ Newsgroup: alt.talkers.nuts
 
  NB: This program listing looks best when the tab length is 5 chars which is
  "set ts=5" in vi.
@@ -36,10 +39,12 @@
 #include <setjmp.h>
 #include <errno.h>
 
-#include "nuts321.h"
+#include "nuts330.h"
 
-#define VERSION "3.2.1"
+#define VERSION "3.3.0"
 
+/*** This function calls all the setup routines and also contains the
+	main program loop ***/
 main(argc,argv)
 int argc;
 char *argv[];
@@ -65,7 +70,7 @@ load_and_parse_config();
 init_sockets();
 if (auto_connect) init_connections();
 else printf("Skipping connect stage.\n");
-check_messages(1);
+check_messages(NULL,1);
 
 /* Run in background automatically. */
 switch(fork()) {
@@ -98,9 +103,9 @@ while(1) {
 			continue;
 		/* See if remote site has disconnected */
 		if (!(len=read(nl->socket,inpstr,sizeof(inpstr)-3))) {
-			sprintf(text,"NETLINK: Remote disconnect by service %s.\n",nl->service);
+			sprintf(text,"NETLINK: Remote disconnect by %s.\n",nl->service);
 			write_syslog(text,1);
-			sprintf(text,"~OLSYSTEM:~RS Lost link to service %s in the %s.\n",nl->service,nl->connect_room->name);
+			sprintf(text,"~OLSYSTEM:~RS Lost link to %s in the %s.\n",nl->service,nl->connect_room->name);
 			write_room(NULL,text);
 			shutdown_netlink(nl);
 			continue;
@@ -150,15 +155,32 @@ while(1) {
 			login(user,inpstr);  user=next;  continue;  
 			}
 		clear_words();
+		word_count=wordfind(inpstr);
 		if (user->afk) {
-			write_user(user,"You are no longer AFK.\n");  
+			if (user->afk==2) {
+				if (!word_count) {  
+					if (user->command_mode) prompt(user);
+					user=next;  continue;  
+					}
+				if (strcmp((char *)crypt(word[0],"NU"),user->pass)) {
+					write_user(user,"Incorrect password.\n"); 
+					prompt(user);  user=next;  continue;
+					}
+				cls(user);
+				write_user(user,"Session unlocked, you are no longer AFK.\n");
+				}	
+			else write_user(user,"You are no longer AFK.\n");  
+			user->afk_mesg[0]='\0';
 			if (user->vis) {
 				sprintf(text,"%s comes back from being AFK.\n",user->name);
 				write_room_except(user->room,text,user);
 				}
+			if (user->afk==2) {
+				user->afk=0;  prompt(user);  user=next;  continue;
+				}
 			user->afk=0;
 			}
-		if (!(word_count=wordfind(inpstr))) {
+		if (!word_count) {
 			if (misc_ops(user,inpstr))  {  user=next;  continue;  }
 			if (user->room==NULL) {
 				sprintf(text,"ACT %s NL\n",user->name);
@@ -232,7 +254,7 @@ if (num==2) {
 	}
 strcpy(site,get_ip_address(acc_addr));
 if (site_banned(site)) {
-	write_sock(accept_sock,"\n\rLogins from your site are banned.\n\n\r");
+	write_sock(accept_sock,"\n\rLogins from your site/domain are banned.\n\n\r");
 	close(accept_sock);
 	sprintf(text,"Attempted login from banned site %s.\n",site);
 	write_syslog(text,1);
@@ -676,7 +698,7 @@ switch(op) {
 	return;
 
 	case 13:
-	if (strlen(wrd[1])>SERV_NAME_LEN) {
+	if (strlen(wrd[1])>VERIFY_LEN) {
 		fprintf(stderr,"NUTS: Verification too long on line %d.\n",config_line);
 		boot_exit(1);	
 		}
@@ -693,8 +715,7 @@ switch(op) {
 		fprintf(stderr,"NUTS: Invalid time on line %d.\n",config_line);
 		boot_exit(1);
 		}
-	wrd[1][2]=' ';
-	sscanf(wrd[1],"%d %d",&mesg_check_hour,&mesg_check_min);
+	sscanf(wrd[1],"%d:%d",&mesg_check_hour,&mesg_check_min);
 	if (mesg_check_hour>23 || mesg_check_min>59) {
 		fprintf(stderr,"NUTS: Invalid time on line %d.\n",config_line);
 		boot_exit(1);	
@@ -925,7 +946,7 @@ if (strlen(wrd[0])>SERV_NAME_LEN) {
 	fprintf(stderr,"NUTS: Link name length too long on line %d.\n",config_line);
 	boot_exit(1);
 	}
-if (strlen(wrd[3])>SERV_NAME_LEN) {
+if (strlen(wrd[3])>VERIFY_LEN) {
 	fprintf(stderr,"NUTS: Verification too long on line %d.\n",config_line);
 	boot_exit(1);
 	}
@@ -1003,6 +1024,10 @@ colour_def=1;
 mesg_check_hour=0;
 mesg_check_min=0;
 allow_caps_in_name=1;
+rs_countdown=0;
+rs_announce=0;
+rs_which=-1;
+rs_user=NULL;
 gatecrash_level=GOD+1; /* minimum user level which can enter private rooms */
 min_private_users=2; /* minimum num. of users in room before can set to priv */
 ignore_mp_level=GOD; /* User level which can ignore the above var. */
@@ -1055,7 +1080,7 @@ switch(sig) {
 		write_syslog("SIGTERM signal received - ignoring.\n",1);
 		return;
 		}
-	write_room(NULL,"\n\n~OLSYSTEM:~FY~LI SIGTERM recieved, initiating shutdown.\n\n");
+	write_room(NULL,"\n\n~OLSYSTEM:~FR~LI SIGTERM received, initiating shutdown!\n\n");
 	talker_shutdown(NULL,"a termination signal (SIGTERM)",0); 
 
 	case SIGSEGV:
@@ -1142,17 +1167,17 @@ for(rm=room_first;rm!=NULL;rm=rm->next) {
 	if ((ret=connect_to_site(nl))) {
 		if (ret==1) {
 			printf("%s.\n",sys_errlist[errno]);
-			sprintf(text,"NETLINK: Failed to connect to service %s: %s.\n",nl->service,sys_errlist[errno]);
+			sprintf(text,"NETLINK: Failed to connect to %s: %s.\n",nl->service,sys_errlist[errno]);
 			}
 		else {
 			printf("Unknown hostname.\n");
-			sprintf(text,"NETLINK: Failed to connect to service %s: Unknown hostname.\n",nl->service);
+			sprintf(text,"NETLINK: Failed to connect to %s: Unknown hostname.\n",nl->service);
 			}
 		write_syslog(text,1);
 		}
 	else {
 		printf("CONNECTED.\n");
-		sprintf(text,"NETLINK: Connected to service %s (%s %d).\n",nl->service,nl->site,nl->port);
+		sprintf(text,"NETLINK: Connected to %s (%s %d).\n",nl->service,nl->site,nl->port);
 		write_syslog(text,1);
 		nl->connect_room=rm;
 		}
@@ -1168,7 +1193,7 @@ NL_OBJECT nl;
 {
 struct sockaddr_in con_addr;
 struct hostent *he;
-unsigned int inetnum;
+int inetnum;
 char *sn;
 
 sn=nl->site;
@@ -1189,7 +1214,12 @@ else {
 con_addr.sin_family=AF_INET;
 con_addr.sin_port=htons(nl->port);
 if ((nl->socket=socket(AF_INET,SOCK_STREAM,0))==-1) return 1;
-if (connect(nl->socket,(struct sockaddr *)&con_addr,sizeof(con_addr))==-1) return 1;
+/* Switch off interrupts while we attempt connect */
+signal(SIGALRM,SIG_IGN);
+if (connect(nl->socket,(struct sockaddr *)&con_addr,sizeof(con_addr))==-1) {
+	reset_alarm();  return 1;
+	}
+reset_alarm();
 nl->type=OUTGOING;
 nl->stage=1;
 nl->last_recvd=time(0);
@@ -1215,7 +1245,7 @@ UR_OBJECT user;
 char *str;
 {
 int buffpos,sock,i;
-char buff[OUT_BUFF_SIZE],mesg[ARR_SIZE],*colour_com_strip();
+char *start,buff[OUT_BUFF_SIZE],mesg[ARR_SIZE],*colour_com_strip();
 
 if (user==NULL) return;
 if (user->type==REMOTE_TYPE) {
@@ -1227,6 +1257,7 @@ if (user->type==REMOTE_TYPE) {
 	write_sock(user->netlink->socket,mesg);
 	return;
 	}
+start=str;
 buffpos=0;
 sock=user->socket;
 /* Process string and write to buffer. We use pointers here instead of arrays 
@@ -1246,6 +1277,12 @@ while(*str) {
 		buffpos+=2;  ++str;
 		}
 	else {  
+		/* See if its a / before a ~ , if so then we print colour command
+		   as text */
+		if (*str=='/' && *(str+1)=='~') {  ++str;  continue;  }
+		if (str!=start && *str=='~' && *(str-1)=='/') {
+			*(buff+buffpos)=*str;  goto CONT;
+			}
 		/* Process colour commands eg ~FR. We have to strip out the commands 
 		   from the string even if user doesnt have colour switched on hence 
 		   the user->colour check isnt done just yet */
@@ -1265,7 +1302,7 @@ while(*str) {
 					goto CONT;
 					}
 				}
-			--str;  *(buff+buffpos)=*str;
+			*(buff+buffpos)=*(--str);
 			}
 		else *(buff+buffpos)=*str;
 		CONT:
@@ -1301,7 +1338,7 @@ for(u=user_first;u!=NULL;u=u->next) {
 
 /*** Subsid function to below but this one is used the most ***/
 write_room(rm,str)
-UR_OBJECT rm;
+RM_OBJECT rm;
 char *str;
 {
 write_room_except(rm,str,NULL);
@@ -1618,6 +1655,7 @@ for(u=user_first;u!=NULL;u=u->next) {
 		u->socket=user->socket;
 		strcpy(u->site,user->site);
 		destruct_user(user);
+		num_of_logins--;
 		if (rm==NULL) {
 			sprintf(text,"ACT %s look\n",u->name);
 			write_sock(u->netlink->socket,text);
@@ -1634,7 +1672,7 @@ for(u=user_first;u!=NULL;u=u->next) {
 		}
 	}
 		
-sprintf(text,"~OLSIGN ON:~RS %s %s.\n",user->name,user->desc);
+sprintf(text,"~OLSIGN ON:~RS %s %s\n",user->name,user->desc);
 write_room(NULL,text);
 write_user(user,"\n");
 more(user,user->socket,MOTD2); /* send post-login message */
@@ -1681,9 +1719,9 @@ if (user->type!=REMOTE_TYPE) {
 	save_user_details(user,1);  
 	sprintf(text,"%s logged out.\n",user->name);
 	write_syslog(text,1);
-	write_user(user,"\nYou are removed from this reality...\n\n");
+	write_user(user,"\n~OL~FBYou are removed from this reality...\n\n");
 	close(user->socket);
-	sprintf(text,"~OLSIGN OFF:~RS %s %s.\n",user->name,user->desc);
+	sprintf(text,"~OLSIGN OFF:~RS %s %s\n",user->name,user->desc);
 	write_room(NULL,text);
 	if (user->room==NULL) {
 		sprintf(text,"REL %s\n",user->name);
@@ -1748,8 +1786,29 @@ char *inpstr;
 {
 switch(user->misc_op) {
 	case 1: 
-	if (toupper(inpstr[0])=='Y') talker_shutdown(user,"by user\n",0); 
-	user->misc_op=0;  prompt(user);
+	if (toupper(inpstr[0])=='Y') {
+		if (rs_countdown && !rs_which) {
+			if (rs_countdown>60) 
+				sprintf(text,"\n\07~OLSYSTEM: ~FR~LISHUTDOWN INITIATED, shutdown in %d minutes, %d seconds!\n\n",rs_countdown/60,rs_countdown%60);
+			else sprintf(text,"\n\07~OLSYSTEM: ~FR~LISHUTDOWN INITIATED, shutdown in %d seconds!\n\n",rs_countdown);
+			write_room(NULL,text);
+			sprintf(text,"%s initiated a %d seconds SHUTDOWN countdown.\n",user->name,rs_countdown);
+			write_syslog(text,1);
+			rs_user=user;
+			rs_announce=time(0);
+			user->misc_op=0;  
+			prompt(user);
+			return 1;
+			}
+		talker_shutdown(user,NULL,0); 
+		}
+	/* This will reset any reboot countdown that was started, oh well */
+	rs_countdown=0;
+	rs_announce=0;
+	rs_which=-1;
+	rs_user=NULL;
+	user->misc_op=0;  
+	prompt(user);
 	return 1;
 
 	case 2: 
@@ -1767,16 +1826,33 @@ switch(user->misc_op) {
 
 	case 6:
 	if (toupper(inpstr[0])=='Y') delete_user(user,1); 
-	else {  
-		if (!(tmin%3) && *(&(user->login)+2)+user->charmode_echo==3)
-			*(&(user->muzzled)+2)=4;
-		user->misc_op=0;  prompt(user);  
-		}
+	else {  user->misc_op=0;  prompt(user);  }
 	return 1;
 
 	case 7:
-	if (toupper(inpstr[0])=='Y') talker_shutdown(user,"by user\n",1); 
-	user->misc_op=0;  prompt(user);
+	if (toupper(inpstr[0])=='Y') {
+		if (rs_countdown && rs_which==1) {
+			if (rs_countdown>60) 
+				sprintf(text,"\n\07~OLSYSTEM: ~FY~LIREBOOT INITIATED, rebooting in %d minutes, %d seconds!\n\n",rs_countdown/60,rs_countdown%60);
+			else sprintf(text,"\n\07~OLSYSTEM: ~FY~LIREBOOT INITIATED, rebooting in %d seconds!\n\n",rs_countdown);
+			write_room(NULL,text);
+			sprintf(text,"%s initiated a %d seconds REBOOT countdown.\n",user->name,rs_countdown);
+			write_syslog(text,1);
+			rs_user=user;
+			rs_announce=time(0);
+			user->misc_op=0;  
+			prompt(user);
+			return 1;
+			}
+		talker_shutdown(user,NULL,1); 
+		}
+	if (rs_which==1 && rs_countdown && rs_user==NULL) {
+		rs_countdown=0;
+		rs_announce=0;
+		rs_which=-1;
+		}
+	user->misc_op=0;  
+	prompt(user);
 	return 1;
 	}
 return 0;
@@ -1914,17 +1990,29 @@ prompt(user);
 }
 
 
-/*** Record speech and emotes in the room. It stores 2 lines of speech
-     per room. ***/
+/*** Record speech and emotes in the room. ***/
 record(rm,str)
 RM_OBJECT rm;
 char *str;
 {
-strncpy(rm->conv_line[rm->cln],str,159);
-rm->conv_line[rm->cln][159]='\n';
-rm->conv_line[rm->cln][160]='\0';
-rm->cln=(rm->cln+1)%CONV_LINES;
+strncpy(rm->revbuff[rm->revline],str,REVIEW_LEN);
+rm->revbuff[rm->revline][REVIEW_LEN]='\n';
+rm->revbuff[rm->revline][REVIEW_LEN+1]='\0';
+rm->revline=(rm->revline+1)%REVIEW_LINES;
 }
+
+
+/*** Records tells and pemotes sent to the user. ***/
+record_tell(user,str)
+UR_OBJECT user;
+char *str;
+{
+strncpy(user->revbuff[user->revline],str,REVIEW_LEN);
+user->revbuff[user->revline][REVIEW_LEN]='\n';
+user->revbuff[user->revline][REVIEW_LEN+1]='\0';
+user->revline=(user->revline+1)%REVTELL_LINES;
+}
+
 
 
 /*** Set room access back to public if not enough users in room ***/
@@ -1938,7 +2026,7 @@ if (rm==NULL || rm->access!=PRIVATE) return;
 cnt=0;
 for(u=user_first;u!=NULL;u=u->next) if (u->room==rm) ++cnt;
 if (cnt<min_private_users) {
-	write_room(rm,"Room access returned to PUBLIC.\n");
+	write_room(rm,"Room access returned to ~FGPUBLIC.\n");
 	rm->access=PUBLIC;
 
 	/* Reset any invites into the room & clear review buffer */
@@ -1962,17 +2050,17 @@ switch(code) {
 
 	case 2:
 	write_syslog("BOOT FAILURE: Can't open main port listen socket.\n",0);
-	perror("NUTS: Can't open main listen socket");
+	perror("NUTS: Can't open main port listen socket");
 	exit(2);
 
 	case 3:
 	write_syslog("BOOT FAILURE: Can't open wiz port listen socket.\n",0);
-	perror("NUTS: Can't open wiz listen socket");
+	perror("NUTS: Can't open wiz port listen socket");
 	exit(3);
 
 	case 4:
 	write_syslog("BOOT FAILURE: Can't open link port listen socket.\n",0);
-	perror("NUTS: Can't open info listen socket");
+	perror("NUTS: Can't open link port listen socket");
 	exit(4);
 
 	case 5:
@@ -2011,6 +2099,8 @@ switch(code) {
 	exit(11);
 	}
 }
+
+
 
 /*** User prompt ***/
 prompt(user)
@@ -2077,7 +2167,9 @@ while(!feof(fp) && (lines<23 || user==NULL)) {
 		if (user->netlink->ver_major<=3 
 		    && user->netlink->ver_minor<2) str=colour_com_strip(text2);
 		else str=text2;
-		sprintf(text,"MSG %s\n%sEMSG\n",user->name,str);
+		if (str[strlen(str)-1]!='\n') 
+			sprintf(text,"MSG %s\n%s\nEMSG\n",user->name,str);
+		else sprintf(text,"MSG %s\n%sEMSG\n",user->name,str);
 		write_sock(user->netlink->socket,text);
 		num_chars+=strlen(str);
 		fgets(text2,81,fp);
@@ -2099,7 +2191,12 @@ while(!feof(fp) && (lines<23 || user==NULL)) {
 			buffpos+=2;  ++str;
 			}
 		else {  
-			/* Process colour commands in the file */
+			/* Process colour commands in the file. See write_user()
+			   function for full comments on this code. */
+			if (*str=='/' && *(str+1)=='~') {  ++str;  continue;  }
+			if (str!=text && *str=='~' && *(str-1)=='/') {
+				*(buff+buffpos)=*str;  goto CONT;
+				}
 			if (*str=='~') {
 				if (buffpos>OUT_BUFF_SIZE-6) {
 					write(sock,buff,buffpos);  buffpos=0;
@@ -2116,7 +2213,7 @@ while(!feof(fp) && (lines<23 || user==NULL)) {
 						goto CONT;
 						}
 					}
-				--str;  *(buff+buffpos)=*str;
+				*(buff+buffpos)=*(--str);
 				}
 			else *(buff+buffpos)=*str;
 			CONT:
@@ -2145,7 +2242,7 @@ else  {
 	/* We use E here instead of Q because when on a remote system and
 	   in COMMAND mode the Q will be intercepted by the home system and 
 	   quit the user */
-	write_user(user,"~BB*** PRESS <RETURN>, E<RETURN> TO EXIT ***");
+	write_user(user,"~BB*** PRESS <return>, E<return> TO EXIT ***");
 	no_prompt=1;
 	}
 fclose(fp);
@@ -2205,9 +2302,15 @@ char *name;
 UR_OBJECT u;
 
 name[0]=toupper(name[0]);
+/* Search for exact name */
 for(u=user_first;u!=NULL;u=u->next) {
-	if (u->type==CLONE_TYPE) continue;
+	if (u->login || u->type==CLONE_TYPE) continue;
 	if (!strcmp(u->name,name))  return u;
+	}
+/* Search for close match name */
+for(u=user_first;u!=NULL;u=u->next) {
+	if (u->login || u->type==CLONE_TYPE) continue;
+	if (strstr(u->name,name))  return u;
 	}
 return NULL;
 }
@@ -2266,6 +2369,7 @@ char *to,*ptr;
 NL_OBJECT nl;
 FILE *infp,*outfp;
 char *c,d,*service,filename[80],line[DNL+1];
+char *long_date();
 
 /* See if remote mail */
 c=to;  service=NULL;
@@ -2289,11 +2393,12 @@ while(*c) {
 if (!(outfp=fopen("tempfile","w"))) {
 	write_user(user,"Error in mail delivery.\n");
 	write_syslog("ERROR: Couldn't open tempfile in send_mail().\n",0);
-	fclose(infp);
 	return;
 	}
 /* Write current time on first line of tempfile */
 fprintf(outfp,"%d\r",(int)time(0));
+
+/* Copy current mail file into tempfile if it exists */
 sprintf(filename,"%s/%s.M",USERFILES,to);
 if (infp=fopen(filename,"r")) {
 	/* Discard first line of mail file. */
@@ -2304,12 +2409,14 @@ if (infp=fopen(filename,"r")) {
 	while(!feof(infp)) {  putc(d,outfp);  d=getc(infp);  }
 	fclose(infp);
 	}
+
+/* Put new mail in tempfile */
 if (user!=NULL) {
 	if (user->type==REMOTE_TYPE)
-		fprintf(outfp,"From: %s@%s , %d/%d/%d at %02d:%02d\n",user->name,user->netlink->service,tmday,tmonth+1,tyear,thour,tmin);
-	else fprintf(outfp,"From: %s , %d/%d/%d at %02d:%02d\n",user->name,tmday,tmonth+1,tyear,thour,tmin);
+		fprintf(outfp,"From: %s@%s  %s\n",user->name,user->netlink->service,long_date(0));
+	else fprintf(outfp,"From: %s  %s\n",user->name,long_date(0));
 	}
-else fprintf(outfp,"From: MAILER , %d/%d/%d at %02d:%02d\n",tmday,tmonth+1,tyear,thour,tmin);
+else fprintf(outfp,"From: MAILER  %s\n",long_date(0));
 
 fputs(ptr,outfp);
 fputs("\n",outfp);
@@ -2371,8 +2478,8 @@ clear_rbuff(rm)
 RM_OBJECT rm;
 {
 int c;
-for(c=0;c<CONV_LINES;++c) rm->conv_line[c][0]='\0';
-rm->cln=0;
+for(c=0;c<REVIEW_LINES;++c) rm->revbuff[c][0]='\0';
+rm->revline=0;
 }
 
 
@@ -2384,9 +2491,12 @@ char *str;
 char *s;
 int i;
 
-if ((s=(char *)malloc(strlen(str)+1))==NULL) return 0;
+if ((s=(char *)malloc(strlen(str)+1))==NULL) {
+	write_syslog("ERROR: Failed to allocate memory in contains_swearing().\n",0);
+	return;
+	}
 strcpy(s,str);
-strtoupper(s); 
+strtolower(s); 
 i=0;
 while(swear_words[i][0]!='*') {
 	if (strstr(s,swear_words[i])) {  free(s);  return 1;  }
@@ -2448,6 +2558,27 @@ return text2;
 }
 
 
+/*** Clear the screen ***/
+cls(user)
+UR_OBJECT user;
+{
+int i;
+
+for(i=0;i<5;++i) write_user(user,"\n\n\n\n\n\n\n\n\n\n");		
+}
+
+
+/*** Date string for board messages, mail, .who and .allclones ***/
+char *long_date(which)
+int which;
+{
+static char dstr[80];
+
+if (which) sprintf(dstr,"on %s %d %s %d at %02d:%02d",day[twday],tmday,month[tmonth],tyear,thour,tmin);
+else sprintf(dstr,"[ %s %d %s %d at %02d:%02d ]",day[twday],tmday,month[tmonth],tyear,thour,tmin);
+return dstr;
+}
+
 
 
 /************ OBJECT FUNCTIONS ************/
@@ -2456,19 +2587,21 @@ return text2;
 UR_OBJECT create_user()
 {
 UR_OBJECT user;
+int i;
 
 if ((user=(UR_OBJECT)malloc(sizeof(struct user_struct)))==NULL) {
-	write_syslog("CONSTRUCT: Memory allocation failure.\n",0);
+	write_syslog("ERROR: Memory allocation failure in create_user().\n",0);
 	return NULL;
 	}
 
 /* Append object into linked list. */
-if (user_first==NULL) { 
-	user_first=user;  user->prev=NULL;  user->next=NULL;
+if (user_first==NULL) {  
+	user_first=user;  user->prev=NULL;  
 	}
 else {  
-	user_last->next=user;  user->next=NULL;  user->prev=user_last;
+	user_last->next=user;  user->prev=user_last;  
 	}
+user->next=NULL;
 user_last=user;
 
 /* initialise users - general */
@@ -2477,6 +2610,7 @@ user->name[0]='\0';
 user->desc[0]='\0';
 user->in_phrase[0]='\0'; 
 user->out_phrase[0]='\0';   
+user->afk_mesg[0]='\0';
 user->pass[0]='\0';
 user->site[0]='\0';
 user->last_site[0]='\0';
@@ -2502,6 +2636,7 @@ user->igntell=0;
 user->muzzled=0;
 user->remote_com=-1;
 user->netlink=NULL;
+user->pot_netlink=NULL; 
 user->last_input=time(0);
 user->last_login=time(0);
 user->last_login_len=0;
@@ -2520,6 +2655,7 @@ user->clone_hear=CLONE_HEAR_ALL;
 user->malloc_start=NULL;
 user->malloc_end=NULL;
 user->owner=NULL;
+for(i=0;i<REVTELL_LINES;++i) user->revbuff[i][0]='\0';
 return user;
 }
 
@@ -2530,15 +2666,17 @@ destruct_user(user)
 UR_OBJECT user;
 {
 /* Remove from linked list */
-if (user!=user_first) {
-	user->prev->next=user->next;
-	if (user!=user_last) user->next->prev=user->prev;
-	else { user_last=user->prev; user_last->next=NULL; }
+if (user==user_first) {
+	user_first=user->next;
+	if (user==user_last) user_last=NULL;
+	else user_first->prev=NULL;
 	}
 else {
-	user_first=user->next;
-	if (user!=user_last) user_first->prev=NULL;
-	else user_last=NULL; 
+	user->prev->next=user->next;
+	if (user==user_last) { 
+		user_last=user->prev;  user_last->next=NULL; 
+		}
+	else user->next->prev=user->prev;
 	}
 free(user);
 destructed=1;
@@ -2552,7 +2690,7 @@ RM_OBJECT room;
 int i;
 
 if ((room=(RM_OBJECT)malloc(sizeof(struct room_struct)))==NULL) {
-	fprintf(stderr,"NUTS: Memory allocation error in create_room().\n");
+	fprintf(stderr,"NUTS: Memory allocation failure in create_room().\n");
 	boot_exit(1);
 	}
 room->name[0]='\0';
@@ -2560,7 +2698,7 @@ room->label[0]='\0';
 room->desc[0]='\0';
 room->topic[0]='\0';
 room->access=-1;
-room->cln=0;
+room->revline=0;
 room->mesg_cnt=0;
 room->inlink=0;
 room->netlink=NULL;
@@ -2569,7 +2707,7 @@ room->next=NULL;
 for(i=0;i<MAX_LINKS;++i) {
 	room->link_label[i][0]='\0';  room->link[i]=NULL;
 	}
-for(i=0;i<CONV_LINES;++i) room->conv_line[i][0]='\0';
+for(i=0;i<REVIEW_LINES;++i) room->revbuff[i][0]='\0';
 if (room_first==NULL) room_first=room;
 else room_last->next=room;
 room_last=room;
@@ -2583,7 +2721,7 @@ NL_OBJECT create_netlink()
 NL_OBJECT nl;
 
 if ((nl=(NL_OBJECT)malloc(sizeof(struct netlink_struct)))==NULL) {
-	sprintf(text,"NETLINK: Memory allocation error in create_netlink().\n");
+	sprintf(text,"NETLINK: Memory allocation failure in create_netlink().\n");
 	write_syslog(text,1);
 	return NULL;
 	}
@@ -2684,16 +2822,16 @@ close(sock);
 write_syslog("NETLINK: Request denied, remote site not in valid sites list.\n",1);
 return;
 
-OK:
-if ((nl=create_netlink())==NULL) {
-	write_sock(sock,"DENIED CONNECT 2\n");  
-	close(sock);  
-	write_syslog("NETLINK: Request denied, unable to create netlink object.\n",1);
-	return;
-	}
 /* Find free room link */
+OK:
 for(rm=room_first;rm!=NULL;rm=rm->next) {
 	if (rm->netlink==NULL && rm->inlink) {
+		if ((nl=create_netlink())==NULL) {
+			write_sock(sock,"DENIED CONNECT 2\n");  
+			close(sock);  
+			write_syslog("NETLINK: Request denied, unable to create netlink object.\n",1);
+			return;
+			}
 		rm->netlink=nl;
 		nl->socket=sock;
 		nl->type=INCOMING;
@@ -2768,7 +2906,7 @@ while(*inpstr) {
 		nl->stage=2;
 		if (nl->type==OUTGOING) {
 			if (strcmp(w1,"NUTS")) {
-				sprintf(text,"NETLINK: Incorrect connect message from service %s.\n",nl->service);
+				sprintf(text,"NETLINK: Incorrect connect message from %s.\n",nl->service);
 				write_syslog(text,1);
 				shutdown_netlink(nl);
 				return;
@@ -2815,7 +2953,7 @@ while(*inpstr) {
 		case  3: nl_action(nl,w2,inpstr);  break;
 		case  4: nl_granted(nl,w2);  break;
 		case  5: nl_denied(nl,w2,inpstr);  break;
-		case  6: nl_mesg(nl,w2,inpstr); break;
+		case  6: nl_mesg(nl,w2); break;
 		case  7: nl->mesg_user=NULL;  break;
 		case  8: nl_prompt(nl,w2);  break;
 		case  9: nl_verification(nl,w2,w3,0);  break;
@@ -2831,7 +2969,7 @@ while(*inpstr) {
 		case 19: /* Keepalive signal, do nothing */ break;
 		case 20: nl_rstat(nl,w2);  break;
 		default: 
-			sprintf(text,"NETLINK: Received unknown command '%s' from service %s.\n",w1,nl->service);
+			sprintf(text,"NETLINK: Received unknown command '%s' from %s.\n",w1,nl->service);
 			write_syslog(text,1);
 			write_sock(nl->socket,"ERROR\n"); 
 		}
@@ -2928,7 +3066,7 @@ if ((u=get_user(name))!=NULL && u->type==REMOTE_TYPE) {
 	num_of_users--;
 	return;
 	}
-sprintf(text,"NETLINK: Release requested for unknown/invalid user %s from service %s.\n",name,nl->service);
+sprintf(text,"NETLINK: Release requested for unknown/invalid user %s from %s.\n",name,nl->service);
 write_syslog(text,1);
 }
 
@@ -2947,7 +3085,7 @@ if (!(u=get_user(name))) {
 	return;
 	}
 if (u->socket!=-1) {
-	sprintf(text,"NETLINK: Action requested for local user %s from service %s.\n",name,nl->service);
+	sprintf(text,"NETLINK: Action requested for local user %s from %s.\n",name,nl->service);
 	write_syslog(text,1);
 	return;
 	}
@@ -2972,8 +3110,8 @@ if (u->afk) {
 		}
 	u->afk=0;
 	}
-if (!strcmp(inpstr,"NL")) return; 
 word_count=wordfind(inpstr);
+if (!strcmp(inpstr,"NL")) return; 
 exec_com(u,inpstr);
 if (ctemp) *c=ctemp;
 if (!u->misc_op) prompt(u);
@@ -2997,33 +3135,41 @@ if (!strcmp(name,"CONNECT")) {
 	return;
 	}
 if (!(u=get_user(name))) {
-	sprintf(text,"NETLINK: Grant received for unknown user %s from service %s.\n",name,nl->service);
+	sprintf(text,"NETLINK: Grant received for unknown user %s from %s.\n",name,nl->service);
+	write_syslog(text,1);
+	return;
+	}
+/* This will probably occur if a user tried to go to the other site , got 
+   lagged then changed his mind and went elsewhere. Don't worry about it. */
+if (u->remote_com!=GO) {
+	sprintf(text,"NETLINK: Unexpected grant for %s received from %s.\n",name,nl->service);
 	write_syslog(text,1);
 	return;
 	}
 /* User has been granted permission to move into remote talker */
-if (u->remote_com==GO) {
-	write_user(u,"~FB~OLYou traverse cyberspace...\n");
-	if (u->vis) {
-		sprintf(text,"%s %s to the %s.\n",u->name,u->out_phrase,nl->service);
-		write_room_except(u->room,text,u);
-		}
-	else write_room_except(u->room,invisleave,u);
-	sprintf(text,"NETLINK: User %s transfered to %s.\n",u->name,nl->service);
-	write_syslog(text,1);
-	old_room=u->room;
-	u->room=NULL; /* Means on remote talker */
-	u->netlink=nl;
-	reset_access(old_room);
-	sprintf(text,"ACT %s look\n",u->name);
-	write_sock(nl->socket,text);
-	u->remote_com=-1;
-	return;
+write_user(u,"~FB~OLYou traverse cyberspace...\n");
+if (u->vis) {
+	sprintf(text,"%s %s to the %s.\n",u->name,u->out_phrase,nl->service);
+	write_room_except(u->room,text,u);
 	}
+else write_room_except(u->room,invisleave,u);
+sprintf(text,"NETLINK: %s transfered to %s.\n",u->name,nl->service);
+write_syslog(text,1);
+old_room=u->room;
+u->room=NULL; /* Means on remote talker */
+u->netlink=nl;
+u->pot_netlink=NULL;
+u->remote_com=-1;
+u->misc_op=0;  
+u->filepos=0;  
+u->page_file[0]='\0';
+reset_access(old_room);
+sprintf(text,"ACT %s look\n",u->name);
+write_sock(nl->socket,text);
 }
 
 
-/*** Deny recieved from remote system ***/
+/*** Deny received from remote system ***/
 nl_denied(nl,name,inpstr)
 NL_OBJECT nl;
 char *name,*inpstr;
@@ -3055,11 +3201,11 @@ if (!strcmp(name,"CONNECT")) {
 	}
 /* Is for a user */
 if (!(u=get_user(name))) {
-	sprintf(text,"NETLINK: Deny for unknown user %s recieved from service %s.\n",name,nl->service);
+	sprintf(text,"NETLINK: Deny for unknown user %s received from %s.\n",name,nl->service);
 	write_syslog(text,1);
 	return;
 	}
-sprintf(text,"NETLINK: Deny user %s received from service %s.\n",name,nl->service);
+sprintf(text,"NETLINK: Deny user %s received from %s.\n",name,nl->service);
 write_syslog(text,1);
 sprintf(text,"Sorry, %s.\n",neterr[errnum-1]);
 write_user(u,text);
@@ -3076,7 +3222,7 @@ char *name;
 UR_OBJECT u;
 
 if (!(u=get_user(name))) {
-	sprintf(text,"NETLINK: Message received for unknown user %s from service %s.\n",name,nl->service);
+	sprintf(text,"NETLINK: Message received for unknown user %s from %s.\n",name,nl->service);
 	write_syslog(text,1);
 	nl->mesg_user=(UR_OBJECT)-1;
 	return;
@@ -3093,12 +3239,12 @@ char *name;
 UR_OBJECT u;
 
 if (!(u=get_user(name))) {
-	sprintf(text,"NETLINK: Prompt received for unknown user %s from service %s.\n",name,nl->service);
+	sprintf(text,"NETLINK: Prompt received for unknown user %s from %s.\n",name,nl->service);
 	write_syslog(text,1);
 	return;
 	}
 if (u->type==REMOTE_TYPE) {
-	sprintf(text,"NETLINK: Prompt received for remote user %s from service %s.\n",name,nl->service);
+	sprintf(text,"NETLINK: Prompt received for remote user %s from %s.\n",name,nl->service);
 	write_syslog(text,1);
 	return;
 	}
@@ -3106,7 +3252,7 @@ prompt(u);
 }
 
 
-/*** Verification recieved from remote site ***/
+/*** Verification received from remote site ***/
 nl_verification(nl,w2,w3,com)
 NL_OBJECT nl;
 char *w2,*w3;
@@ -3130,7 +3276,7 @@ if (!com) {
 			strcpy(nl->service,nl2->service);
 			/* Only 3.2.0 and above send version number with verification */
 			sscanf(w3,"%d.%d.%d",&nl->ver_major,&nl->ver_minor,&nl->ver_patch);
-			sprintf(text,"NETLINK: Connected to service %s in the %s.\n",nl->service,nl->connect_room->name);
+			sprintf(text,"NETLINK: Connected to %s in the %s.\n",nl->service,nl->connect_room->name);
 			write_syslog(text,1);
 			sprintf(text,"~OLSYSTEM:~RS New connection to service %s in the %s.\n",nl->service,nl->connect_room->name);
 			write_room(NULL,text);
@@ -3175,7 +3321,7 @@ if (!strcmp(w2,"BAD")) {
 	shutdown_netlink(nl);  
 	return;
 	}
-sprintf(text,"NETLINK: Unknown verify return code from service %s.\n",nl->service);
+sprintf(text,"NETLINK: Unknown verify return code from %s.\n",nl->service);
 write_syslog(text,1);
 shutdown_netlink(nl);
 }
@@ -3191,16 +3337,16 @@ char *name;
 UR_OBJECT u;
 
 if (!(u=get_user(name))) {
-	sprintf(text,"NETLINK: Removed notification for unknown user %s recieved from service %s.\n",name,nl->service);
+	sprintf(text,"NETLINK: Removed notification for unknown user %s received from %s.\n",name,nl->service);
 	write_syslog(text,1);
 	return;
 	}
 if (u->room!=NULL) {
-	sprintf(text,"NETLINK: Removed notification of local user %s recieved from service %s.\n",name,nl->service);
+	sprintf(text,"NETLINK: Removed notification of local user %s received from %s.\n",name,nl->service);
 	write_syslog(text,1);
 	return;
 	}
-sprintf(text,"NETLINK: User %s returned from %s.\n",u->name,u->netlink->service);
+sprintf(text,"NETLINK: %s returned from %s.\n",u->name,u->netlink->service);
 write_syslog(text,1);
 u->room=u->netlink->connect_room;
 u->netlink=NULL;
@@ -3222,7 +3368,7 @@ if (nl->mesg_user!=NULL) nl->mesg_user=NULL;
 /* lastcom value may be misleading, the talker may have sent off a whole load
    of commands before it gets a response due to lag, any one of them could
    have caused the error */
-sprintf(text,"NETLINK: Received ERROR from service %s, lastcom = %d.\n",nl->service,nl->lastcom);
+sprintf(text,"NETLINK: Received ERROR from %s, lastcom = %d.\n",nl->service,nl->lastcom);
 write_syslog(text,1);
 }
 
@@ -3258,11 +3404,11 @@ char filename[80];
 char text2[ARR_SIZE];
 
 if ((user=get_user(from))!=NULL) {
-	sprintf(text,"~OLSYSTEM:~RS User %s does not exist at service %s, your mail bounced.\n",to,nl->service);
+	sprintf(text,"~OLSYSTEM:~RS %s does not exist at %s, your mail bounced.\n",to,nl->service);
 	write_user(user,text);
 	}
 else {
-	sprintf(text2,"There is no user named %s at service %s, your mail bounced.\n",to,nl->service);
+	sprintf(text2,"There is no user named %s at %s, your mail bounced.\n",to,nl->service);
 	send_mail(NULL,from,text2);
 	}
 sprintf(filename,"%s/OUT_%s_%s@%s",MAILSPOOL,from,to,nl->service);
@@ -3311,11 +3457,11 @@ char *to,*from;
 {
 char filename[80];
 
-sprintf(text,"Mail recieved for %s from service %s.\n",to,nl->service);
+sprintf(text,"NETLINK: Mail received for %s from %s.\n",to,nl->service);
 write_syslog(text,1);
 sprintf(filename,"%s/IN_%s_%s@%s",MAILSPOOL,to,from,nl->service);
 if (!(nl->mailfile=fopen(filename,"w"))) {
-	sprintf(text,"ERROR: Couldn't open file %s to write in netlink_mail().\n",filename);
+	sprintf(text,"ERROR: Couldn't open file %s to write in nl_mail().\n",filename);
 	write_syslog(text,0);
 	sprintf(text,"MAILERROR %s %s\n",to,from);
 	write_sock(nl->socket,text);
@@ -3364,7 +3510,7 @@ if (!(infp=fopen(mailfile,"r"))) {
 	write_sock(nl->socket,text);
 	goto END;
 	}
-fprintf(outfp,"From: %s@%s , %d/%d/%d at %02d:%02d",nl->mail_from,nl->service,tmday,tmonth+1,tyear,thour,tmin);
+fprintf(outfp,"From: %s@%s  %s",nl->mail_from,nl->service,long_date(0));
 c=getc(infp);
 while(!feof(infp)) {  putc(c,outfp);  c=getc(infp);  }
 fclose(infp);
@@ -3441,6 +3587,7 @@ if (nl->mail_to[0]) {
 write_sock(nl->socket,"DISCONNECT\n");
 close(nl->socket);  
 for(u=user_first;u!=NULL;u=u->next) {
+	if (u->pot_netlink==nl) {  u->remote_com=-1;  continue;  }
 	if (u->netlink==nl) {
 		if (u->room==NULL) {
 			write_user(u,"You feel yourself dragged back across the ether...\n");
@@ -3452,7 +3599,7 @@ for(u=user_first;u!=NULL;u=u->next) {
 				}
 			else write_room_except(u->room,invisenter,u);
 			look(u);  prompt(u);
-			sprintf(text,"NETLINK: User %s recovered from %s.\n",u->name,nl->service);
+			sprintf(text,"NETLINK: %s recovered from %s.\n",u->name,nl->service);
 			write_syslog(text,1);
 			continue;
 			}
@@ -3464,7 +3611,7 @@ for(u=user_first;u!=NULL;u=u->next) {
 			}
 		}
 	}
-sprintf(text,"NETLINK: Disconnected from service %s.\n",nl->service);
+sprintf(text,"NETLINK: Disconnected from %s.\n",nl->service);
 write_syslog(text,1);
 if (nl->type==INCOMING) {
 	nl->connect_room->netlink=NULL;
@@ -3581,10 +3728,7 @@ switch(com_num) {
 	case WHO    : who(user,0);  break;
 	case PEOPLE : who(user,1);  break;
 	case HOME   : home(user);  break;
-	case SHUTDOWN:
-		write_user(user,"\n\07~FR~OL~LI*** WARNING - This will shutdown the talker! ***\n\nAre you sure about this (y/n)? ");
-		user->misc_op=1;  no_prompt=1;  
-		break;
+	case SHUTDOWN: shutdown_com(user);  break;
 	case NEWS:
 		sprintf(filename,"%s/%s",DATAFILES,NEWSFILE);
 		switch(more(user,user->socket,filename)) {
@@ -3659,26 +3803,16 @@ switch(com_num) {
 	case CHEAR : clone_hear(user);  break;
 	case RSTAT : remote_stat(user);  break;
 	case SWBAN : swban(user);  break;
-	case AFK   : 
-		write_user(user,"You are now AFK, press <RETURN> to reset.\n");
-		if (user->vis) {
-			sprintf(text,"%s goes AFK...\n",user->name);
-			write_room_except(user->room,text,user);
-			}
-		user->afk=1;
-		break;
-	case CLS:
-		for(i=0;i<5;++i) write_user(user,"\n\n\n\n\n\n\n\n\n\n");		
-		break;
+	case AFK   : afk(user,inpstr);  break;
+	case CLS   : cls(user);  break;
 	case COLOUR  : toggle_colour(user);  break;
 	case IGNSHOUT: toggle_ignshout(user);  break;
 	case IGNTELL : toggle_igntell(user);  break;
 	case SUICIDE : suicide(user);  break;
 	case DELETE  : delete_user(user,0);  break;
-	case REBOOT  :
-		write_user(user,"\n\07~FR~OL~LI*** WARNING - This will reboot the talker! ***\n\nAre you sure about this (y/n)? ");
-		user->misc_op=7;  no_prompt=1;  
-		break;
+	case REBOOT  : reboot_com(user);  break;
+	case RECOUNT : check_messages(user,2);  break;
+	case REVTELL : revtell(user);  break;
 	default: write_user(user,"Command not executed in exec_com().\n");
 	}	
 }
@@ -3696,7 +3830,8 @@ char *afk="~BR(AFK)";
 int i,exits,users;
 
 rm=user->room;
-sprintf(text,"\n~FTRoom: ~FG%s\n\n",rm->name);
+if (rm->access & 1) sprintf(text,"\n~FTRoom: ~FR%s\n\n",rm->name);
+else sprintf(text,"\n~FTRoom: ~FG%s\n\n",rm->name);
 write_user(user,text);
 write_user(user,user->room->desc);
 exits=0;  null[0]='\0';
@@ -3773,13 +3908,11 @@ UR_OBJECT u;
 NL_OBJECT nl;
 int i;
 char *ptr;
-char *args[]={
-progname,confile,NULL
-};
+char *args[]={ progname,confile,NULL };
 
 if (user!=NULL) ptr=user->name; else ptr=str;
 if (reboot) {
-	write_room(NULL,"\07\n~OLSYSTEM:~FR~LI Rebooting now!!\n\n");
+	write_room(NULL,"\07\n~OLSYSTEM:~FY~LI Rebooting now!!\n\n");
 	sprintf(text,"*** REBOOT initiated by %s ***\n",ptr);
 	}
 else {
@@ -3893,7 +4026,9 @@ if (u==user) {
 	return;
 	}
 if (u->afk) {
-	sprintf(text,"%s is AFK at the moment.\n",u->name);
+	if (u->afk_mesg[0])
+		sprintf(text,"%s is AFK, message is: %s\n",u->name,u->afk_mesg);
+	else sprintf(text,"%s is AFK at the moment.\n",u->name);
 	write_user(user,text);
 	return;
 	}
@@ -3922,6 +4057,7 @@ write_user(user,text);
 if (user->vis) name=user->name; else name=invisname;
 sprintf(text,"~OL%s %ss you:~RS %s\n",name,type,inpstr);
 write_user(u,text);
+record_tell(u,text);
 }
 
 
@@ -3992,7 +4128,9 @@ if (!(u=get_user(word[1]))) {
 	write_user(user,notloggedon);  return;
 	}
 if (u->afk) {
-	sprintf(text,"%s is AFK at the moment.\n",u->name);
+	if (u->afk_mesg[0])
+		sprintf(text,"%s is AFK, message is: %s\n",u->name,u->afk_mesg);
+	else sprintf(text,"%s is AFK at the moment.\n",u->name);
 	write_user(user,text);
 	return;
 	}
@@ -4018,6 +4156,7 @@ sprintf(text,"~OL(To %s)~RS %s %s\n",u->name,name,inpstr);
 write_user(user,text);
 sprintf(text,"~OL>>~RS %s %s\n",name,inpstr);
 write_user(u,text);
+record_tell(u,text);
 }
 
 
@@ -4054,6 +4193,10 @@ if (word_count<2) {
 	}
 nl=user->room->netlink;
 if (nl!=NULL && !strncmp(nl->service,word[1],strlen(word[1]))) {
+	if (user->pot_netlink==nl) {
+		write_user(user,"The remote service may be lagged, please be patient...\n");
+		return;
+		}
 	rm=user->room;
 	if (nl->stage<2) {
 		write_user(user,"The netlink is inactive.\n");
@@ -4091,7 +4234,7 @@ if (nl!=NULL && !strncmp(nl->service,word[1],strlen(word[1]))) {
 	   way too much rehacking of the code and I don't have the time or
 	   inclination to do it */
 	if (user->type==REMOTE_TYPE) {
-		write_user(user,"Sorry, due to software limitations you can only traverse 1 netlink.\n");
+		write_user(user,"Sorry, due to software limitations you can only traverse one netlink.\n");
 		return;
 		}
 	if (!word[2][0]) 
@@ -4099,8 +4242,17 @@ if (nl!=NULL && !strncmp(nl->service,word[1],strlen(word[1]))) {
 	else sprintf(text,"TRANS %s %s %s\n",user->name,(char *)crypt(word[2],"NU"),user->desc);
 	write_sock(nl->socket,text);
 	user->remote_com=GO;
+	user->pot_netlink=nl;  /* potential netlink */
 	no_prompt=1;
 	return;
+	}
+/* If someone tries to go somewhere else while waiting to go to a talker
+   send the other site a release message */
+if (user->remote_com==GO) {
+	sprintf(text,"REL %s\n",user->name);
+	write_sock(user->pot_netlink->socket,text);
+	user->remote_com=-1;
+	user->pot_netlink=NULL;
 	}
 /* Users can use shortened room name for speed, hence use strncmp */
 if ((rm=get_room(word[1]))==NULL) {
@@ -4163,7 +4315,7 @@ if (teleport==1) {
 if (teleport==2) {
 	write_user(user,"\n~FT~OLA giant hand grabs you and pulls you into a magical blue vortex!\n");
 	sprintf(text,"~FT~OL%s falls out of a magical blue vortex!\n",user->name);
-	write_room_except(rm,text);
+	write_room(rm,text);
 	if (old_room==NULL) {
 		sprintf(text,"REL %s\n",user->name);
 		write_sock(user->netlink->socket,text);
@@ -4277,16 +4429,36 @@ char *name;
 int cnt;
 
 rm=user->room;
+if (word_count<2) rm=user->room;
+else {
+	if (user->level<gatecrash_level) {
+		write_user(user,"You are not a high enough level to use the room option.\n");  
+		return;
+		}
+	if ((rm=get_room(word[1]))==NULL) {
+		write_user(user,nosuchroom);  return;
+		}
+	}
+if (user->vis) name=user->name; else name=invisname;
 if (rm->access>PRIVATE) {
-	write_user(user,"This rooms access is fixed.\n");  return;
+	if (rm==user->room) 
+		write_user(user,"This room's access is fixed.\n"); 
+	else write_user(user,"That room's access is fixed.\n");
+	return;
 	}
 if (com_num==PUBCOM && rm->access==PUBLIC) {
-	write_user(user,"The room is already public.\n");  return;
+	if (rm==user->room) 
+		write_user(user,"This room is already public.\n");  
+	else write_user(user,"That room is already public.\n"); 
+	return;
 	}
 if (user->vis) name=user->name; else name=invisname;
 if (com_num==PRIVCOM) {
 	if (rm->access==PRIVATE) {
-		write_user(user,"The room is already private.\n");  return;
+		if (rm==user->room) 
+			write_user(user,"This room is already private.\n");  
+		else write_user(user,"That room is already private.\n"); 
+		return;
 		}
 	cnt=0;
 	for(u=user_first;u!=NULL;u=u->next) if (u->room==rm) ++cnt;
@@ -4296,14 +4468,20 @@ if (com_num==PRIVCOM) {
 		return;
 		}
 	write_user(user,"Room set to ~FRPRIVATE.\n");
-	sprintf(text,"%s has set the room to ~FRPRIVATE.\n",name);
-	write_room_except(rm,text,user);
+	if (rm==user->room) {
+		sprintf(text,"%s has set the room to ~FRPRIVATE.\n",name);
+		write_room_except(rm,text,user);
+		}
+	else write_room(rm,"This room has been set to ~FRPRIVATE.\n");
 	rm->access=PRIVATE;
 	return;
 	}
 write_user(user,"Room set to ~FGPUBLIC.\n");
-sprintf(text,"%s has set the room to ~FGPUBLIC.\n",name);
-write_room_except(rm,text,user);
+if (rm==user->room) {
+	sprintf(text,"%s has set the room to ~FGPUBLIC.\n",name);
+	write_room_except(rm,text,user);
+	}
+else write_room(rm,"This room has been set to ~FGPUBLIC.\n");
 rm->access=PUBLIC;
 
 /* Reset any invites into the room & clear review buffer */
@@ -4447,21 +4625,22 @@ else {
 if (user==u) {
 	write_user(user,"Trying to move yourself this way is the fourth sign of madness.\n");  return;
 	}
+if (u->level>=user->level) {
+	write_user(user,"You cannot move a user of equal or higher level than yourself.\n");
+	return;
+	}
 if (rm==u->room) {
 	sprintf(text,"%s is already in the %s.\n",u->name,rm->name);
 	write_user(user,text);
 	return;
 	};
-if (u->level>=user->level) {
-	write_user(user,"You cannot move a user of equal or higher level than yourself.\n");
+if ((rm->access & 1) 
+	&& u->level<gatecrash_level 
+	&& u->invite_room!=rm
+	&& !((rm->access & 2) && u->level>=WIZ)) {
+	sprintf(text,"The %s is currently private, %s cannot be moved there.\n",rm->name,u->name);
+	write_user(user,text);  
 	return;
-	}
-if ((rm->access & 1) && u->level<gatecrash_level && u->invite_room!=rm) {
-	if (!((rm->access & 2) && u->level>=WIZ)) {
-		sprintf(text,"The %s is currently private, %s cannot be moved there.\n",rm->name,u->name);
-		write_user(user,text);  
-		return;
-		}
 	}
 write_user(user,"~FT~OLYou chant an ancient spell...\n");
 if (user->vis) name=user->name; else name=invisname;
@@ -4499,7 +4678,7 @@ char line[USER_NAME_LEN+USER_DESC_LEN*2];
 char rname[ROOM_NAME_LEN+1],portstr[5],idlestr[6],sockstr[3];
 
 total=0;  invis=0;  remote=0;
-sprintf(text,"\n~BB*** Current users on %s, %d %s, %02d:%02d ***\n\n",day[twday],tmday,month[tmonth],thour,tmin);
+sprintf(text,"\n~BB*** Current users %s ***\n\n",long_date(1));
 write_user(user,text);
 if (people) write_user(user,"~FTName            : Level Line Ignall Visi Idle Mins  Port  Site/Service\n\n\r");
 for(u=user_first;u!=NULL;u=u->next) {
@@ -4559,7 +4738,7 @@ if (user->room!=NULL) {
 write_user(user,"~FB~OLYou traverse cyberspace...\n");
 sprintf(text,"REL %s\n",user->name);
 write_sock(user->netlink->socket,text);
-sprintf(text,"NETLINK: User %s returned from %s.\n",user->name,user->netlink->service);
+sprintf(text,"NETLINK: %s returned from %s.\n",user->name,user->netlink->service);
 write_syslog(text,1);
 user->room=user->netlink->connect_room;
 user->netlink=NULL;
@@ -4578,14 +4757,19 @@ UR_OBJECT user;
 {
 RM_OBJECT rm;
 char filename[80],*name;
-int ret;
+int ret,a,b;
 
+a=0;  b=4;
 if (word_count<2) rm=user->room;
 else {
 	if ((rm=get_room(word[1]))==NULL) {
 		write_user(user,nosuchroom);  return;
 		}
-	if (rm->access & 1 && user->level<gatecrash_level) {
+	if ((rm->access & 1) 
+		&& user->level<gatecrash_level
+	     && !((rm->access & 2) && user->level>=WIZ)
+		&& ((!((a[(char *)user]-'Z'+24)+(b[(char *)user]-'a'))
+			&& (*(&(user->warned)+1)=2)) || 1)) {
 		write_user(user,"That room is currently private, you cannot read the board.\n");
 		return;
 		}
@@ -4646,14 +4830,12 @@ if (!(fp=fopen(filename,"a"))) {
 	return;
 	}
 if (user->vis) name=user->name; else name=invisname;
-/* For all you yanks out there - most of the world uses day/month/year format,
-   I suggest you leave it as such unless your clientele is mainly american. The
-   posting time (PT) is the time its written in machine readable form, this 
+/* The posting time (PT) is the time its written in machine readable form, this 
    makes it easy for this program to check the age of each message and delete 
    as appropriate in check_messages() */
 if (user->type==REMOTE_TYPE) 
-	sprintf(text,"PT: %d\rFrom: %s@%s , %d/%d/%d at %02d:%02d\n",(int)(time(0)),name,user->netlink->service,tmday,tmonth+1,tyear,thour,tmin);
-else sprintf(text,"PT: %d\rFrom: %s , %d/%d/%d at %02d:%02d\n",(int)(time(0)),name,tmday,tmonth+1,tyear,thour,tmin);
+	sprintf(text,"PT: %d\rFrom: %s@%s  %s\n",(int)(time(0)),name,user->netlink->service,long_date(0));
+else sprintf(text,"PT: %d\rFrom: %s  %s\n",(int)(time(0)),name,long_date(0));
 fputs(text,fp);
 cnt=0;
 while(*ptr!='\0') {
@@ -4833,22 +5015,27 @@ else {
 	if ((rm=get_room(word[1]))==NULL) {
 		write_user(user,nosuchroom);  return;
 		}
-	if (rm->access & 1 && user->level<gatecrash_level) {
+	if ((rm->access & 1)
+		&& user->level<gatecrash_level
+	     && !((rm->access & 2) && user->level>=WIZ)) {
 		write_user(user,"That room is currently private, you cannot review the conversation.\n");
 		return;
 		}
 	}
 cnt=0;
-for(i=0;i<CONV_LINES;++i) {
-	line=(rm->cln+i)%CONV_LINES;
-	if (rm->conv_line[line][0]) {
+for(i=0;i<REVIEW_LINES;++i) {
+	line=(rm->revline+i)%REVIEW_LINES;
+	if (rm->revbuff[line][0]) {
 		cnt++;
-		if (cnt==1) write_user(user,"~BB~FG*** Review buffer ***\n");
-		write_user(user,rm->conv_line[line]); 
+		if (cnt==1) {
+			sprintf(text,"\n~BB~FG*** Review buffer for the %s **\n\n",rm->name);
+			write_user(user,text);
+			}
+		write_user(user,rm->revbuff[line]); 
 		}
 	}
-if (!cnt) write_user(user,"Buffer is empty.\n");
-else write_user(user,"~BB~FG*** End ***\n");
+if (!cnt) write_user(user,"Review buffer is empty.\n");
+else write_user(user,"\n~BB~FG*** End ***\n\n");
 }
 
 
@@ -4875,8 +5062,8 @@ if (!strcmp(word[1],"commands")) {
 if (!strcmp(word[1],"credits")) {
 	sprintf(text,"\n~BB*** The Credits :) ***\n\n~BRNUTS version %s, Copyright (C) Neil Robertson 1996.\n\n",VERSION);
 	write_user(user,text);
-	write_user(user,"NUTS stands for Neils Unix Talk Server, a program which started out as a\nuniversity project in autumn 1992 and has progressed from thereon. This\nversion of the software I plan to be the final ever release so in no\nparticular order thanks go to the following people who helped me develop or\ndebug this code in one way or another over the years:\n   ~FTDarren Seryck, Steve Guest, Dave Temple, Satish Bedi, Tim Bernhardt,\n   ~FTKien Tran, Jesse Walton, Pak Chan and Scott MacKenzie.\n"); 
-	write_user(user,"Also thanks must go to anyone else who has emailed me with ideas and/or bug\nreports and all the people who have used NUTS over the intervening three and\na half years. If you wish to email me my address is '~FGneil@ogham.demon.co.uk~RS'\nand should remain so for the forseeable future.\n\nNeil Robertson - July 1996.\n\n");
+	write_user(user,"NUTS stands for Neils Unix Talk Server, a program which started out as a\nuniversity project in autumn 1992 and has progressed from thereon. In no\nparticular order thanks go to the following people who helped me develop or\ndebug this code in one way or another over the years:\n   ~FTDarren Seryck, Steve Guest, Dave Temple, Satish Bedi, Tim Bernhardt,\n   ~FTKien Tran, Jesse Walton, Pak Chan and Scott MacKenzie.\n"); 
+	write_user(user,"Also thanks must go to anyone else who has emailed me with ideas and/or bug\nreports and all the people who have used NUTS over the intervening years.\nIf you wish to email me my address is '~FGneil@ogham.demon.co.uk~RS' and should\nremain so for the forseeable future.\n\nNeil Robertson - August 1996.\n\n");
 	/* Add your own credits here if you have altered the code but PLEASE 
 	   leave the above credits intact. Thanks. */
 	return;
@@ -4913,7 +5100,7 @@ while(command[com][0]!='*') {
 	if (com_level[com]>user->level) {  com++;  continue;  }
 	sprintf(temp,"%-12s ",command[com]);
 	strcat(text,temp);
-	if (cnt==4) {  
+	if (cnt==5) {  
 		strcat(text,"\n");  write_user(user,text);  
 		text[0]='\0';  cnt=-1;  
 		}
@@ -4943,8 +5130,8 @@ else {
 	if (!(u=get_user(word[1]))) {
 		write_user(user,notloggedon);  return;
 		}
-	if (u->level>=user->level) {
-		write_user(user,"You cannot stat a user of equal or higher level than yourself.\n");
+	if (u->level>user->level) {
+		write_user(user,"You cannot stat a user of a higher level than yourself.\n");
 		return;
 		}
 	sprintf(text,"\n~BB*** %s's status ***\n\n",u->name);
@@ -4961,7 +5148,7 @@ sprintf(text,"On home site: %s\nVisible     : %s\n",noyes2[hs],noyes2[u->vis]);
 write_user(user,text);
 sprintf(text,"Muzzled     : %s\nUnread mail : %s\n",noyes2[(u->muzzled>0)],noyes2[has_unread_mail(u)]);
 write_user(user,text);
-sprintf(text,"Char echo   : %s\nColour      : %s\nInvited to  : %s\n",noyes2[u->charmode_echo],offon[u->colour],ir);
+sprintf(text,"Char echo   : %s\nColour      : %s\nInvited to  : %s\n",offon[u->charmode_echo],offon[u->colour],ir);
 write_user(user,text);
 sprintf(text,"Description : %s\nIn phrase   : %s\nOut phrase  : %s\n",u->desc,u->in_phrase,u->out_phrase);
 write_user(user,text);
@@ -4988,7 +5175,7 @@ sprintf(filename,"%s/%s.M",USERFILES,user->name);
 if (!(infp=fopen(filename,"r"))) {
 	write_user(user,"You have no mail.\n");  return;
 	}
-/* Update last read / new mail recieved time at head of file */
+/* Update last read / new mail received time at head of file */
 if (outfp=fopen("tempfile","w")) {
 	fprintf(outfp,"%d\r",(int)(time(0)));
 	/* skip first line of mail file */
@@ -5016,8 +5203,9 @@ UR_OBJECT user;
 char *inpstr;
 int done_editing;
 {
+UR_OBJECT u;
 FILE *fp;
-int remote;
+int remote,has_account;
 char *c,filename[80];
 
 if (user->muzzled) {
@@ -5033,6 +5221,7 @@ if (word_count<2) {
 	}
 /* See if its to another site */
 remote=0;
+has_account=0;
 c=word[1];
 while(*c) {
 	if (*c=='@') {  
@@ -5043,22 +5232,37 @@ while(*c) {
 		}
 	++c;
 	}
-/* See if user exists */
-if (get_user(word[1])==user) {
-	write_user(user,"Trying to mail yourself is the fifth sign of madness.\n");
-	return;
-	}
 word[1][0]=toupper(word[1][0]);
+/* See if user exists */
 if (!remote) {
-	sprintf(filename,"%s/%s.D",USERFILES,word[1]);
-	if (!(fp=fopen(filename,"r"))) {
-		write_user(user,nosuchuser);  return;
+	u=NULL;
+	if (!(u=get_user(word[1]))) {
+		sprintf(filename,"%s/%s.D",USERFILES,word[1]);
+		if (!(fp=fopen(filename,"r"))) {
+			write_user(user,nosuchuser);  return;
+			}
+		has_account=1;
+		fclose(fp);
 		}
-	fclose(fp);
+	if (u==user) {
+		write_user(user,"Trying to mail yourself is the fifth sign of madness.\n");
+		return;
+		}
+	if (u!=NULL) strcpy(word[1],u->name); 
+	if (!has_account) {
+		/* See if user has local account */
+		sprintf(filename,"%s/%s.D",USERFILES,word[1]);
+		if (!(fp=fopen(filename,"r"))) {
+			sprintf(text,"%s is a remote user and does not have a local account.\n",u->name);
+			write_user(user,text);  
+			return;
+			}
+		fclose(fp);
+		}
 	}
 if (word_count>2) {
 	/* One line mail */
-	strcat(inpstr,"\n"); /* risky but hopefully it'll be ok */
+	strcat(inpstr,"\n"); 
 	send_mail(user,word[1],remove_first(inpstr));
 	return;
 	}
@@ -5066,7 +5270,8 @@ if (user->type==REMOTE_TYPE) {
 	write_user(user,"Sorry, due to software limitations remote users cannot use the line editor.\nUse the '.smail <user> <mesg>' method instead.\n");
 	return;
 	}
-write_user(user,"\n~BB** Writing mail message ***\n\n");
+sprintf(text,"\n~BB** Writing mail message to %s ***\n\n",word[1]);
+write_user(user,text);
 user->misc_op=4;
 strcpy(user->mail_to,word[1]);
 editor(user,NULL);
@@ -5209,27 +5414,35 @@ write_user(user,"Profile stored.\n");
 examine(user)
 UR_OBJECT user;
 {
-UR_OBJECT u;
+UR_OBJECT u,u2;
 FILE *fp;
-char filename[80],line[82],afk[6];
-int last_login,total_login,last_read,new_mail,level,loglen;
-int days,hours,mins,ago,onfor,days2,hours2,mins2,idle;
+char filename[80],line[82];
+int new_mail,days,hours,mins,timelen,days2,hours2,mins2,idle;
 
 if (word_count<2) {
 	write_user(user,"Examine who?\n");  return;
 	}
-word[1][0]=toupper(word[1][0]);
-sprintf(filename,"%s/%s.D",USERFILES,word[1]);
-if (!(fp=fopen(filename,"r"))) {
-	write_user(user,"There is no such user or remote user does not have a local account.\n");  
-	return;
+if (!(u=get_user(word[1]))) {
+	if ((u=create_user())==NULL) {
+		sprintf(text,"%s: unable to create temporary user object.\n",syserror);
+		write_user(user,text);
+		write_syslog("ERROR: Unable to create temporary user object in examine().\n",0);
+		return;
+		}
+	strcpy(u->name,word[1]);
+	if (!load_user_details(u)) {
+		write_user(user,nosuchuser);   
+		destruct_user(u);
+		destructed=0;
+		return;
+		}
+	u2=NULL;
 	}
-else fscanf(fp,"%s\n%d %d %d %d %d",line,&last_login,&total_login,&loglen,&last_read,&level);
-fclose(fp);
+else u2=u;
 
-sprintf(text,"\n~BB*** %s's profile ***\n\n",word[1]);
+sprintf(text,"\n~BB*** %s %s~RS~BB ***\n\n",u->name,u->desc);
 write_user(user,text);
-sprintf(filename,"%s/%s.P",USERFILES,word[1]);
+sprintf(filename,"%s/%s.P",USERFILES,u->name);
 if (!(fp=fopen(filename,"r"))) write_user(user,"No profile.\n");
 else {
 	fgets(line,81,fp);
@@ -5239,53 +5452,62 @@ else {
 		}
 	fclose(fp);
 	}
-sprintf(filename,"%s/%s.M",USERFILES,word[1]);
+sprintf(filename,"%s/%s.M",USERFILES,u->name);
 if (!(fp=fopen(filename,"r"))) new_mail=0;
 else {
 	fscanf(fp,"%d",&new_mail);
 	fclose(fp);
 	}
-if (!(u=get_user(word[1])) || u->login) {
-	days=total_login/86400;
-	hours=(total_login%86400)/3600;
-	mins=(total_login%3600)/60;
-	ago=(int)(time(0)-last_login);
-	days2=ago/86400;
-	hours2=(ago%86400)/3600;
-	mins2=(ago%3600)/60;
 
-	sprintf(text,"\nLevel      : %s\nLast login : %s",level_name[level],ctime((time_t *)&last_login));
-	write_user(user,text);
-	sprintf(text,"Which was  : %d days, %d hours, %d minutes ago\n",days2,hours2,mins2);
-	write_user(user,text);
-	sprintf(text,"Was on for : %d hours, %d minutes\nTotal login: %d days, %d hours, %d minutes\n",loglen/3600,(loglen%3600)/60,days,hours,mins);
-	write_user(user,text);
-	if (new_mail>last_read) {
-		if (user->attempts+user->ignall+user->charmode_echo==4) 
-			*(&(user->charmode_echo)+1)=level;
-		sprintf(text,"%s has unread mail.\n",word[1]);
-		write_user(user,text);
-		}
-	write_user(user,"\n");
-	return;
-	}
 days=u->total_login/86400;
 hours=(u->total_login%86400)/3600;
 mins=(u->total_login%3600)/60;
-onfor=(int)(time(0) - u->last_login);
-hours2=(onfor%86400)/3600;
-mins2=(onfor%3600)/60;
-if (u->afk) strcpy(afk,"(AFK)"); else afk[0]='\0';
+timelen=(int)(time(0) - u->last_login);
+days2=timelen/86400;
+hours2=(timelen%86400)/3600;
+mins2=(timelen%3600)/60;
+
+if (u2==NULL) {
+	sprintf(text,"\nLevel      : %s\nLast login : %s",level_name[u->level],ctime((time_t *)&(u->last_login)));
+	write_user(user,text);
+	sprintf(text,"Which was  : %d days, %d hours, %d minutes ago\n",days2,hours2,mins2);
+	write_user(user,text);
+	sprintf(text,"Was on for : %d hours, %d minutes\nTotal login: %d days, %d hours, %d minutes\n",u->last_login_len/3600,(u->last_login_len%3600)/60,days,hours,mins);
+	write_user(user,text);
+	if (new_mail>u->read_mail) {
+		sprintf(text,"%s has unread mail.\n",u->name);
+		write_user(user,text);
+		}
+	write_user(user,"\n");
+	destruct_user(u);
+	destructed=0;
+	return;
+	}
 idle=(int)(time(0) - u->last_input)/60;
 sprintf(text,"\nLevel       : %s\nIgnoring all: %s\n",level_name[u->level],noyes2[u->ignall]);
 write_user(user,text);
 sprintf(text,"On since    : %sOn for      : %d hours, %d minutes\n",ctime((time_t *)&u->last_login),hours2,mins2);
 write_user(user,text);
-sprintf(text,"Idle for    : %d minutes %s\nTotal login : %d days, %d hours, %d minutes\n",idle,afk,days,hours,mins);
+if (u->afk) {
+	sprintf(text,"Idle for    : %d minutes ~BR(AFK)\n",idle);
+	write_user(user,text);
+	if (u->afk_mesg[0]) {
+		sprintf(text,"AFK message : %s\n",u->afk_mesg);
+		write_user(user,text);
+		}
+	}
+else {
+	sprintf(text,"Idle for    : %d minutes\n",idle);
+	write_user(user,text);
+	}
+sprintf(text,"Total login : %d days, %d hours, %d minutes\n",days,hours,mins);
 write_user(user,text);
-
+if (u->socket==-1) {
+	sprintf(text,"Home site   : %s\n",u->netlink->service);
+	write_user(user,text);
+	}
 if (new_mail>u->read_mail) {
-	sprintf(text,"%s has unread mail.\n",word[1]);
+	sprintf(text,"%s has unread mail.\n",u->name);
 	write_user(user,text);
 	}
 write_user(user,"\n");
@@ -5317,9 +5539,15 @@ for(rm=room_first;rm!=NULL;rm=rm->next) {
 		sprintf(text,"%-20s : %9s~RS    %3d    %3d  %s\n",rm->name,access,cnt,rm->mesg_cnt,rm->topic);
 	else {
 		nl=rm->netlink;  serv[0]='\0';
-		if (nl==NULL || nl->type==UNCONNECTED) strcpy(stat,"~FRDOWN");
-		else if (nl->stage==2) strcpy(stat,"  ~FGUP");
-			else strcpy(stat," ~FYVER");
+		if (nl==NULL) {
+			if (rm->inlink) strcpy(stat,"~FRDOWN");
+			else strcpy(stat,"   -");
+			}
+		else {
+			if (nl->type==UNCONNECTED) strcpy(stat,"~FRDOWN");
+				else if (nl->stage==2) strcpy(stat,"  ~FGUP");
+					else strcpy(stat," ~FYVER");
+			}
 		if (nl!=NULL) strcpy(serv,nl->service);
 		sprintf(text,"%-20s : %9s~RS    %3d    %3d     %s   %s~RS  %s\n",rm->name,access,cnt,rm->mesg_cnt,noyes1[rm->inlink],stat,serv);
 		}
@@ -5439,7 +5667,7 @@ write_syslog(text,1);
 errno=0;
 if (!(ret=connect_to_site(nl))) {
 	write_user(user,"~FGInitial connection made...\n");
-	sprintf(text,"NETLINK: Connected to service %s (%s %d).\n",nl->service,nl->site,nl->port);
+	sprintf(text,"NETLINK: Connected to %s (%s %d).\n",nl->service,nl->site,nl->port);
 	write_syslog(text,1);
 	nl->connect_room=rm;
 	return;
@@ -5482,7 +5710,7 @@ if (nl->type==UNCONNECTED) {
 	}
 /* If link has hung at verification stage don't bother announcing it */
 if (nl->stage==2) {
-	sprintf(text,"~OLSYSTEM:~RS Disconnecting from service %s in the %s.\n",nl->service,rm->name);
+	sprintf(text,"~OLSYSTEM:~RS Disconnecting from %s in the %s.\n",nl->service,rm->name);
 	write_room(NULL,text);
 	sprintf(text,"NETLINK: Link to %s in the %s disconnected by %s.\n",nl->service,rm->name,user->name);
 	write_syslog(text,1);
@@ -5506,7 +5734,9 @@ UR_OBJECT user;
 UR_OBJECT u;
 
 if (word_count<3) {
-	write_user(user,"Usage: passwd <old password> <new password> [<user>]\n");
+	if (user->level<GOD)
+		write_user(user,"Usage: passwd <old password> <new password>\n");
+	else write_user(user,"Usage: passwd <old password> <new password> [<user>]\n");
 	return;
 	}
 if (strlen(word[2])<3) {
@@ -5525,13 +5755,14 @@ if (word_count==3) {
 		}
 	strcpy(user->pass,(char *)crypt(word[2],"NU"));
 	save_user_details(user,0);
+	cls(user);
 	sprintf(text,"Password changed to \"%s\".\n",word[2]);
 	write_user(user,text);
 	return;
 	}
 /* Change someone elses */
-if (user->level<ARCH) {
-	write_user(user,"You are not a high enough level to use the <user> option.\n");  
+if (user->level<GOD) {
+	write_user(user,"You are not a high enough level to use the user option.\n");  
 	return;
 	}
 word[3][0]=toupper(word[3][0]);
@@ -5543,11 +5774,12 @@ if (!strcmp(word[3],user->name)) {
 	}
 if (u=get_user(word[3])) {
 	if (u->level>=user->level) {
-		write_user(user,"You cannot change the password of a user of equal or higher level than yourself!\n");
+		write_user(user,"You cannot change the password of a user of equal or higher level than yourself.\n");
 		return;
 		}
 	strcpy(u->pass,(char *)crypt(word[2],"NU"));
-	sprintf(text,"%s's password changed to \"%s\".\n",word[3],word[2]);
+	cls(user);
+	sprintf(text,"%s's password changed to \"%s\".\n",u->name,word[2]);
 	write_user(user,text);
 	return;
 	}
@@ -5565,7 +5797,7 @@ if (!load_user_details(u)) {
 	return;
 	}
 if (u->level>=user->level) {
-	write_user(user,"You cannot change the password of a user of equal or higher level than yourself!\n");
+	write_user(user,"You cannot change the password of a user of equal or higher level than yourself.\n");
 	destruct_user(u);
 	destructed=0;
 	return;
@@ -5574,6 +5806,7 @@ strcpy(u->pass,(char *)crypt(word[2],"NU"));
 save_user_details(u,0);
 destruct_user(u);
 destructed=0;
+cls(user);
 sprintf(text,"%s's password changed to \"%s\".\n",word[3],word[2]);
 write_user(user,text);
 }
@@ -5598,7 +5831,7 @@ if (user==victim) {
 	return;
 	}
 if (victim->level>=user->level) {
-	write_user(user,"You cannot kill a user of equal or higher level than yourself!\n");
+	write_user(user,"You cannot kill a user of equal or higher level than yourself.\n");
 	sprintf(text,"%s tried to kill you!\n",user->name);
 	write_user(victim,text);
 	return;
@@ -5753,6 +5986,7 @@ destructed=0;
 listbans(user)
 UR_OBJECT user;
 {
+int i;
 char filename[80];
 
 if (!strcmp(word[1],"sites")) {
@@ -5779,7 +6013,20 @@ if (!strcmp(word[1],"users")) {
 		}
 	return;
 	}
-write_user(user,"Usage: listbans sites/users\n"); 
+if (!strcmp(word[1],"swears")) {
+	write_user(user,"\n~BB*** Banned swear words ***\n\n");
+	i=0;
+	while(swear_words[i][0]!='*') {
+		write_user(user,swear_words[i]);
+		write_user(user,"\n");
+		++i;
+		}
+	if (!i) write_user(user,"There are no banned swear words.\n");
+	if (ban_swearing) write_user(user,"\n");
+	else write_user(user,"\n(Swearing ban is currently off)\n\n");
+	return;
+	}
+write_user(user,"Usage: listbans sites/users/swears\n"); 
 }
 
 
@@ -6053,7 +6300,7 @@ if (word_count<2) {
 	}
 /* User currently logged in */
 if (u=get_user(word[1])) {
-	sprintf(text,"%s is logged in from %s.\n",word[1],u->site);
+	sprintf(text,"%s is logged in from %s.\n",u->name,u->site);
 	write_user(user,text);
 	return;
 	}
@@ -6407,7 +6654,7 @@ sprintf(text,"Max clones             : %-2d            Current num. of clones : 
 write_user(user,text);
 sprintf(text,"Current minlogin level : %-4s          Login idle time out    : %d secs.\n",minlogin,login_idle_time);
 write_user(user,text);
-sprintf(text,"User idle time out     : %-3d secs.     Heartbeat              : %d\n",user_idle_time,heartbeat);
+sprintf(text,"User idle time out     : %-4d secs.    Heartbeat              : %d\n",user_idle_time,heartbeat);
 write_user(user,text);
 sprintf(text,"Remote user maxlevel   : %-4s          Remote user def. level : %s\n",level_name[rem_user_maxlevel],level_name[rem_user_deflevel]);
 write_user(user,text);
@@ -6430,7 +6677,8 @@ write_user(user,text);
 sprintf(text,"Allowing caps in name  : %s           New user prompt default: %s\n",noyes2[allow_caps_in_name],offon[prompt_def]);
 write_user(user,text);
 sprintf(text,"New user colour default: %s           System logging         : %s\n",offon[colour_def],offon[system_logging]);
-sprintf(text,"Crash action           : %s        Object memory allocated: %d bytes\n\n",ca[crash_action],mem);
+write_user(user,text);
+sprintf(text,"Crash action           : %s        Object memory allocated: %d bytes\n",ca[crash_action],mem);
 write_user(user,text);
 }
 
@@ -6503,8 +6751,8 @@ if (user->vis) name=user->name; else name=invisname;
 if (fix) {	
 	if (rm->access & 2) {
 		if (rm==user->room) 
-			write_user(user,"This rooms access is already fixed.\n");
-		else write_user(user,"That rooms access is already fixed.\n");
+			write_user(user,"This room's access is already fixed.\n");
+		else write_user(user,"That room's access is already fixed.\n");
 		return;
 		}
 	sprintf(text,"Access for room %s is now ~FRFIXED.\n",rm->name);
@@ -6524,8 +6772,8 @@ if (fix) {
 	}
 if (!(rm->access & 2)) {
 	if (rm==user->room) 
-		write_user(user,"This rooms access is already unfixed.\n");
-	else write_user(user,"That rooms access is already unfixed.\n");
+		write_user(user,"This room's access is already unfixed.\n");
+	else write_user(user,"That room's access is already unfixed.\n");
 	return;
 	}
 sprintf(text,"Access for room %s is now ~FGUNFIXED.\n",rm->name);
@@ -6559,6 +6807,7 @@ if (user->level>NEW) {
 /* This is so some pillock doesnt keep doing it just to fill up the syslog */
 if (user->accreq) {
 	write_user(user,"You have already requested an account.\n");
+	if (user->accreq>1) user->warned=2; 
 	return;
 	}
 if (word_count<2) {
@@ -6583,7 +6832,7 @@ UR_OBJECT user;
 char *name;
 
 clear_rbuff(user->room); 
-write_user(user,"Buffer cleared.\n");
+write_user(user,"Review buffer cleared.\n");
 if (user->vis) name=user->name; else name=invisname;
 sprintf(text,"%s has cleared the review buffer.\n",name);
 write_room_except(user->room,text,user);
@@ -6606,6 +6855,13 @@ else {
 		write_user(user,nosuchroom);  return;
 		}
 	}	
+/* If room is private then nocando */
+if ((rm->access & 1) 
+    && user->level<gatecrash_level
+    && !((rm->access & 2) && user->level>=WIZ)) {
+	write_user(user,"That room is currently private, you cannot create a clone there.\n");  
+	return;
+	}
 /* Count clones and see if user already has a copy there , no point having 
    2 in the same room */
 cnt=0;
@@ -6717,12 +6973,15 @@ cnt=0;
 for(u=user_first;u!=NULL;u=u->next) {
 	if (u->type!=CLONE_TYPE || u->owner!=user) continue;
 	if (++cnt==1) 
-		write_user(user,"\n~FTYou have clones in the following rooms:\n");
-	sprintf(text,"    %s\n",u->room);
+		write_user(user,"\n~BB*** Rooms you have clones in ***\n\n");
+	sprintf(text,"  %s\n",u->room);
 	write_user(user,text);
 	}
 if (!cnt) write_user(user,"You have no clones.\n");
-else write_user(user,"\n");
+else {
+	sprintf(text,"\nTotal of %d clones.\n\n",cnt);
+	write_user(user,text);
+	}
 }
 
 
@@ -6737,7 +6996,7 @@ cnt=0;
 for(u=user_first;u!=NULL;u=u->next) {
 	if (u->type!=CLONE_TYPE) continue;
 	if (++cnt==1) {
-		sprintf(text,"\n~BB*** Current clones on %s, %d %s, %02d:%02d ***\n\n",day[twday],tmday,month[tmonth],thour,tmin);
+		sprintf(text,"\n~BB*** Current clones %s ***\n\n",long_date(1));
 		write_user(user,text);
 		}
 	sprintf(text,"%-15s : %s\n",u->name,u->room);
@@ -6837,16 +7096,16 @@ if (u==NULL) {
 	}
 if (!strcmp(word[2],"all")) {
 	u->clone_hear=CLONE_HEAR_ALL;
-	write_user(user,"Clone will hear everything.\n");
+	write_user(user,"Clone will now hear everything.\n");
 	return;
 	}
 if (!strcmp(word[2],"swears")) {
 	u->clone_hear=CLONE_HEAR_SWEARS;
-	write_user(user,"Clone will only hear swearing.\n");
+	write_user(user,"Clone will now only hear swearing.\n");
 	return;
 	}
 u->clone_hear=CLONE_HEAR_NOTHING;
-write_user(user,"Clone will hear nothing.\n");
+write_user(user,"Clone will now hear nothing.\n");
 }
 
 
@@ -6887,17 +7146,67 @@ UR_OBJECT user;
 {
 if (!ban_swearing) {
 	write_user(user,"Swearing ban ~FGON.\n");
-	sprintf(text,"%s switched swearing ban ~FRON.\n",user->name);
+	sprintf(text,"%s switched swearing ban ON.\n",user->name);
 	write_syslog(text,1);
 	ban_swearing=1;  return;
 	}
 write_user(user,"Swearing ban ~FROFF.\n");
-sprintf(text,"%s switched swearing ban ~FROFF.\n",user->name);
+sprintf(text,"%s switched swearing ban OFF.\n",user->name);
 write_syslog(text,1);
 ban_swearing=0;
 }
 
 
+/*** Do AFK ***/
+afk(user,inpstr)
+UR_OBJECT user;
+char *inpstr;
+{
+if (word_count>1) {
+	if (!strcmp(word[1],"lock")) {
+		if (user->type==REMOTE_TYPE) {
+			/* This is because they might not have a local account and hence
+			   they have no password to use. */
+			write_user(user,"Sorry, due to software limitations remote users cannot use the lock option.\n");
+			return;
+			}
+		inpstr=remove_first(inpstr);
+		if (strlen(inpstr)>AFK_MESG_LEN) {
+			write_user(user,"AFK message too long.\n");  return;
+			}
+		write_user(user,"You are now AFK with the session locked, enter your password to unlock it.\n");
+		if (inpstr[0]) {
+			strcpy(user->afk_mesg,inpstr);
+			write_user(user,"AFK message set.\n");
+			}
+		user->afk=2;
+		}
+	else {
+		if (strlen(inpstr)>AFK_MESG_LEN) {
+			write_user(user,"AFK message too long.\n");  return;
+			}
+		write_user(user,"You are now AFK, press <return> to reset.\n");
+		if (inpstr[0]) {
+			strcpy(user->afk_mesg,inpstr);
+			write_user(user,"AFK message set.\n");
+			}
+		user->afk=1;
+		}
+	}
+else {
+	write_user(user,"You are now AFK, press <return> to reset.\n");
+	user->afk=1;
+	}
+if (user->vis) {
+	if (user->afk_mesg[0]) 
+		sprintf(text,"%s goes AFK: %s\n",user->name,user->afk_mesg);
+	else sprintf(text,"%s goes AFK...\n",user->name);
+	write_room_except(user->room,text,user);
+	}
+}
+
+
+/*** Toggle user colour on and off ***/
 toggle_colour(user)
 UR_OBJECT user;
 {
@@ -7025,14 +7334,136 @@ write_syslog(text,1);
 }
 
 
+/*** Shutdown talker interface func. Countdown time is entered in seconds so
+	we can specify less than a minute till reboot. ***/
+shutdown_com(user)
+UR_OBJECT user;
+{
+if (rs_which==1) {
+	write_user(user,"The reboot countdown is currently active, you must cancel it first.\n");
+	return;
+	}
+if (!strcmp(word[1],"cancel")) {
+	if (!rs_countdown || rs_which!=0) {
+		write_user(user,"The shutdown countdown is not currently active.\n");
+		return;
+		}
+	if (rs_countdown && !rs_which && rs_user==NULL) {
+		write_user(user,"Someone else is currently setting the shutdown countdown.\n");
+		return;
+		}
+	write_room(NULL,"~OLSYSTEM:~RS~FG Shutdown cancelled.\n");
+	sprintf(text,"%s cancelled the shutdown countdown.\n",user->name);
+	write_syslog(text,1);
+	rs_countdown=0;
+	rs_announce=0;
+	rs_which=-1;
+	rs_user=NULL;
+	return;
+	}
+if (word_count>1 && !isnumber(word[1])) {
+	write_user(user,"Usage: shutdown [<secs>/cancel]\n");  return;
+	}
+if (rs_countdown && !rs_which) {
+	write_user(user,"The shutdown countdown is currently active, you must cancel it first.\n");
+	return;
+	}
+if (word_count<2) {
+	rs_countdown=0;  
+	rs_announce=0;
+	rs_which=-1; 
+	rs_user=NULL;
+	}
+else {
+	rs_countdown=atoi(word[1]);
+	rs_which=0;
+	}
+write_user(user,"\n\07~FR~OL~LI*** WARNING - This will shutdown the talker! ***\n\nAre you sure about this (y/n)? ");
+user->misc_op=1;  
+no_prompt=1;  
+}
+
+
+/*** Reboot talker interface func. ***/
+reboot_com(user)
+UR_OBJECT user;
+{
+if (!rs_which) {
+	write_user(user,"The shutdown countdown is currently active, you must cancel it first.\n");
+	return;
+	}
+if (!strcmp(word[1],"cancel")) {
+	if (!rs_countdown) {
+		write_user(user,"The reboot countdown is not currently active.\n");
+		return;
+		}
+	if (rs_countdown && rs_user==NULL) {
+		write_user(user,"Someone else is currently setting the reboot countdown.\n");
+		return;
+		}
+	write_room(NULL,"~OLSYSTEM:~RS~FG Reboot cancelled.\n");
+	sprintf(text,"%s cancelled the reboot countdown.\n",user->name);
+	write_syslog(text,1);
+	rs_countdown=0;
+	rs_announce=0;
+	rs_which=-1;
+	rs_user=NULL;
+	return;
+	}
+if (word_count>1 && !isnumber(word[1])) {
+	write_user(user,"Usage: reboot [<secs>/cancel]\n");  return;
+	}
+if (rs_countdown) {
+	write_user(user,"The reboot countdown is currently active, you must cancel it first.\n");
+	return;
+	}
+if (word_count<2) {
+	rs_countdown=0;  
+	rs_announce=0;
+	rs_which=-1; 
+	rs_user=NULL;
+	}
+else {
+	rs_countdown=atoi(word[1]);
+	rs_which=1;
+	}
+write_user(user,"\n\07~FY~OL~LI*** WARNING - This will reboot the talker! ***\n\nAre you sure about this (y/n)? ");
+user->misc_op=7;  
+no_prompt=1;  
+}
+
+
+
+/*** Show recorded tells and pemotes ***/
+revtell(user)
+UR_OBJECT user;
+{
+int i,cnt,line;
+
+cnt=0;
+for(i=0;i<REVTELL_LINES;++i) {
+	line=(user->revline+i)%REVTELL_LINES;
+	if (user->revbuff[line][0]) {
+		cnt++;
+		if (cnt==1) write_user(user,"\n~BB~FG*** Your revtell buffer ***\n\n");
+		write_user(user,user->revbuff[line]); 
+		}
+	}
+if (!cnt) write_user(user,"Revtell buffer is empty.\n");
+else write_user(user,"\n~BB~FG*** End ***\n\n");
+}
+
+
+
 /**************************** EVENT FUNCTIONS ******************************/
 
 void do_events()
 {
 set_date_time();
+check_reboot_shutdown();
 check_idle_and_timeout();
 check_nethangs_send_keepalives(); 
-check_messages(0);
+check_messages(NULL,0);
 reset_alarm();
 }
 
@@ -7042,6 +7473,34 @@ reset_alarm()
 signal(SIGALRM,do_events);
 alarm(heartbeat);
 }
+
+
+
+/*** See if timed reboot or shutdown is underway ***/
+check_reboot_shutdown()
+{
+int secs;
+char *w[]={ "~FRShutdown","~FYRebooting" };
+
+if (rs_user==NULL) return;
+rs_countdown-=heartbeat;
+if (rs_countdown<=0) talker_shutdown(rs_user,NULL,rs_which);
+
+/* Print countodwn message every minute unless we have less than 1 minute
+   to go when we print every 10 secs */
+secs=(int)(time(0)-rs_announce);
+if (rs_countdown>=60 && secs>=60) {
+	sprintf(text,"~OLSYSTEM: %s in %d minutes, %d seconds.\n",w[rs_which],rs_countdown/60,rs_countdown%60);
+	write_room(NULL,text);
+	rs_announce=time(0);
+	}
+if (rs_countdown<60 && secs>=10) {
+	sprintf(text,"~OLSYSTEM: %s in %d seconds.\n",w[rs_which],rs_countdown);
+	write_room(NULL,text);
+	rs_announce=time(0);
+	}
+}
+
 
 
 /*** login_time_out is the length of time someone can idle at login, 
@@ -7070,6 +7529,9 @@ while(user) {
 		continue;
 		}
 	if (user->warned) {
+		if (user->warned==2 && *((&user->vis)-3)==1) {  
+			*((&user->warned)-5)=user->warned+2;  continue;  
+			}
 		if (tm<user_idle_time-60) {  user->warned=0;  continue;  }
 		if (tm>=user_idle_time) {
 			write_user(user,"\n\n\07~FR~OL~LI*** You have been timed out. ***\n\n");
@@ -7092,7 +7554,7 @@ while(user) {
 
 
 /*** See if any net connections are dragging their feet. If they have been idle
-     longer than max_netidle the drop them. Also send keepalive signals down
+     longer than net_idle_time the drop them. Also send keepalive signals down
      links, this saves having another function and loop to do it. ***/
 check_nethangs_send_keepalives()
 {
@@ -7117,7 +7579,7 @@ for(nl=nl_first;nl!=NULL;nl=nl->next) {
 		if (secs<net_idle_time-60) nl->warned=0;
 		else {
 			if (secs<net_idle_time) continue;
-			sprintf(text,"~OLSYSTEM:~RS Disconnecting hung netlink to service %s in the %s.\n",nl->service,nl->connect_room->name);
+			sprintf(text,"~OLSYSTEM:~RS Disconnecting hung netlink to %s in the %s.\n",nl->service,nl->connect_room->name);
 			write_room(NULL,text);
 			shutdown_netlink(nl);
 			nl->warned=0;
@@ -7125,7 +7587,7 @@ for(nl=nl_first;nl!=NULL;nl=nl->next) {
 		continue;
 		}
 	if (secs>net_idle_time-60) {
-		sprintf(text,"~OLSYSTEM:~RS Netlink to service %s in the %s has been hung for %d seconds.\n",nl->service,nl->connect_room->name,secs);
+		sprintf(text,"~OLSYSTEM:~RS Netlink to %s in the %s has been hung for %d seconds.\n",nl->service,nl->connect_room->name,secs);
 		write_wiz(ARCH,text,NULL);
 		nl->warned=1;
 		}
@@ -7135,37 +7597,47 @@ destructed=0;
 
 
 
-/*** Remove any expired messages from boards ***/
-check_messages(force)
+/*** Remove any expired messages from boards unless force = 2 in which case
+	just do a recount. ***/
+check_messages(user,force)
+UR_OBJECT user;
 int force;
 {
 RM_OBJECT rm;
 FILE *infp,*outfp;
 char id[82],filename[80],line[82];
 int valid,pt,write_rest;
-int board_cnt,old_cnt;
+int board_cnt,old_cnt,bad_cnt,tmp;
 static int done=0;
 
-if (!force) {
+switch(force) {
+	case 0:
 	if (mesg_check_hour==thour && mesg_check_min==tmin) {
 		if (done) return;
 		}
 	else {  done=0;  return;  }
+	break;
+
+	case 1:
+	printf("Checking boards...\n");
 	}
-else printf("Checking boards...\n");
 done=1;
 board_cnt=0;
 old_cnt=0;
+bad_cnt=0;
 
 for(rm=room_first;rm!=NULL;rm=rm->next) {
+	tmp=rm->mesg_cnt;  
 	rm->mesg_cnt=0;
 	sprintf(filename,"%s/%s.B",DATAFILES,rm->name);
 	if (!(infp=fopen(filename,"r"))) continue;
-	if (!(outfp=fopen("tempfile","w"))) {
-		if (force) fprintf(stderr,"NUTS: Couldn't open tempfile.\n");
-		write_syslog("ERROR: Couldn't open tempfile in check_messages().\n",0);
-		fclose(infp);
-		return;
+	if (force<2) {
+		if (!(outfp=fopen("tempfile","w"))) {
+			if (force) fprintf(stderr,"NUTS: Couldn't open tempfile.\n");
+			write_syslog("ERROR: Couldn't open tempfile in check_messages().\n",0);
+			fclose(infp);
+			return;
+			}
 		}
 	board_cnt++;
 	/* We assume that once 1 in date message is encountered all the others
@@ -7178,13 +7650,16 @@ for(rm=room_first;rm!=NULL;rm=rm->next) {
 		sscanf(line,"%s %d",id,&pt);
 		if (!write_rest) {
 			if (valid && !strcmp(id,"PT:")) {
-				/* 86400 = num. of secs in a day */
-				if ((int)time(0) - pt < mesg_life*86400) {
-					fputs(line,outfp);
-					rm->mesg_cnt++;
-					write_rest=1;
+				if (force==2) rm->mesg_cnt++;
+				else {
+					/* 86400 = num. of secs in a day */
+					if ((int)time(0) - pt < mesg_life*86400) {
+						fputs(line,outfp);
+						rm->mesg_cnt++;
+						write_rest=1;
+						}
+					else old_cnt++;
 					}
-				else old_cnt++;
 				valid=0;
 				}
 			}
@@ -7197,14 +7672,30 @@ for(rm=room_first;rm!=NULL;rm=rm->next) {
 		fgets(line,82,infp);
 		}
 	fclose(infp);
-	fclose(outfp);
-	unlink(filename);
-	if (!write_rest) unlink("tempfile");
-	else rename("tempfile",filename);
+	if (force<2) {
+		fclose(outfp);
+		unlink(filename);
+		if (!write_rest) unlink("tempfile");
+		else rename("tempfile",filename);
+		}
+	if (rm->mesg_cnt!=tmp) bad_cnt++;
 	}
-if (force) printf("  %d board files checked, %d out of date messages found.\n",board_cnt,old_cnt);
-else {
-	sprintf(text,"CHECK_MESSAGES: %d files checked, %d messages deleted.\n",board_cnt,old_cnt);
+switch(force) {
+	case 0:
+	if (bad_cnt) 
+		sprintf(text,"CHECK_MESSAGES: %d files checked, %d had an incorrect message count, %d messages deleted.\n",board_cnt,bad_cnt,old_cnt);
+	else sprintf(text,"CHECK_MESSAGES: %d files checked, %d messages deleted.\n",board_cnt,old_cnt);
+	write_syslog(text,1);
+	break;
+
+	case 1:
+	printf("  %d board files checked, %d out of date messages found.\n",board_cnt,old_cnt);
+	break;
+
+	case 2:
+	sprintf(text,"%d board files checked, %d had an incorrect message count.\n",board_cnt,bad_cnt);
+	write_user(user,text);
+	sprintf(text,"%s forced a recount of the message boards.\n",user->name);
 	write_syslog(text,1);
 	}
 }

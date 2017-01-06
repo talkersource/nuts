@@ -5,18 +5,20 @@ then compiling and linking them together using a makefile but in the end
 I decided that it there was very little point as the code isn't that large
 and once its compiled its unlikely to be done again unless you decide to
 hack it about a bit or move to a different system.
-This particular version of the software was developed in parallel on 
-HP-UX 10.01 using the ANSI compiler and Linux 1.2.13 using gcc 2.5.8 so 
-there should be no probs with either of these. The talker should also compile
-fine on AIX and OSF/1 (I hope).
-	Generally you'll just need to enter "cc nuts320.c" to compile though
-for HP-UX you need to type "cc -Ae nuts320.c". 
+This software was developed in parallel on HP-UX 10.01 using the ANSI compiler 
+and Linux 1.2.13 using gcc 2.5.8 so there should be no probs with either of 
+these. The talker should also compile fine on AIX and OSF/1 (I hope) though 
+apparently there have been problems on certain versions of Solaris/SunOS in 
+that it doesnt load up the sockets library. See below.
+	Generally you'll just need to enter "cc nuts330.c" to compile though
+for HP-UX you need to type "cc -Ae nuts330.c" and for SunOS you may need
+to enter "cc -lsocket -lnsl nuts330.c".
 Please note that you NEED the ANSI compiler for HP-UX, the bundled K&R one
-is useless.
+is useless. You'll soon know if you don't have it when you try to compile :)
 
 Running...
 
-The talker comes with a config file ready made (datadir/config) which will
+The talker comes with a config file ready made (datafiles/config) which will
 be a good starting point for you. There are some network addresses in there
 but they are more of a guide as to how to set up talker links rather than
 being genuine links themselves. 

@@ -1,4 +1,4 @@
-/****************** Header file for NUTS version 3.2.1 ******************/
+/****************** Header file for NUTS version 3.3.0 ******************/
 
 #define DATAFILES "datafiles"
 #define USERFILES "userfiles"
@@ -13,7 +13,7 @@
 #define MOTD1 "motd1"
 #define MOTD2 "motd2"
 
-#define OUT_BUFF_SIZE 80
+#define OUT_BUFF_SIZE 1000
 #define MAX_WORDS 10
 #define WORD_LEN 40
 #define ARR_SIZE 1000
@@ -21,6 +21,7 @@
 
 #define USER_NAME_LEN 12
 #define USER_DESC_LEN 30
+#define AFK_MESG_LEN 60
 #define PHRASE_LEN 40
 #define PASS_LEN 20 /* only the 1st 8 chars will be used by crypt() though */
 #define BUFSIZE 1000
@@ -29,9 +30,12 @@
 #define ROOM_DESC_LEN 811 /* 10 lines of 80 chars each + 10 nl + 1 \0*/
 #define TOPIC_LEN 60
 #define MAX_LINKS 10
-#define SERV_NAME_LEN 20
+#define SERV_NAME_LEN 80
 #define SITE_NAME_LEN 80
-#define CONV_LINES 15
+#define VERIFY_LEN 20
+#define REVIEW_LINES 15
+#define REVTELL_LINES 5
+#define REVIEW_LEN 200
 /* DNL (Date Number Length) will have to become 12 on Sun Sep 9 02:46:40 2001 
    when all the unix timers will flip to 1000000000 :) */
 #define DNL 11 
@@ -63,16 +67,17 @@ struct user_struct {
 	char pass[PASS_LEN+6];
 	char in_phrase[PHRASE_LEN+1],out_phrase[PHRASE_LEN+1];
 	char buff[BUFSIZE],site[81],last_site[81],page_file[81];
-	char mail_to[WORD_LEN+1];
+	char mail_to[WORD_LEN+1],revbuff[REVTELL_LINES][REVIEW_LEN+2];
+	char afk_mesg[AFK_MESG_LEN+1];
 	struct room_struct *room,*invite_room;
 	int type,port,login,socket,attempts,buffpos,filepos;
 	int vis,ignall,prompt,command_mode,muzzled,charmode_echo; 
 	int level,misc_op,remote_com,edit_line,charcnt,warned;
 	int accreq,last_login_len,ignall_store,clone_hear,afk;
-	int edit_op,colour,ignshout,igntell;
+	int edit_op,colour,ignshout,igntell,revline;
 	time_t last_input,last_login,total_login,read_mail;
 	char *malloc_start,*malloc_end;
-	struct netlink_struct *netlink;
+	struct netlink_struct *netlink,*pot_netlink;
 	struct user_struct *prev,*next,*owner;
 	};
 
@@ -84,10 +89,10 @@ struct room_struct {
 	char label[ROOM_LABEL_LEN+1];
 	char desc[ROOM_DESC_LEN+1];
 	char topic[TOPIC_LEN+1];
-	char conv_line[CONV_LINES][161];
+	char revbuff[REVIEW_LINES][REVIEW_LEN+2];
 	int inlink; /* 1 if room accepts incoming net links */
 	int access; /* public , private etc */
-	int cln; /* conversation line number for recording */
+	int revline; /* line number for review */
 	int mesg_cnt;
 	char netlink_name[SERV_NAME_LEN+1]; /* temp store for config parse */
 	char link_label[MAX_LINKS][ROOM_LABEL_LEN+1]; /* temp store for parse */
@@ -112,7 +117,7 @@ RM_OBJECT create_room();
 struct netlink_struct {
 	char service[SERV_NAME_LEN+1];
 	char site[SITE_NAME_LEN+1];
-	char verification[SERV_NAME_LEN+1];
+	char verification[VERIFY_LEN+1];
 	char buffer[ARR_SIZE*2];
 	char mail_to[WORD_LEN+1];
 	char mail_from[WORD_LEN+1];
@@ -162,7 +167,7 @@ char *command[]={
 "myclones","allclones","switch",    "csay",   "chear",
 "rstat",   "swban",    "afk",       "cls",    "colour",
 "ignshout","igntell",  "suicide",   "delete", "reboot",
-"*"
+"recount", "revtell",  "*"
 };
 
 
@@ -185,7 +190,8 @@ SYSTEM,   CHARECHO, CLEARLINE,FIX,    UNFIX,
 VIEWLOG,  ACCREQ,   REVCLR,   CREATE, DESTROY,
 MYCLONES, ALLCLONES,SWITCH,   CSAY,   CHEAR,
 RSTAT,    SWBAN,    AFK,      CLS,    COLOUR,
-IGNSHOUT, IGNTELL,  SUICIDE,  DELETE, REBOOT
+IGNSHOUT, IGNTELL,  SUICIDE,  DELETE, REBOOT,
+RECOUNT,  REVTELL
 } com_num;
 
 
@@ -209,7 +215,8 @@ WIZ, NEW, WIZ, GOD, GOD,
 ARCH,NEW, USER,ARCH,ARCH,
 ARCH,USER,ARCH,ARCH,ARCH,
 GOD, ARCH,USER,NEW ,NEW,
-USER,USER,NEW, GOD, GOD
+USER,USER,NEW, GOD, GOD,
+GOD, USER
 };
 
 /* 
@@ -254,11 +261,12 @@ char *noyes1[]={ " NO","YES" };
 char *noyes2[]={ "NO ","YES" };
 char *offon[]={ "OFF","ON " };
 
-/* These MUST be in upper case - the contains_swearing() function converts
-   the string to be checked to upper case before it compares it against
-   these */
+/* These MUST be in lower case - the contains_swearing() function converts
+   the string to be checked to lower case before it compares it against
+   these. Also even if you dont want to ban any words you must keep the 
+   star as the first element in the array. */
 char *swear_words[]={
-"FUCK","SHIT","CUNT","BASTARD","*"
+"fuck","shit","cunt","*"
 };
 
 char verification[SERV_NAME_LEN+1];
@@ -279,6 +287,8 @@ int force_listen,gatecrash_level,min_private_users;
 int ignore_mp_level,rem_user_maxlevel,rem_user_deflevel;
 int destructed,mesg_check_hour,mesg_check_min,net_idle_time;
 int keepalive_interval,auto_connect,ban_swearing,crash_action;
-int time_out_afks,allow_caps_in_name;
+int time_out_afks,allow_caps_in_name,rs_countdown;
+time_t rs_announce,rs_which;
+UR_OBJECT rs_user;
 
 extern char *sys_errlist[];
