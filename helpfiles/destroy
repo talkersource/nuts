@@ -1,0 +1,9 @@
+* destroy *
+
+Usage: destroy <room> [<owner>]
+
+This will destroy a clone in a given room. If you have the required privs.
+then you can destroy another users clone by giving the optional owner
+argument. 
+
+See: clone, switch, allclones, myclones, clsay, clhear

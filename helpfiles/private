@@ -1,0 +1,7 @@
+* private *
+
+This will set a room to private providing there are enough users in it and
+also that it is not fixed to public.
+
+See: public, invite, letmein, fix, unfix
+

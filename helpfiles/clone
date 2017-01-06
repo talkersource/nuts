@@ -1,0 +1,8 @@
+* Clone *
+
+Usage: clone <room> 
+
+Clone will create a clone of you in whichever room you specify. This clone
+can then listen in to the conversation in that room.
+
+See: destroy, switch, allclones, myclones, clsay, clhear

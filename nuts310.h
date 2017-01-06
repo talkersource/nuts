@@ -1,4 +1,4 @@
-/****************** Header file for NUTS version 3.0.0 ******************/
+/****************** Header file for NUTS version 3.1.0 ******************/
 
 #define DATAFILES "datafiles"
 #define USERFILES "userfiles"
@@ -6,6 +6,9 @@
 #define MAILSPOOL "mailspool"
 #define NEWSFILE "newsfile"
 #define MAPFILE "mapfile"
+#define SITEBAN "siteban"
+#define USERBAN "userban"
+#define SYSLOG "syslog"
 #define MOTD1 "motd1"
 #define MOTD2 "motd2"
 
@@ -18,7 +21,7 @@
 #define USER_NAME_LEN 12
 #define USER_DESC_LEN 30
 #define PHRASE_LEN 40
-#define PASS_LEN 8 /* 8 chars is all the crypt command uses anyway */
+#define PASS_LEN 20 /* only the 1st 8 chars will be used by crypt() though */
 #define BUFSIZE 1000
 #define ROOM_NAME_LEN 20
 #define ROOM_LABEL_LEN 5
@@ -43,12 +46,15 @@
 #define ARCH 3
 #define GOD 4
 
-char *level_name[]={
-"NEW","USER","WIZ","ARCH","GOD","*"
-};
+#define USER_TYPE 0
+#define CLONE_TYPE 1
+#define REMOTE_TYPE 2
+#define CLONE_HEAR_NOTHING 0
+#define CLONE_HEAR_SWEARS 1
+#define CLONE_HEAR_ALL 2
 
-/* The elements vis, listen, prompt and command_mode could all be
-   bits in one flag var. as they're only ever 0 or 1 but I tried it and it
+/* The elements vis, listen, prompt, command_mode etc could all be bits in 
+   one flag variable as they're only ever 0 or 1, but I tried it and it
    made the code unreadable. Better to waste a few bytes */
 struct user_struct {
 	/* general (used by 2 or more types) */
@@ -59,10 +65,10 @@ struct user_struct {
 	char buff[BUFSIZE],site[81],last_site[81],page_file[81];
 	char mail_to[USER_NAME_LEN+1];
 	struct room_struct *room,*invite_room;
-	int port,login,socket,attempts,buffpos,filepos;
+	int type,port,login,socket,attempts,buffpos,filepos;
 	int vis,listen,prompt,command_mode,muzzled,charmode_echo; 
 	int level,misc_op,remote_com,edit_line,charcnt,warned;
-	int accreq,last_login_len;
+	int accreq,last_login_len,listen_store,clone_hear,afk;
 	time_t last_input,last_login,total_login,read_mail;
 	char *malloc_start,*malloc_end;
 	struct netlink_struct *netlink;
@@ -106,7 +112,7 @@ struct netlink_struct {
 	char service[SERV_NAME_LEN+1];
 	char site[SITE_NAME_LEN+1];
 	char verification[SERV_NAME_LEN+1];
-	char remote_ver[20];
+	char remote_ver[11];
 	char buffer[ARR_SIZE*2];
 	char mail_to[USER_NAME_LEN+1];
 	char mail_from[USER_NAME_LEN+1];
@@ -129,6 +135,11 @@ char *nosuchuser="There is no such user.\n";
 char *notloggedon="There is no one of that name logged on.\n";
 char *invisenter="A presence enters the room...\n";
 char *invisleave="A presence leaves the room.\n";
+char *noswearing="Swearing is not allowed here.\n";
+
+char *level_name[]={
+"NEW","USER","WIZ","ARCH","GOD","*"
+};
 
 char *command[]={
 "quit","look","mode","say","shout",
@@ -138,34 +149,38 @@ char *command[]={
 "topic","move","bcast","who","people",
 "home","shutdown","news","read","write",
 "wipe","search","review","help","status",
-"version","rmail","smail","dmail","entpro",
-"examine","rmst","rmsn","netstat","netdata",
-"connect","disconnect","passwd","kill","promote",
-"demote","lban","ban","unban","vis",
-"invis","site","wake","wizshout","muzzle",
-"unmuzzle","map","logging","minlogin","system",
-"charecho","clearline","fix","unfix","viewlog",
-"accreq","revclr","*"
+"version","rmail","smail","dmail","from",
+"entpro","examine","rmst","rmsn","netstat",
+"netdata","connect","disconnect","passwd","kill",
+"promote","demote","lban","ban","unban",
+"vis","invis","site","wake","wizshout",
+"muzzle","unmuzzle","map","logging","minlogin",
+"system","charecho","clearline","fix","unfix",
+"viewlog","accreq","revclr","clone","destroy",
+"myclones","allclones","switch","clsay","clhear",
+"rstat","swban","afk","*"
 };
 
 /* These are the minimum levels at which the commands can be executed. 
    Alter to suit. */
 int com_level[]={
-NEW,NEW,NEW,USER,USER,
+NEW,NEW,NEW,NEW,USER,
 USER,USER,USER,USER,USER,
 USER,USER,USER,USER,USER,
 USER,USER,USER,USER,USER,
 USER,WIZ,ARCH,NEW,WIZ,
 USER,GOD,USER,USER,USER,
-WIZ,USER,USER,NEW,USER,
-NEW,USER,USER,USER,USER,
-USER,NEW,USER,WIZ,ARCH,
-GOD,GOD,USER,WIZ,ARCH,
-ARCH,WIZ,ARCH,ARCH,ARCH,
-ARCH,WIZ,WIZ,WIZ,WIZ,
-WIZ,USER,GOD,GOD,WIZ,
-NEW,WIZ,GOD,GOD,ARCH,
-NEW,USER
+WIZ,USER,USER,NEW,NEW,
+USER,NEW,USER,USER,USER,
+USER,USER,NEW,NEW,WIZ,
+ARCH,GOD,GOD,USER,WIZ,
+ARCH,ARCH,WIZ,ARCH,ARCH,
+ARCH,ARCH,WIZ,WIZ,WIZ,
+WIZ,WIZ,USER,GOD,GOD,
+WIZ,NEW,WIZ,GOD,GOD,
+ARCH,NEW,USER,ARCH,ARCH,
+ARCH,USER,ARCH,ARCH,ARCH,
+GOD,ARCH,USER
 };
 
 enum comvals {
@@ -176,14 +191,16 @@ OUTPHRASE,PUBCOM,PRIVCOM,LETMEIN,INVITE,
 TOPIC,MOVE,BCAST,WHO,PEOPLE,
 HOME,SHUTDOWN,NEWS,READ,WRITE,
 WIPE,SEARCH,REVIEW,HELP,STATUS,
-VER,RMAIL,SMAIL,DMAIL,ENTPRO,
-EXAMINE,RMST,RMSN,NETSTAT,NETDATA,
-CON,DISCON,PASSWD,KILL,PROMOTE,
-DEMOTE,LBAN,BAN,UNBAN,VIS,
-INVIS,SITE,WAKE,WIZSHOUT,MUZZLE,
-UNMUZZLE,MAP,LOGGING,MINLOGIN,SYSTEM,
-CHARECHO,CLEARLINE,FIX,UNFIX,VIEWLOG,
-ACCREQ,REVCLR
+VER,RMAIL,SMAIL,DMAIL,FROM,
+ENTPRO,EXAMINE,RMST,RMSN,NETSTAT,
+NETDATA,CON,DISCON,PASSWD,KILL,
+PROMOTE,DEMOTE,LBAN,BAN,UNBAN,
+VIS,INVIS,SITE,WAKE,WIZSHOUT,
+MUZZLE,UNMUZZLE,MAP,LOGGING,MINLOGIN,
+SYSTEM,CHARECHO,CLEARLINE,FIX,UNFIX,
+VIEWLOG,ACCREQ,REVCLR,CREATE,DESTROY,
+MYCLONES,ALLCLONES,SWITCH,CLSAY,CLHEAR,
+RSTAT,SWBAN,AFK
 } com_num;
 
 char *month[12]={
@@ -198,6 +215,13 @@ char *day[7]={
 char *noyes1[]={ " NO","YES" };
 char *noyes2[]={ "NO ","YES" };
 
+/* These MUST be in upper case - the contains_swearing() function converts
+   the string to be checked to upper case before it compares it against
+   these */
+char *swear_words[]={
+"FUCK","SHIT","CUNT","BASTARD","*"
+};
+
 char verification[SERV_NAME_LEN+1];
 char text[ARR_SIZE];
 char word[MAX_WORDS][WORD_LEN+1];
@@ -205,13 +229,13 @@ char wrd[8][81];
 time_t boot_time;
 int mainport,wizport,linkport,wizport_level,minlogin_level;
 int password_echo,dos_newline,ignore_sigterm,listen_sock[3];
-int max_users,num_of_users,num_of_logins,heartbeat;
+int max_users,max_clones,num_of_users,num_of_logins,heartbeat;
 int login_idle_time,user_idle_time,config_line,word_count;
 int tyear,tmonth,tday,tmday,twday,thour,tmin,tsec;
 int mesg_life,system_logging,prompt_def,no_prompt;
 int force_listen,gatecrash_level,min_private_users;
 int ignore_mp_level,rem_user_maxlevel,rem_user_deflevel;
 int destructed,mesg_check_hour,mesg_check_min,net_idle_time;
-int keepalive_interval,auto_connect;
+int keepalive_interval,auto_connect,ban_swearing;
 extern char *sys_errlist[];
 

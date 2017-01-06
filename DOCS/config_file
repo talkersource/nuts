@@ -29,6 +29,8 @@ linkport - the port which the talker uses to link to other talkers.
 
 max_users - the maximum number of users that can log in on the main port.
 
+max_clones - the maximum number of clones 1 user can have at any one time.
+
 heartbeat - the time interval in secs on which the event functions are called.
 
 login_idle_time - the time in secs which a user can idle at the login prompt
@@ -36,6 +38,9 @@ login_idle_time - the time in secs which a user can idle at the login prompt
 
 user_idle_time  - the time in secs which a user can idle once logged on before
    being booted off. He will get a warning 1 minute beforehand.
+
+ban_swearing - If YES then any speech, shouts or emotes said by a user that
+   contains a word in the *swear_words[] array will not be displayed.
 
 auto_connect - If YES then talker will try to connect to configured remote 
    sites when booted.

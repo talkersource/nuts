@@ -1,20 +1,19 @@
 
-Here are some things I have in mind for future release but dont assume
-this means I'll ever actually implement them...
+Some things planned for 3.2 or later ....
 
-- Cloning of user objects for gods so that they can be in more than one
-  room at once and listen in to multiple conversations.
+- ANSI colour (user option)
 
 - Mail forwarding.
 
 - "Copies to" functionality on sending mail
 
-- Ability of users to traverse more than 1 remote link (this is a v. complex
-  thing to code believe it or not.)
+- Have snapshots of system stats automatically saved to file at given
+  periods.
 
-- Ban individual users from logging in from connected sites (though I'm not
-  sure how much practical use this will be)
+- Pipe a file to the room ie have an echo that is an entire file.
 
-- Have various channels for wizes to talk on
+- Ability to create rooms on the fly
 
-- Get stats on remote system from home system
+Though before I start on these I intend to have a few months off to pursue
+other projects...
+

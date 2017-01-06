@@ -1,8 +1,10 @@
-Initial alpha release 3.0.0a
+3.0.0a (Jan 96)
+------
+Initial alpha release.
 
-3.0.0
+
+3.0.0  (March 96)
 -----
-
 1. Added revclr command
 
 2. Added last_login_len element in user structure for examine command
@@ -10,3 +12,32 @@ Initial alpha release 3.0.0a
    the alpha version. Tough titties.
 
 3. Various bug fixes
+
+
+3.1.0
+-----
+1. Added cloning facilities and all associated commands - clone, destroy,
+   clsay, clhear, allclones, myclones. A new field was added to the config
+   file called "max_clones"
+
+2. Added "from" command which like its unix equivalent shows who you've got
+   mail from but not the actual message.
+
+3. Added "rstat" command which gets statistics for a remote system. This 
+   required the addition of the RSTAT netlink command.
+
+4. Added a swearing prevention measure which involves the "swban" command
+   and the "ban_swearing" field in the config file. This is for all would be
+   big brothers out there :)
+
+5. Upgraded the wizshout command.
+
+6. Rewrote the search command so that now its actually of some use.
+
+7. Added an "afk" command. This is an omission I meant to put in nuts 2 but  
+   never got round to it.
+
+8. Moved the mapfile and newsfile into the datafiles directory and the names
+   of the banfiles are now stored in macros.
+
+9. The usual bug fixes and minor code changes.

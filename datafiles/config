@@ -1,5 +1,4 @@
-# This is a test config file
-# that it will have to parse
+# Main config file.
 
 INIT:
 verification      bloggs456
@@ -7,9 +6,11 @@ mainport          7000
 wizport           7001
 linkport          7002
 max_users         10
+max_clones        3
 heartbeat         2
 login_idle_time   120
 user_idle_time    600
+ban_swearing      YES
 auto_connect      YES
 logging           YES
 password_echo     NO
@@ -26,17 +27,15 @@ rem_user_deflevel USER
 wizport_level     ARCH
 gatecrash_level   ARCH
 
-
 ROOMS:
-dr drive    ha        PUB  CONNECT talker2
+dr drive    ha        PUB  CONNECT talker1
 ha hallway  dr,co,wz  PUB  
 wz wizroom  ha        PRIV
 co corridor ha,lg     
 lg lounge   co        BOTH ACCEPT
 
 
-# Some favourite sites
+# Link to the 2nd talker
 SITES:
-talker2    spirit 5002    fred123
-
+talker1    localhost 5002    fred123  
 

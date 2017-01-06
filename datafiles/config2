@@ -1,11 +1,13 @@
-# This is a test config file
-# that it will have to parse
+# This is the 2nd config file for you to use with a copy of the talker
+# to get 2 talkers linked together. A lot of parameters are missing here
+# in the INIT section to demonstrate the fact that you can leave them as
+# the software defaults.
 
 INIT:
 verification      fred123
-mainport          7000 
-wizport           7001
-linkport          7002
+mainport          5000 
+wizport           5001
+linkport          5002
 logging           YES
 prompt_def        ON
 mesg_life         3
@@ -17,12 +19,12 @@ wizport_level     ARCH
 gatecrash_level   ARCH
 
 ROOMS:
-dr drive    ha        PUB  CONNECT talker1
+dr drive    ha        PUB  CONNECT talker2
 ha hallway  dr,co,wz  PUB  
 wz wizroom  ha        PRIV
 co corridor ha,lg     
 lg lounge   co        BOTH ACCEPT
 
-# Some favourite sites
+# Link back to talker 1
 SITES:
-talker1       localhost 5002         bloggs456
+talker2       localhost 7002         bloggs456

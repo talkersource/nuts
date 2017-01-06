@@ -1,27 +1,21 @@
 
-*** NUTS 3 readme file ***
+*** NUTS 3.1 readme file ***
 
-Well , only 1 person bothered to test the alpha release for me and he
-didnt have time to do much of that so if there are still bugs in this
-final release blame yourselfs. I've got rid of all the bugs I can find but
-the program still needs and effective soak test with many users. The user
-data files are incompatible with the alpha release by the way. If you have
-a problem with that, well its just tough titties.
+This version has a major feature that the previous release did not which
+is the cloning facility. See the documentation for more details.
 
-From a initial glance this version of the talker looks pretty similar to all
-the other versions. Up to a point this is correct, after all there are only
-so many things you can do with a talker to make it look original and 
-different, espcially a text based one. However, under the skin things are 100%
-new. The entire code has been rewritten and a number of major new features 
-have been added (one has also been removed - the atmospherics, no one liked
-them or used them so I dumped them) including the biggest new feature of all
-which is having networked talkers, ie you can log into one talker and wander
-into another talker simply by typing "go <room name>". This will be explained
-more clearly in the documentation in the DOCS directory so now I will turn
-to the more prosaic field of compilation and how to get started...
+Before I proceed a number of people have mentioned that the documentation
+with NUTS isn't all that good. Well , you're right , its not, because I hate
+writing it. Anyway , most of you will be smart enough to figure out anything
+I havn't mentioned by yourselves. Now onwards with the waffle...
 
 Compiling...
 
+I had thought of dividing this version of NUTS up into separate source files
+then compiling and linking them together using a makefile but in the end
+I decided that it there was very little point as the code isn't that large
+and once its compiled its unlikely to be done again unless you decide to
+hack it about a bit or more to a different system.
 This particular version of the software was developed in parallel on 
 HP-UX 10.01 using the ANSI compiler and Linux 1.2.13 using gcc 2.5.8 so 
 there should be no probs with either of these. The talker should also compile
@@ -37,10 +31,11 @@ The talker comes with a config file ready made (datadir/config) which will
 be a good starting point for you. There are some network addresses in there
 but they are more of a guide as to how to set up talker links rather than
 being genuine links themselves. 
-	To start the talker just type "a.out" and it will boot and 
-automatically run itself in the background. All its actions are written to the
-syslog file. To log in you then just telnet to port 7000 and log in as "fred"
-with the password "test" as this is an account set up with GOD status.
+	To start the talker just type "go" and it will boot and automatically 
+run itself in the background. All its actions are written to the syslog file. 
+To log in you then just telnet to port 7000 and log in as "fred" with the 
+password "test" as this is an account set up with GOD status. The "go" script
+assumes the executable is called a.out.
 
 I have included a 2nd config file called config2. This is so you can set up
 another talker (by copying the files from this current one) and have them
@@ -51,4 +46,21 @@ talker.
 More detailed information is in the specific documentation in the DOCS
 directory.
 
+And finally a request...
+
+Could you please leave the credits in the code (.help credits) and also
+don't change the version so much that it doesn't say NUTS anymore when a user
+does the .version command. I find it annoying that after I've spent
+months of time working on this software someone comes along , changes a few 
+commands then pretends its all their own work. If you have a problem
+with any references to my name or NUTS being on your talker then don't use my
+software, its that simple, go write your own from scratch. This software
+is freeware , it is *NOT* public domain, I retain copyright and will defend
+it if needs be.
+
 Neil Robertson , March 1996
+
+neil@ogham.demon.co.uk
+
+PS: If you have any ideas for future releases mail me about them.
+

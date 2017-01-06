@@ -1,6 +1,6 @@
 NUKyNCCLvgLH.
-826387346 238 2 4 1 1 0 0 1
-spirit
+828435778 1144 6 827685135 4 1 0 0 0
+anubis
 is Mr Big
-wanders in
-wanders off
+bounces in
+rolls and tumbles out

@@ -1,3 +1,5 @@
+* disconnect *
+
 Usage: disconnect <room>
 
-Bring down the netlink in a room.
+Bring down the netlink in a room. See "connect".
