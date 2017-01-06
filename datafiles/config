@@ -1,42 +1,45 @@
 # Main config file.
 
 INIT:
-verification      bloggs456
-mainport          7000 
-wizport           7001
-linkport          7002
-max_users         10
-max_clones        3
-heartbeat         2
-login_idle_time   120
-user_idle_time    600
-ban_swearing      YES
-auto_connect      YES
-logging           YES
-password_echo     NO
-colour_def        ON
-ignore_sigterm    NO
-prompt_def        ON
-minlogin_level    NONE
-mesg_life         3
-mesg_check_time   01:00
-min_private       2
-ignore_mp_level   WIZ
-rem_user_maxlevel WIZ
-rem_user_deflevel USER
-wizport_level     ARCH
-gatecrash_level   ARCH
-#crash_action      IGNORE
+verification       bloggs456
+mainport           7000 
+wizport            7001
+linkport           7002
+max_users          10
+max_clones         3
+heartbeat          2
+login_idle_time    180
+user_idle_time     600
+ban_swearing       YES
+auto_connect       YES
+logging            YES
+password_echo      NO
+ignore_sigterm     NO
+allow_caps_in_name YES
+colour_def         ON
+prompt_def         ON
+minlogin_level     NONE
+mesg_life          3
+mesg_check_time    01:00
+min_private        2
+ignore_mp_level    WIZ
+rem_user_maxlevel  WIZ
+rem_user_deflevel  USER
+wizport_level      ARCH
+gatecrash_level    ARCH
+crash_action       REBOOT
 
 ROOMS:
-dr drive    ha        PUB  CONNECT talker2
+dr drive    ha        PUB  CONNECT cyber_decay
 ha hallway  dr,co,wz  PUB  
 wz wizroom  ha        PRIV
 co corridor ha,lg     
 lg lounge   co        BOTH ACCEPT
 
 
-# Link to the 2nd talker
+# Link to the 2nd talker. You may need to put the machine name rather than
+# localhost here when youre running the 2nd talker on the same machine , it
+# depends on how the /etc/hosts file is set up and also the resolver.
 SITES:
-talker2    localhost 5002    fred123 
+cyber_decay    localhost 5002    fred123 
 

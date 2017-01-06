@@ -3,19 +3,21 @@
 Colour commands can be placed in any string in the program that is used
 eventually by write_user() and also in any file that is paged by the more()
 function. The commands get translated into ANSI codes by these 2 functions 
-before they are sent out. All the commands start with a ~ and are the
-following:
+before the strings are sent out. Bear in mind that if you're on a black and
+white or green screen terminal all you'll get is various shades of grey/green
+instead of colours (if you get anything at all). All the commands start with 
+a ~ and are the following:
 
-RS - reset terminal to default
+RS - reset terminal to default colour status
 RV - reverse video
 OL - bold
-LI - blink/flash text (only the text flashes , not the background colour). This
-	won't work on all terminals , some xterms simply set it to bold.
+LI - blink/flash text (only the text flashes , not the background colour). 
+	This won't work on all terminals , some xterms simply set it to bold.
 
 FK - set foreground colour to black
 FR - foreground red
 FG - green
-FY - yellow (though it looks orangey brown on some systems)
+FY - yellow (though it looks an orangey brown on some systems)
 FB - blue
 FM - magenta/purple
 FT - turquoise/bright blue
@@ -40,8 +42,7 @@ Notice the use of the reset (RS) to reset the background to black and the text
 to non-flashing. Also note that an automatic reset is sent whenever a \0 or \n 
 is encountered in a string so the colours set to do not carry over to the next 
 line. Currently there is no way of printing out the commands directly to
-the screen instead of them producing a colour. I may put in some way of doing
-this eventually if anyone ever needs it but I doubt they will.
+the screen instead of them producing a colour. 
 
 Colour commands can be used within the talker as a user as well as in the code
 so for instance you can embed them in anything you say or shout , in your

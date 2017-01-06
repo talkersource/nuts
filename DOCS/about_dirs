@@ -25,3 +25,19 @@ userfiles
 
 This contains the user files, these being their data file (.D), 
 profile/description (.P) and any mail they may have (.M).
+
+
+mailspool
+---------
+
+This is where mail to other linked talkers is temporarily spooled ready
+to be sent off or while it is being received.
+
+Outgoing mail filenames are in the format of: OUT_<from>_<to>@<service to>
+
+eg OUT_Fred_Neil@talker2
+
+Incoming ones are: IN_<to>_<from>@<service_from>
+
+eg IN_Neil_Fred@talker1
+

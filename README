@@ -2,20 +2,43 @@
 
 Read the DOCS/diffs file for update information.
 
-This is going to be the last major release of NUTS 3. There may well be further
-patch releases if needs be (eg 3.2.1) but as far as features goes , this is
-it. There will be no version 3.3 though maybe in a few years I may do a 
-version 4 if I get bored. Certain things which I had suggested I might put
-in this version are missing - saving statistics for instance - this is simply
-because I couldn't be bothered to put them in. :) Other things either required
-too much rehacking of the code (eg mail forwarding) or were simply too complex
-for me to bother doing (eg user defined rooms) though of course there is 
-nothing to stop any of you lot implementing them :)
+This is *it*, 3.2.1 is the final version of NUTS .. ever (probably :). Even if 
+there turn out to be bugs in this version I still won't be releasing another, 
+however I may keep an updated list of known bugs on the NUTS home page (see 
+below). I've decided there probably won't be a version 4 as the way the 
+internet is slowing down these days talkers will probably be so laggy as to be 
+useless in a couple of years time (Call me a cynic , I don't care :) so there 
+won't be any point :) 
 
-Now go and read the DOCS/compiling file for info on how to get started.
+I reckon I should have added a .revtell at some point but sod it,I couldn't be 
+bothered. Also something that came to mind was .lock and .unlock commands 
+which locked the session so that you could wander away from your keyboard for 
+a while and not have to worry about some moron sitting next to you in the lab 
+abusing your account. You would simply use .lock on its own to lock the session
+but would have to do .unlock <your password> to unlock it. This is fairly easy 
+to implement so I'll leave it up to you to sort it out :) Something else that
+I thought of (if I ever do a version 4) is to have a user definable front end 
+to the talker so you can control the way it looks to you and also have a simple
+scripting language that would allow triggers , macros, automatic events when 
+you log on/off etc and negate the need for flash clients such as TUsh.
+
+If I get enough email persuading me to do a version 4 in a few years then I
+may consider it , in the meantime the above is just a gleam in this busy
+programmers eye :)
+
+Now go and read the DOCS/compiling file for info on how to get started if 
+you're new to NUTS. 
 
 
-Neil Robertson - June 96
+Neil Robertson - July 1996
+
 email: neil@ogham.demon.co.uk
+home page     : http://www.wso.co.uk/neil.html
+NUTS home page: http://www.wso.co.uk/nuts.html
 
-
+NB: If anyone is also interested in MUDs I've written a MUD system called 
+    Ogham - ftp.ccs.neu.edu:/pub/mud/servers/misc/ogham/ogham260.tar.gz
+    Its not as complex as perhaps LPmuds or Dikumuds are but if you know C and 
+    want to set up a low to medium complexity mud then this is just what you 
+    need :) The final release of Ogham (2.6.0) was released in early June.
+    

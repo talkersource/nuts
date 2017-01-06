@@ -3,9 +3,8 @@
 
 Usage: semote <text>
 
-This is a shout emote whereby you can emote to everyone logged on no
-matter what room they are in. An exclamation mark can be used as a shortcut
-for this command.
+This is a shout emote whereby you can emote to everyone logged on no matter 
+what room they are in. A '*' can be used as a shortcut for this command.
 
 See: emote, pemote
 

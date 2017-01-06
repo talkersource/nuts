@@ -3,7 +3,7 @@
 
 Usage: pemote <user> <text>
 
-This allows you to do private emotes to individual users. The '>' sign
+This allows you to do private emotes to individual users. The '/' sign
 can be used as a shortcut.
 
 See: emote, semote

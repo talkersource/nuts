@@ -99,6 +99,9 @@ colour_def - This is either ON or OFF and defines whether colour will be
 time_out_afks - Either YES or NO. If yes then even users who are afk will get
    timed out if they idle for too long.
 
+allow_caps_in_name - YES or NO. If YES then users can have capital letters in
+   their names , else everything gets converted to lower case except for the
+   first letter which is always capitalised automatically.
 
 The ROOMS section
 -----------------

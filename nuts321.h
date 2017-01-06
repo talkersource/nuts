@@ -1,4 +1,4 @@
-/****************** Header file for NUTS version 3.2.0 ******************/
+/****************** Header file for NUTS version 3.2.1 ******************/
 
 #define DATAFILES "datafiles"
 #define USERFILES "userfiles"
@@ -31,7 +31,7 @@
 #define MAX_LINKS 10
 #define SERV_NAME_LEN 20
 #define SITE_NAME_LEN 80
-#define CONV_LINES 10
+#define CONV_LINES 15
 /* DNL (Date Number Length) will have to become 12 on Sun Sep 9 02:46:40 2001 
    when all the unix timers will flip to 1000000000 :) */
 #define DNL 11 
@@ -154,7 +154,7 @@ char *command[]={
 "version", "rmail",    "smail",     "dmail",  "from",
 "entpro",  "examine",  "rmst",      "rmsn",   "netstat",
 "netdata", "connect",  "disconnect","passwd", "kill",
-"promote", "demote",   "lban",      "ban",    "unban",
+"promote", "demote",   "listbans",  "ban",    "unban",
 "vis",     "invis",    "site",      "wake",   "wizshout",
 "muzzle",  "unmuzzle", "map",       "logging","minlogin",
 "system",  "charecho", "clearline", "fix",    "unfix",
@@ -178,7 +178,7 @@ WIPE,     SEARCH,   REVIEW,   HELP,   STATUS,
 VER,      RMAIL,    SMAIL,    DMAIL,  FROM,
 ENTPRO,   EXAMINE,  RMST,     RMSN,   NETSTAT,
 NETDATA,  CONN,     DISCONN,  PASSWD, KILL,
-PROMOTE,  DEMOTE,   LBAN,     BAN,    UNBAN,
+PROMOTE,  DEMOTE,   LISTBANS, BAN,    UNBAN,
 VIS,      INVIS,    SITE,     WAKE,   WIZSHOUT,
 MUZZLE,   UNMUZZLE, MAP,      LOGGING,MINLOGIN,
 SYSTEM,   CHARECHO, CLEARLINE,FIX,    UNFIX,
@@ -279,6 +279,6 @@ int force_listen,gatecrash_level,min_private_users;
 int ignore_mp_level,rem_user_maxlevel,rem_user_deflevel;
 int destructed,mesg_check_hour,mesg_check_min,net_idle_time;
 int keepalive_interval,auto_connect,ban_swearing,crash_action;
-int time_out_afks;
+int time_out_afks,allow_caps_in_name;
 
 extern char *sys_errlist[];

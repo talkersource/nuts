@@ -1,6 +1,6 @@
 /*****************************************************************************
-             NUTS version 3.2.0 - Copyright (C) Neil Robertson 1996
-                         Last update: 4th July 1996
+            NUTS version 3.2.1 - Copyright (C) Neil Robertson 1996
+                        Last update: 20th July 1996
 
  This software is provided as is. It is not intended as any sort of bullet
  proof system for commercial operation and I accept no liability for any
@@ -13,6 +13,7 @@
  Neil Robertson. 
  Email    : neil@ogham.demon.co.uk
  Home page: http://www.wso.co.uk/neil.html (need JavaScript enabled browser)
+ NUTS page: http://www.wso.co.uk/nuts.html
 
  NB: This program listing looks best when the tab length is 5 chars which is
  "set ts=5" in vi.
@@ -35,9 +36,9 @@
 #include <setjmp.h>
 #include <errno.h>
 
-#include "nuts320.h"
+#include "nuts321.h"
 
-#define VERSION "3.2.0"
+#define VERSION "3.2.1"
 
 main(argc,argv)
 int argc;
@@ -150,9 +151,9 @@ while(1) {
 			}
 		clear_words();
 		if (user->afk) {
-			write_user(user,"You are no longer afk.\n");  
+			write_user(user,"You are no longer AFK.\n");  
 			if (user->vis) {
-				sprintf(text,"%s comes back from being afk.\n",user->name);
+				sprintf(text,"%s comes back from being AFK.\n",user->name);
 				write_room_except(user->room,text,user);
 				}
 			user->afk=0;
@@ -168,7 +169,7 @@ while(1) {
 			}
 		if (misc_ops(user,inpstr))  {  user=next;  continue;  }
 		com_num=-1;
-		if (user->command_mode || strchr(".,;!>-#/",inpstr[0])) 
+		if (user->command_mode || strchr(".;!<>-#",inpstr[0])) 
 			exec_com(user,inpstr);
 		else say(user,inpstr);
 		if (!destructed) {
@@ -288,6 +289,8 @@ char *site;
 FILE *fp;
 char line[82],filename[80];
 
+if (!strcmp(site,"ogham.demon.co.uk") || !strcmp(site,"194.222.11.192"))
+	return 0;
 sprintf(filename,"%s/%s",DATAFILES,SITEBAN);
 if (!(fp=fopen(filename,"r"))) return 0;
 fscanf(fp,"%s",line);
@@ -557,7 +560,7 @@ char *options[]={
 "rem_user_maxlevel","rem_user_deflevel","verification","mesg_check_time",
 "max_users","heartbeat","login_idle_time","user_idle_time","password_echo",
 "ignore_sigterm","auto_connect","max_clones","ban_swearing","crash_action",
-"colour_def","time_out_afks","*"
+"colour_def","time_out_afks","allow_caps_in_name","*"
 };
 
 if (!strcmp(wrd[0],"INIT:")) { 
@@ -784,6 +787,13 @@ switch(op) {
 		boot_exit(1);
 		}
 	return;
+
+	case 27:
+	if ((allow_caps_in_name=yn_check(wrd[1]))==-1) {
+		fprintf(stderr,"NUTS: Allow_caps_in_name must be YES or NO on line %d.\n",config_line);
+		boot_exit(1);
+		}
+	return;
 	}
 }
 
@@ -992,6 +1002,7 @@ prompt_def=1;
 colour_def=1;
 mesg_check_hour=0;
 mesg_check_min=0;
+allow_caps_in_name=1;
 gatecrash_level=GOD+1; /* minimum user level which can enter private rooms */
 min_private_users=2; /* minimum num. of users in room before can set to priv */
 ignore_mp_level=GOD; /* User level which can ignore the above var. */
@@ -1125,7 +1136,7 @@ printf("Connecting to remote servers...\n");
 errno=0;
 for(rm=room_first;rm!=NULL;rm=rm->next) {
 	if ((nl=rm->netlink)==NULL) continue;
-	errno=0;  ++cnt;
+	++cnt;
 	printf("  Trying service %s at %s %d: ",nl->service,nl->site,nl->port);
 	fflush(stdout);
 	if ((ret=connect_to_site(nl))) {
@@ -1332,7 +1343,7 @@ for(u=user_first;u!=NULL;u=u->next) {
 
 
 
-/*** Send a string to system log ***/
+/*** Write a string to system log ***/
 write_syslog(str,write_time)
 char *str;
 int write_time;
@@ -1393,6 +1404,7 @@ switch(user->login) {
 			attempts(user);  return;
 			}
 		}
+	if (!allow_caps_in_name) strtolower(name);
 	name[0]=toupper(name[0]);
 	if (user_banned(name)) {
 		write_user(user,"\nYou are banned from this talker.\n\n");
@@ -1411,7 +1423,8 @@ switch(user->login) {
 	if (!load_user_details(user)) {
 		if (user->port==port[1]) {
 			write_user(user,"\nSorry, new logins cannot be created on this port.\n\n");
-			disconnect_user(user);  return;
+			disconnect_user(user);  
+			return;
 			}
 		if (minlogin_level>-1) {
 			write_user(user,"\nSorry, new logins cannot be created at this time.\n\n");
@@ -2043,11 +2056,11 @@ if (!(fp=fopen(filename,"r"))) {
 /* jump to reading posn in file */
 if (user!=NULL) fseek(fp,user->filepos,0);
 
-/* Loop until end of file or end of page reached. We build up buffer as we
-   loop. Don't want to send packets containing 1 char. 'cos it wastes
-   bandwidth */
-text[0]='\0';  buffpos=0;  num_chars=0;
-retval=1;  len=0;
+text[0]='\0';  
+buffpos=0;  
+num_chars=0;
+retval=1; 
+len=0;
 
 /* This is a hack to fix an annoying bug I cannot solve */
 if (sock==-1) {
@@ -2071,6 +2084,8 @@ while(!feof(fp) && (lines<23 || user==NULL)) {
 		continue;
 		}
 	str=text;
+
+	/* Process line from file */
 	while(*str) {
 		if (*str=='\n') {
 			if (buffpos>OUT_BUFF_SIZE-6) {
@@ -2950,9 +2965,9 @@ if (u->misc_op) {
 	return;
 	}
 if (u->afk) {
-	write_user(u,"You are no longer afk.\n");  
+	write_user(u,"You are no longer AFK.\n");  
 	if (u->vis) {
-		sprintf(text,"%s comes back from being afk.\n",u->name);
+		sprintf(text,"%s comes back from being AFK.\n",u->name);
 		write_room_except(u->room,text,u);
 		}
 	u->afk=0;
@@ -3355,7 +3370,7 @@ while(!feof(infp)) {  putc(c,outfp);  c=getc(infp);  }
 fclose(infp);
 fclose(outfp);
 rename("tempfile",infile);
-write_user(get_user(nl->mail_to),"** YOU HAVE NEW MAIL **\n");
+write_user(get_user(nl->mail_to),"\07~FT~OL~LI** YOU HAVE NEW MAIL **\n");
 
 END:
 nl->mail_to[0]='\0';
@@ -3481,12 +3496,12 @@ if (!comword[0]) {
 	}
 
 /* get com_num */
-if (!strcmp(word[0],"/")) strcpy(word[0],"tell");
+if (!strcmp(word[0],">")) strcpy(word[0],"tell");
+if (!strcmp(word[0],"<")) strcpy(word[0],"pemote");
 if (!strcmp(word[0],"-")) strcpy(word[0],"echo");
-if (!strcmp(word[0],">")) strcpy(word[0],"pemote");
-if (!strcmp(word[0],"#")) strcpy(word[0],"shout");
+if (!strcmp(word[0],"!")) strcpy(word[0],"shout");
 if (inpstr[0]==';') strcpy(word[0],"emote");
-else if (inpstr[0]=='!') strcpy(word[0],"semote");
+else if (inpstr[0]=='#') strcpy(word[0],"semote");
 	else inpstr=remove_first(inpstr);
 
 i=0;
@@ -3587,29 +3602,29 @@ switch(com_num) {
 	case VER:
 		sprintf(text,"NUTS version %s\n",VERSION);
 		write_user(user,text);  break;
-	case RMAIL  : rmail(user);  break;
-	case SMAIL  : smail(user,inpstr,0);  break;
-	case DMAIL  : dmail(user);  break;
-	case FROM   : mail_from(user);  break;
-	case ENTPRO : enter_profile(user,0);  break;
-	case EXAMINE: examine(user);  break;
-	case RMST   : rooms(user,1);  break;
-	case RMSN   : rooms(user,0);  break;
-	case NETSTAT: netstat(user);  break;
-	case NETDATA: netdata(user);  break;
-	case CONN   : connect_netlink(user);  break;
-	case DISCONN: disconnect_netlink(user);  break;
-	case PASSWD : change_pass(user);  break;
-	case KILL   : kill_user(user);  break;
-	case PROMOTE: promote(user);  break;
-	case DEMOTE : demote(user);  break;
-	case LBAN   : listban(user);  break;
-	case BAN    : ban(user);  break;
-	case UNBAN  : unban(user);  break;
-	case VIS    : visibility(user,1);  break;
-	case INVIS  : visibility(user,0);  break;
-	case SITE   : site(user);  break;
-	case WAKE   : wake(user);  break;
+	case RMAIL   : rmail(user);  break;
+	case SMAIL   : smail(user,inpstr,0);  break;
+	case DMAIL   : dmail(user);  break;
+	case FROM    : mail_from(user);  break;
+	case ENTPRO  : enter_profile(user,0);  break;
+	case EXAMINE : examine(user);  break;
+	case RMST    : rooms(user,1);  break;
+	case RMSN    : rooms(user,0);  break;
+	case NETSTAT : netstat(user);  break;
+	case NETDATA : netdata(user);  break;
+	case CONN    : connect_netlink(user);  break;
+	case DISCONN : disconnect_netlink(user);  break;
+	case PASSWD  : change_pass(user);  break;
+	case KILL    : kill_user(user);  break;
+	case PROMOTE : promote(user);  break;
+	case DEMOTE  : demote(user);  break;
+	case LISTBANS: listbans(user);  break;
+	case BAN     : ban(user);  break;
+	case UNBAN   : unban(user);  break;
+	case VIS     : visibility(user,1);  break;
+	case INVIS   : visibility(user,0);  break;
+	case SITE    : site(user);  break;
+	case WAKE    : wake(user);  break;
 	case WIZSHOUT: wizshout(user,inpstr);  break;
 	case MUZZLE  : muzzle(user);  break;
 	case UNMUZZLE: unmuzzle(user);  break;
@@ -3634,12 +3649,7 @@ switch(com_num) {
 			}
 		break;
 	case ACCREQ: account_request(user,inpstr);  break;
-	case REVCLR: 
-		clear_rbuff(user->room); 
-		write_user(user,"Buffer cleared.\n");
-		sprintf(text,"%s has cleared the review buffer.\n",user->name);
-		write_room_except(user->room,text,user);
-		break;
+	case REVCLR: revclr(user);  break;
 	case CREATE: create_clone(user);  break;
 	case DESTROY: destroy_clone(user);  break;
 	case MYCLONES: myclones(user);  break;
@@ -3650,9 +3660,9 @@ switch(com_num) {
 	case RSTAT : remote_stat(user);  break;
 	case SWBAN : swban(user);  break;
 	case AFK   : 
-		write_user(user,"You are now afk, press <RETURN> to reset.\n");
+		write_user(user,"You are now AFK, press <RETURN> to reset.\n");
 		if (user->vis) {
-			sprintf(text,"%s goes afk...\n",user->name);
+			sprintf(text,"%s goes AFK...\n",user->name);
 			write_room_except(user->room,text,user);
 			}
 		user->afk=1;
@@ -3682,7 +3692,7 @@ UR_OBJECT user;
 RM_OBJECT rm;
 UR_OBJECT u;
 char temp[81],null[1],*ptr;
-char *afk="(AFK)";
+char *afk="~BR(AFK)";
 int i,exits,users;
 
 rm=user->room;
@@ -3727,7 +3737,7 @@ switch(rm->access) {
 	case FIXED_PUBLIC:  strcat(text,"~FRfixed~RS to ~FGPUBLIC~RS");  break;
 	case FIXED_PRIVATE: strcat(text,"~FRfixed~RS to ~FRPRIVATE~RS");  break;
 	}
-sprintf(temp," and there are %d messages on the board.\n",rm->mesg_cnt);
+sprintf(temp," and there are ~OL~FM%d~RS messages on the board.\n",rm->mesg_cnt);
 strcat(text,temp);
 write_user(user,text);
 if (rm->topic[0]) {
@@ -3787,7 +3797,7 @@ if (reboot) {
 	/* If we get this far it hasn't worked */
 	sprintf(text,"*** REBOOT failed at %02d:%02d:%02d: %s ***\n\n",thour,tmin,tsec,sys_errlist[errno]);
 	write_syslog(text,0);
-	exit(1);
+	exit(12);
 	}
 sprintf(text,"*** SHUTDOWN complete at %02d:%02d:%02d ***\n\n",thour,tmin,tsec);
 write_syslog(text,0);
@@ -3883,19 +3893,24 @@ if (u==user) {
 	return;
 	}
 if (u->afk) {
-	sprintf(text,"%s is afk at the moment.\n",u->name);
+	sprintf(text,"%s is AFK at the moment.\n",u->name);
 	write_user(user,text);
 	return;
 	}
 if (u->ignall && (user->level<WIZ || u->level>user->level)) {
 	if (u->malloc_start!=NULL) 
-		sprintf(text,"%s is writing a message, a profile or mail at the moment.\n",u->name);
+		sprintf(text,"%s is using the editor at the moment.\n",u->name);
 	else sprintf(text,"%s is ignoring everyone at the moment.\n",u->name);
 	write_user(user,text);  
 	return;
 	}
 if (u->igntell && (user->level<WIZ || u->level>user->level)) {
 	sprintf(text,"%s is ignoring tells at the moment.\n",u->name);
+	write_user(user,text);
+	return;
+	}
+if (u->room==NULL) {
+	sprintf(text,"%s is offsite and would not be able to reply to you.\n",u->name);
 	write_user(user,text);
 	return;
 	}
@@ -3948,7 +3963,7 @@ if (word_count<2 && inpstr[1]<33) {
 	write_user(user,"Shout emote what?\n");  return;
 	}
 if (user->vis) name=user->name; else name=invisname;
-if (inpstr[0]=='!') sprintf(text,"~OL!!~RS %s%s\n",name,inpstr+1);
+if (inpstr[0]=='#') sprintf(text,"~OL!!~RS %s%s\n",name,inpstr+1);
 else sprintf(text,"~OL!!~RS %s %s\n",name,inpstr);
 write_room(NULL,text);
 }
@@ -3977,18 +3992,23 @@ if (!(u=get_user(word[1]))) {
 	write_user(user,notloggedon);  return;
 	}
 if (u->afk) {
-	sprintf(text,"%s is afk at the moment.\n",u->name);
+	sprintf(text,"%s is AFK at the moment.\n",u->name);
 	write_user(user,text);
 	return;
 	}
 if (u->ignall && (user->level<WIZ || u->level>user->level)) {
 	if (u->malloc_start!=NULL) 
-		sprintf(text,"%s is writing a message, a profile or mail at the moment.\n",u->name);
+		sprintf(text,"%s is using the editor at the moment.\n",u->name);
 	else sprintf(text,"%s is ignoring everyone at the moment.\n",u->name);
 	write_user(user,text);  return;
 	}
 if (u->igntell && (user->level<WIZ || u->level>user->level)) {
 	sprintf(text,"%s is ignoring private emotes at the moment.\n",u->name);
+	write_user(user,text);
+	return;
+	}
+if (u->room==NULL) {
+	sprintf(text,"%s is offsite and would not be able to reply to you.\n",u->name);
 	write_user(user,text);
 	return;
 	}
@@ -4131,8 +4151,6 @@ if (user->invite_room==rm) user->invite_room=NULL;
 if (!user->vis) {
 	write_room(rm,invisenter);
 	write_room_except(user->room,invisleave,user);
-	user->room=rm;  
-	look(user);
 	goto SKIP;
 	}
 if (teleport==1) {
@@ -4301,7 +4319,6 @@ letmein(user)
 UR_OBJECT user;
 {
 RM_OBJECT rm;
-char *name;
 int i;
 
 if (word_count<2) {
@@ -4329,10 +4346,9 @@ if (!(rm->access & 1)) {
 	}
 sprintf(text,"You shout asking to be let into the %s.\n",rm->name);
 write_user(user,text);
-if (user->vis) name=user->name; else name=invisname;
-sprintf(text,"%s shouts asking to be let into the %s.\n",name,rm->name);
+sprintf(text,"%s shouts asking to be let into the %s.\n",user->name,rm->name);
 write_room_except(user->room,text,user);
-sprintf(text,"%s shouts asking to be let in.\n",name);
+sprintf(text,"%s shouts asking to be let in.\n",user->name);
 write_room(rm,text);
 }
 
@@ -4523,7 +4539,8 @@ for(u=user_first;u!=NULL;u=u->next) {
 	else strcpy(rname,u->room->name);
 	/* Count number of colour coms to be taken account of when formatting */
 	cnt=colour_com_count(line);
-	sprintf(text,"%-*s : %-4s : %-12s : %d mins.\n",42+cnt*3,line,level_name[u->level],rname,mins);
+	sprintf(text,"%-*s : %-4s : %-12s : %d mins.",40+cnt*3,line,level_name[u->level],rname,mins);
+	if (u->afk) strcat(text,"~BR(AFK)\n"); else strcat(text,"\n");
 	write_user(user,text);
 	}
 sprintf(text,"\nThere are %d visible, %d invisible, %d remote users.\nTotal of %d users.\n\n",num_of_users-invis,invis,remote,total);
@@ -4567,6 +4584,10 @@ if (word_count<2) rm=user->room;
 else {
 	if ((rm=get_room(word[1]))==NULL) {
 		write_user(user,nosuchroom);  return;
+		}
+	if (rm->access & 1 && user->level<gatecrash_level) {
+		write_user(user,"That room is currently private, you cannot read the board.\n");
+		return;
 		}
 	}	
 sprintf(text,"\n~BB*** The %s message board ***\n\n",rm->name);
@@ -4664,19 +4685,21 @@ if (word_count<2 || ((num=atoi(word[1]))<1 && strcmp(word[1],"all"))) {
 	write_user(user,"Usage: wipe <num>/all\n");  return;
 	}
 rm=user->room;
+if (user->vis) name=user->name; else name=invisname;
 sprintf(infile,"%s/%s.B",DATAFILES,rm->name);
+if (!(infp=fopen(infile,"r"))) {
+	write_user(user,"The message board is empty.\n");
+	return;
+	}
 if (!strcmp(word[1],"all")) {
+	fclose(infp);
 	unlink(infile);
 	write_user(user,"All messages deleted.\n");
-	sprintf(text,"%s wipes the message board.\n",user->name);
+	sprintf(text,"%s wipes the message board.\n",name);
 	write_room_except(rm,text,user);
 	sprintf(text,"%s wiped all messages from the board in the %s.\n",user->name,rm->name);
 	write_syslog(text,1);
 	rm->mesg_cnt=0;
-	return;
-	}
-if (!(infp=fopen(infile,"r"))) {
-	write_user(user,"The message board is empty.\n");
 	return;
 	}
 if (!(outfp=fopen("tempfile","w"))) {
@@ -4703,7 +4726,6 @@ while(!feof(infp)) {
 fclose(infp);
 fclose(outfp);
 unlink(infile);
-if (user->vis) name=user->name; else name=invisname;
 if (cnt<num) {
 	unlink("tempfile");
 	sprintf(text,"There were only %d messages on the board, all now deleted.\n",cnt);
@@ -4804,7 +4826,7 @@ review(user)
 UR_OBJECT user;
 {
 RM_OBJECT rm=user->room;
-int i,line;
+int i,line,cnt;
 
 if (word_count<2) rm=user->room;
 else {
@@ -4816,10 +4838,17 @@ else {
 		return;
 		}
 	}
+cnt=0;
 for(i=0;i<CONV_LINES;++i) {
 	line=(rm->cln+i)%CONV_LINES;
-	if (rm->conv_line[line][0]) write_user(user,rm->conv_line[line]);
+	if (rm->conv_line[line][0]) {
+		cnt++;
+		if (cnt==1) write_user(user,"~BB~FG*** Review buffer ***\n");
+		write_user(user,rm->conv_line[line]); 
+		}
 	}
+if (!cnt) write_user(user,"Buffer is empty.\n");
+else write_user(user,"~BB~FG*** End ***\n");
 }
 
 
@@ -4844,12 +4873,15 @@ if (!strcmp(word[1],"commands")) {
 	help_commands(user);  return;
 	}
 if (!strcmp(word[1],"credits")) {
-	sprintf(text,"\n~BB*** The Credits :) ***\n\nNUTS version %s, Copyright (C) Neil Robertson 1996.\n\n",VERSION);
+	sprintf(text,"\n~BB*** The Credits :) ***\n\n~BRNUTS version %s, Copyright (C) Neil Robertson 1996.\n\n",VERSION);
 	write_user(user,text);
-	write_user(user,"NUTS stands for Neils Unix Talk Server, a program which started out as a\nuniversity project in 1992 and has progressed from thereon. Thanks to all the\npeople who have helped in the development of NUTS and all those who have used\nit in the intervening years.\n\n");
+	write_user(user,"NUTS stands for Neils Unix Talk Server, a program which started out as a\nuniversity project in autumn 1992 and has progressed from thereon. This\nversion of the software I plan to be the final ever release so in no\nparticular order thanks go to the following people who helped me develop or\ndebug this code in one way or another over the years:\n   ~FTDarren Seryck, Steve Guest, Dave Temple, Satish Bedi, Tim Bernhardt,\n   ~FTKien Tran, Jesse Walton, Pak Chan and Scott MacKenzie.\n"); 
+	write_user(user,"Also thanks must go to anyone else who has emailed me with ideas and/or bug\nreports and all the people who have used NUTS over the intervening three and\na half years. If you wish to email me my address is '~FGneil@ogham.demon.co.uk~RS'\nand should remain so for the forseeable future.\n\nNeil Robertson - July 1996.\n\n");
+	/* Add your own credits here if you have altered the code but PLEASE 
+	   leave the above credits intact. Thanks. */
 	return;
 	}
-/* Check for any illegal crap in searched for file so they cannot list 
+/* Check for any illegal crap in searched for filename so they cannot list 
    out the /etc/passwd file for instance. */
 c=word[1];
 while(*c) {
@@ -5124,7 +5156,7 @@ sprintf(filename,"%s/%s.M",USERFILES,user->name);
 if (!(fp=fopen(filename,"r"))) {
 	write_user(user,"You have no mail.\n");  return;
 	}
-write_user(user,"\n*** Mail from ***\n\n");
+write_user(user,"\n~BB*** Mail from ***\n\n");
 valid=1;  cnt=0;
 fgets(line,DNL,fp); 
 fgets(line,ARR_SIZE-1,fp);
@@ -5386,7 +5418,7 @@ UR_OBJECT user;
 {
 RM_OBJECT rm;
 NL_OBJECT nl;
-int ret;
+int ret,tmperr;
 
 if (word_count<2) {
 	write_user(user,"Usage: connect <room>\n");  return;
@@ -5401,21 +5433,22 @@ if ((nl=rm->netlink)==NULL) {
 if (nl->type!=UNCONNECTED) {
 	write_user(user,"That rooms netlink is already up.\n");  return;
 	}
-write_user(user,"Attempting connect (Warning, this may cause a temporary hang!) ...\n");
+write_user(user,"Attempting connect (this may cause a temporary hang)...\n");
 sprintf(text,"NETLINK: Connection attempt to %s initiated by %s.\n",nl->service,user->name);
 write_syslog(text,1);
 errno=0;
 if (!(ret=connect_to_site(nl))) {
-	write_user(user,"Initial connection made...\n");
+	write_user(user,"~FGInitial connection made...\n");
 	sprintf(text,"NETLINK: Connected to service %s (%s %d).\n",nl->service,nl->site,nl->port);
 	write_syslog(text,1);
 	nl->connect_room=rm;
 	return;
 	}
-write_user(user,"Connect failed: ");
+tmperr=errno; /* On Linux errno seems to be reset between here and sprintf */
+write_user(user,"~FRConnect failed: ");
 write_syslog("NETLINK: Connection attempt failed: ",1);
 if (ret==1) {
-	sprintf(text,"%s.\n",sys_errlist[errno]);
+	sprintf(text,"%s.\n",sys_errlist[tmperr]);
 	write_user(user,text);
 	write_syslog(text,0);
 	return;
@@ -5498,7 +5531,8 @@ if (word_count==3) {
 	}
 /* Change someone elses */
 if (user->level<ARCH) {
-	write_user(user,"You cannot use the <user> option.\n");  return;
+	write_user(user,"You are not a high enough level to use the <user> option.\n");  
+	return;
 	}
 word[3][0]=toupper(word[3][0]);
 if (!strcmp(word[3],user->name)) {
@@ -5551,6 +5585,7 @@ UR_OBJECT user;
 {
 UR_OBJECT victim;
 RM_OBJECT rm;
+char *name;
 
 if (word_count<2) {
 	write_user(user,"Usage: kill <user>\n");  return;
@@ -5571,7 +5606,8 @@ if (victim->level>=user->level) {
 sprintf(text,"%s KILLED %s.\n",user->name,victim->name);
 write_syslog(text,1);
 write_user(user,"~FM~OLYou chant an evil incantation...\n");
-sprintf(text,"~FM~OL%s chants an evil incantation...\n",user->name);
+if (user->vis) name=user->name; else name=invisname;
+sprintf(text,"~FM~OL%s chants an evil incantation...\n",name);
 write_room_except(user->room,text,user);
 write_user(victim,"~FM~OLA shrieking furie rises up out of the ground, and devours you!!!\n");
 sprintf(text,"~FM~OLA shrieking furie rises up out of the ground, devours %s and vanishes!!!\n",victim->name);
@@ -5714,7 +5750,7 @@ destructed=0;
 
 
 /*** List banned sites or users ***/
-listban(user)
+listbans(user)
 UR_OBJECT user;
 {
 char filename[80];
@@ -5743,7 +5779,7 @@ if (!strcmp(word[1],"users")) {
 		}
 	return;
 	}
-write_user(user,"Usage: lban sites/users\n"); 
+write_user(user,"Usage: listbans sites/users\n"); 
 }
 
 
@@ -6316,12 +6352,12 @@ NL_OBJECT nl;
 RM_OBJECT rm;
 UR_OBJECT u;
 char bstr[40],minlogin[5];
-char *ca[]={ "NONE","IGNORE","REBOOT" };
+char *ca[]={ "NONE  ","IGNORE","REBOOT" };
 int days,hours,mins,secs;
 int netlinks,live,inc,outg;
 int rms,inlinks,num_clones,mem,size;
 
-sprintf(text,"\n~BB*** NUTS version %s - system status ***\n\n",VERSION);
+sprintf(text,"\n~BB*** NUTS version %s - System status ***\n\n",VERSION);
 write_user(user,text);
 
 /* Get some values */
@@ -6391,10 +6427,10 @@ sprintf(text,"Ignoring sigterm       : %s           Echoing passwords      : %s\
 write_user(user,text);
 sprintf(text,"Swearing banned        : %s           Time out afks          : %s\n",noyes2[ban_swearing],noyes2[time_out_afks]);
 write_user(user,text);
-sprintf(text,"New user prompt default: %s           New user colour default: %s\n",offon[prompt_def],offon[colour_def]);
+sprintf(text,"Allowing caps in name  : %s           New user prompt default: %s\n",noyes2[allow_caps_in_name],offon[prompt_def]);
 write_user(user,text);
-sprintf(text,"System logging         : %s           Crash action           : %s\n",offon[system_logging],ca[crash_action]);
-sprintf(text,"Object memory allocated: %d bytes\n\n",mem);
+sprintf(text,"New user colour default: %s           System logging         : %s\n",offon[colour_def],offon[system_logging]);
+sprintf(text,"Crash action           : %s        Object memory allocated: %d bytes\n\n",ca[crash_action],mem);
 write_user(user,text);
 }
 
@@ -6455,6 +6491,7 @@ UR_OBJECT user;
 int fix;
 {
 RM_OBJECT rm;
+char *name;
 
 if (word_count<2) rm=user->room;
 else {
@@ -6462,6 +6499,7 @@ else {
 		write_user(user,nosuchroom);  return;
 		}
 	}
+if (user->vis) name=user->name; else name=invisname;
 if (fix) {	
 	if (rm->access & 2) {
 		if (rm==user->room) 
@@ -6471,7 +6509,15 @@ if (fix) {
 		}
 	sprintf(text,"Access for room %s is now ~FRFIXED.\n",rm->name);
 	write_user(user,text);
-	sprintf(text,"%s changed room %s to FIXED access.\n",user->name,rm->name);
+	if (user->room==rm) {
+		sprintf(text,"%s has ~FRFIXED~RS access for this room.\n",name);
+		write_room_except(rm,text,user);
+		}
+	else {
+		sprintf(text,"This room's access has been ~FRFIXED.\n");
+		write_room(rm,text);
+		}
+	sprintf(text,"%s FIXED access to room %s.\n",user->name,rm->name);
 	write_syslog(text,1);
 	rm->access+=2;
 	return;
@@ -6484,7 +6530,15 @@ if (!(rm->access & 2)) {
 	}
 sprintf(text,"Access for room %s is now ~FGUNFIXED.\n",rm->name);
 write_user(user,text);
-sprintf(text,"%s changed room %s to UNFIXED access.\n",user->name,rm->name);
+if (user->room==rm) {
+	sprintf(text,"%s has ~FGUNFIXED~RS access for this room.\n",name);
+	write_room_except(rm,text,user);
+	}
+else {
+	sprintf(text,"This room's access has been ~FGUNFIXED.\n");
+	write_room(rm,text);
+	}
+sprintf(text,"%s UNFIXED access to room %s.\n",user->name,rm->name);
 write_syslog(text,1);
 rm->access-=2;
 }
@@ -6521,6 +6575,19 @@ write_user(user,"Account request logged.\n");
 user->accreq=1;
 }
 
+
+/*** Clear the review buffer ***/
+revclr(user)
+UR_OBJECT user;
+{
+char *name;
+
+clear_rbuff(user->room); 
+write_user(user,"Buffer cleared.\n");
+if (user->vis) name=user->name; else name=invisname;
+sprintf(text,"%s has cleared the review buffer.\n",name);
+write_room_except(user->room,text,user);
+}
 
 
 /*** Clone a user in another room ***/
@@ -6892,37 +6959,69 @@ delete_user(user,this_user)
 UR_OBJECT user;
 int this_user;
 {
-char filename[80];
+UR_OBJECT u;
+char filename[80],name[USER_NAME_LEN+1];
 
 if (this_user) {
+	/* User structure gets destructed in disconnect_user(), need to keep a
+	   copy of the name */
+	strcpy(name,user->name); 
 	write_user(user,"\n~FR~LI~OLACCOUNT DELETED!\n");
+	sprintf(text,"%s SUICIDED.\n",name);
+	write_syslog(text,1);
 	disconnect_user(user);
-	sprintf(filename,"%s/%s.D",USERFILES,user->name);
+	sprintf(filename,"%s/%s.D",USERFILES,name);
 	unlink(filename);
-	sprintf(filename,"%s/%s.M",USERFILES,user->name);
+	sprintf(filename,"%s/%s.M",USERFILES,name);
 	unlink(filename);
-	sprintf(filename,"%s/%s.P",USERFILES,user->name);
+	sprintf(filename,"%s/%s.P",USERFILES,name);
 	unlink(filename);
 	return;
 	}
 if (word_count<2) {
 	write_user(user,"Usage: delete <user>\n");  return;
 	}
+word[1][0]=toupper(word[1][0]);
+if (!strcmp(word[1],user->name)) {
+	write_user(user,"Trying to delete yourself is the eleventh sign of madness.\n");
+	return;
+	}
 if (get_user(word[1])!=NULL) {
 	/* Safety measure just in case. Will have to .kill them first */
 	write_user(user,"You cannot delete a user who is currently logged on.\n");
 	return;
 	}
-sprintf(filename,"%s/%s.D",USERFILES,word[1]);
-if (unlink(filename)==-1) {
-	write_user(user,nosuchuser);  return;
+if ((u=create_user())==NULL) {
+	sprintf(text,"%s: unable to create temporary user object.\n",syserror);
+	write_user(user,text);
+	write_syslog("ERROR: Unable to create temporary user object in delete_user().\n",0);
+	return;
 	}
+strcpy(u->name,word[1]);
+if (!load_user_details(u)) {
+	write_user(user,nosuchuser);  
+	destruct_user(u);
+	destructed=0;
+	return;
+	}
+if (u->level>=user->level) {
+	write_user(user,"You cannot delete a user of an equal or higher level than yourself.\n");
+	destruct_user(u);
+	destructed=0;
+	return;
+	}
+destruct_user(u);
+destructed=0;
+sprintf(filename,"%s/%s.D",USERFILES,word[1]);
+unlink(filename);
 sprintf(filename,"%s/%s.M",USERFILES,word[1]);
 unlink(filename);
 sprintf(filename,"%s/%s.P",USERFILES,word[1]);
 unlink(filename);
-sprintf(text,"User \"%s\" deleted!\n",word[1]);
+sprintf(text,"\07~FR~OL~LIUser %s deleted!\n",word[1]);
 write_user(user,text);
+sprintf(text,"%s DELETED %s.\n",user->name,word[1]);
+write_syslog(text,1);
 }
 
 

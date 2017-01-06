@@ -108,3 +108,21 @@ Initial alpha release.
 
 10. Bug fixes and other minor code changes.
 
+
+3.2.1 (July, final version)
+-----
+
+1. Added allow_caps_in_name field to config file which allows you to decide
+   whther your users can have caps in their names or not eg ImBeCiLE or
+   Imbecile
+
+2. I've changed some of the shortcuts to those most requested by lots of users
+   that I've spoken to. Don't blame me if you think they suck, blame them :)
+
+   > is now short for .tell and < for .pemote
+   ! is now short for .shout and # for .semote
+
+3. The command "lban" has been renamed to "listbans" because it looks nicer :)
+
+4. Bug fixes, minor code changes and more colour added.
+
