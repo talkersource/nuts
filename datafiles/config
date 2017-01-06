@@ -28,7 +28,7 @@ wizport_level     ARCH
 gatecrash_level   ARCH
 
 ROOMS:
-dr drive    ha        PUB  CONNECT talker1
+dr drive    ha        PUB  CONNECT talker2
 ha hallway  dr,co,wz  PUB  
 wz wizroom  ha        PRIV
 co corridor ha,lg     
@@ -37,5 +37,5 @@ lg lounge   co        BOTH ACCEPT
 
 # Link to the 2nd talker
 SITES:
-talker1    localhost 5002    fred123  
+talker2    localhost 5002    fred123  
 

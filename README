@@ -1,13 +1,28 @@
 
-*** NUTS 3.1 readme file ***
+*** NUTS 3.1.1 readme file ***
 
-This version has a major feature that the previous release did not which
-is the cloning facility. See the documentation for more details.
+Ive moved this too the top since a number of people seemed to think that 
+because I put it at the end last time I wasnt serious so...
 
-Before I proceed a number of people have mentioned that the documentation
-with NUTS isn't all that good. Well , you're right , its not, because I hate
-writing it. Anyway , most of you will be smart enough to figure out anything
-I havn't mentioned by yourselves. Now onwards with the waffle...
+------------------------------------------------------------------------------
+Could you please leave the credits in the code (.help credits) and also
+don't change the version so much that it doesn't say NUTS anymore when a user
+does the .version command. I find it annoying that after I've spent
+months of time working on this software someone comes along , changes a few 
+commands then pretends its all their own work. If you have a problem
+with any references to my name or NUTS being on your talker then don't use my
+software, its that simple, go write your own from scratch. This software
+is freeware , it is *NOT* public domain, I retain copyright, and since there is
+code in here than I have used in a commercial system I have written I will
+take legal action on anyone and their institution/employer who I find using it
+to their own commercial advantage.
+------------------------------------------------------------------------------
+
+I've tried to track down bugs that have been causing intermittent crashes 
+and I've found a few but no doubt there are still some there. Unfortunately 
+a full time job, a life beyond my keyboard and intolerance to boredom prohibit
+me spending all my waking hours trawling the code for them but if I do spot 
+some more or someone tells me of some then expect version 3.1.2 to appear :)
 
 Compiling...
 
@@ -45,18 +60,6 @@ talker.
 
 More detailed information is in the specific documentation in the DOCS
 directory.
-
-And finally a request...
-
-Could you please leave the credits in the code (.help credits) and also
-don't change the version so much that it doesn't say NUTS anymore when a user
-does the .version command. I find it annoying that after I've spent
-months of time working on this software someone comes along , changes a few 
-commands then pretends its all their own work. If you have a problem
-with any references to my name or NUTS being on your talker then don't use my
-software, its that simple, go write your own from scratch. This software
-is freeware , it is *NOT* public domain, I retain copyright and will defend
-it if needs be.
 
 Neil Robertson , March 1996
 

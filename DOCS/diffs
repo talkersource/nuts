@@ -41,3 +41,14 @@ Initial alpha release.
    of the banfiles are now stored in macros.
 
 9. The usual bug fixes and minor code changes.
+
+
+3.1.1 
+-----
+
+1. You can now specify which room message board to read with the "read" 
+   command.
+
+2. Entering "version" at the login prompt gives the software version.
+
+3. Bug fixes and other minor "look and feel" alterations.

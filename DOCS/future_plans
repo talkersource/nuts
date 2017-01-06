@@ -1,19 +1,36 @@
 
-Some things planned for 3.2 or later ....
+Some features guaranteed to be in 3.2...
 
-- ANSI colour (user option)
-
-- Mail forwarding.
-
-- "Copies to" functionality on sending mail
+- More commands for general system administration eg delete a user, change
+  a users password etc
 
 - Have snapshots of system stats automatically saved to file at given
   periods.
 
+
+
+Some things I hope to include (time permitting)...
+
+- ANSI colour (user option)
+
+- "Copies to" functionality on sending mail
+
 - Pipe a file to the room ie have an echo that is an entire file.
+
+
+
+Some things which may never be done but which seem nice ideas...
+
+- Mail forwarding.
 
 - Ability to create rooms on the fly
 
-Though before I start on these I intend to have a few months off to pursue
-other projects...
+- Lack of bugs
 
+
+
+Things which are guaranteed never to get done...
+
+- Multiple netlink traversal. I examined the problem and it meant way too
+  much rehacking of the code which I simply have neither the time nor
+  inclination to do.

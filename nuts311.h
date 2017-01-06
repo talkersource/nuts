@@ -1,4 +1,4 @@
-/****************** Header file for NUTS version 3.1.0 ******************/
+/****************** Header file for NUTS version 3.1.1 ******************/
 
 #define DATAFILES "datafiles"
 #define USERFILES "userfiles"
@@ -135,6 +135,7 @@ char *nosuchuser="There is no such user.\n";
 char *notloggedon="There is no one of that name logged on.\n";
 char *invisenter="A presence enters the room...\n";
 char *invisleave="A presence leaves the room.\n";
+char *invisname="A presence";
 char *noswearing="Swearing is not allowed here.\n";
 
 char *level_name[]={
@@ -169,9 +170,9 @@ USER,USER,USER,USER,USER,
 USER,USER,USER,USER,USER,
 USER,USER,USER,USER,USER,
 USER,WIZ,ARCH,NEW,WIZ,
-USER,GOD,USER,USER,USER,
+USER,GOD,USER,NEW,USER,
 WIZ,USER,USER,NEW,NEW,
-USER,NEW,USER,USER,USER,
+USER,USER,USER,USER,USER,
 USER,USER,NEW,NEW,WIZ,
 ARCH,GOD,GOD,USER,WIZ,
 ARCH,ARCH,WIZ,ARCH,ARCH,
