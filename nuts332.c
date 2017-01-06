@@ -1,6 +1,6 @@
 /*****************************************************************************
-            NUTS version 3.3.1 - Copyright (C) Neil Robertson 1996
-                      Last update: 11th October 1996
+            NUTS version 3.3.2 - Copyright (C) Neil Robertson 1996
+                      Last update: 1st November 1996
 
  This software is provided as is. It is not intended as any sort of bullet
  proof system for commercial operation (though you may use it to set up a 
@@ -39,9 +39,9 @@
 #include <setjmp.h>
 #include <errno.h>
 
-#include "nuts331.h"
+#include "nuts332.h"
 
-#define VERSION "3.3.1"
+#define VERSION "3.3.2"
 
 /*** This function calls all the setup routines and also contains the
 	main program loop ***/
@@ -154,6 +154,22 @@ while(1) {
 		if (user->login) {
 			login(user,inpstr);  user=next;  continue;  
 			}
+
+		/* If a dot on its own then execute last inpstr unless its a misc
+		   op or the user is on a remote site */
+		if (!user->misc_op) {
+			if (!strcmp(inpstr,".") && user->inpstr_old[0]) {
+				strcpy(inpstr,user->inpstr_old);
+				sprintf(text,"%s\n",inpstr);
+				write_user(user,text);
+				}
+			/* else save current one for next time */
+			else {
+				if (inpstr[0]) strncpy(user->inpstr_old,inpstr,REVIEW_LEN);
+				}
+			}
+
+		/* Main input check */
 		clear_words();
 		word_count=wordfind(inpstr);
 		if (user->afk) {
@@ -448,7 +464,7 @@ while(!feof(fp)) {
 	for(i=0;i<8;++i) wrd[i][0]='\0';
 	sscanf(line,"%s %s %s %s %s %s %s %s",wrd[0],wrd[1],wrd[2],wrd[3],wrd[4],wrd[5],wrd[6],wrd[7]);
 	if (wrd[0][0]=='#' || wrd[0][0]=='\0') {
-		fgets(line,100,fp);  continue;
+		fgets(line,81,fp);  continue;
 		}
 	/* See if new section */
 	if (wrd[0][strlen(wrd[0])-1]==':') {
@@ -468,7 +484,7 @@ while(!feof(fp)) {
 			fprintf(stderr,"NUTS: Section header expected on line %d.\n",config_line);
 			boot_exit(1);
 		}
-	fgets(line,100,fp);
+	fgets(line,81,fp);
 	}
 fclose(fp);
 
@@ -581,7 +597,7 @@ char *options[]={
 "rem_user_maxlevel","rem_user_deflevel","verification","mesg_check_time",
 "max_users","heartbeat","login_idle_time","user_idle_time","password_echo",
 "ignore_sigterm","auto_connect","max_clones","ban_swearing","crash_action",
-"colour_def","time_out_afks","allow_caps_in_name","*"
+"colour_def","time_out_afks","allow_caps_in_name","charecho_def","*"
 };
 
 if (!strcmp(wrd[0],"INIT:")) { 
@@ -815,6 +831,13 @@ switch(op) {
 		boot_exit(1);
 		}
 	return;
+
+	case 28:
+	if ((charecho_def=onoff_check(wrd[1]))==-1) {
+		fprintf(stderr,"NUTS: Charecho_def must be ON or OFF on line %d.\n",config_line);
+		boot_exit(1);
+		}
+	return;
 	}
 }
 
@@ -1021,6 +1044,7 @@ ignore_sigterm=0;
 crash_action=2;
 prompt_def=1;
 colour_def=1;
+charecho_def=0;
 mesg_check_hour=0;
 mesg_check_min=0;
 allow_caps_in_name=1;
@@ -1223,7 +1247,7 @@ if (connect(nl->socket,(struct sockaddr *)&con_addr,sizeof(con_addr))==-1) {
 	}
 reset_alarm();
 nl->type=OUTGOING;
-nl->stage=1;
+nl->stage=VERIFYING;
 nl->last_recvd=time(0);
 return 0;
 }
@@ -1294,7 +1318,7 @@ while(*str) {
 				write(sock,buff,buffpos);  buffpos=0;
 				}
 			++str;
-			for(i=0;i<20;++i) {
+			for(i=0;i<NUM_COLS;++i) {
 				if (!strncmp(str,colcom[i],2)) {
 					if (user->colour) {
 						memcpy(buff+buffpos,colcode[i],strlen(colcode[i]));
@@ -1322,18 +1346,20 @@ if (user->colour) write_sock(sock,"\033[0m");
 
 
 
-/*** Write to users of level 'level' and above. The function name is a bit of 
-     a misnomer I guess. ***/
-write_wiz(level,str,user)
-int level;
+/*** Write to users of level 'level' and above or below depending on above
+     variable; if 1 then above else below ***/
+write_level(level,above,str,user)
+int level,above;
 char *str;
 UR_OBJECT user;
 {
 UR_OBJECT u;
 
 for(u=user_first;u!=NULL;u=u->next) {
-	if (u!=user && u->level>=level && !u->login && u->type!=CLONE_TYPE) 
-		write_user(u,str);
+	if (u!=user && !u->login && u->type!=CLONE_TYPE) {
+		if ((above && u->level>=level) || (!above && u->level<=level)) 
+			write_user(u,str);
+		}
 	}
 }
 
@@ -1529,8 +1555,11 @@ switch(user->login) {
 	strcpy(user->out_phrase,"goes");	
 	user->last_site[0]='\0';
 	user->level=0;
+	user->muzzled=0;
+	user->command_mode=0;
 	user->prompt=prompt_def;
-	user->charmode_echo=0;
+	user->colour=colour_def;
+	user->charmode_echo=charecho_def;
 	save_user_details(user,1);
 	sprintf(text,"New user \"%s\" created.\n",user->name);
 	write_syslog(text,1);
@@ -1672,12 +1701,14 @@ for(u=user_first;u!=NULL;u=u->next) {
 		return;
 		}
 	}
-/* Announce users logon */	
-sprintf(text,"~OLSIGN ON:~RS %s %s",user->name,user->desc);
-write_room(NULL,text);
-sprintf(text,"  ~RS~FT(%s:%d)",user->site,user->site_port);
-write_wiz(WIZ,text);
-write_room(NULL,"\n");
+/* Announce users logon. You're probably wondering why Ive done it this strange
+   way , well its to avoid a minor bug that arose when as in 3.3.1 it created 
+   the string in 2 parts and sent the parts seperately over a netlink. If you 
+   want more details email me. */	
+sprintf(text,"~OLSIGN ON:~RS %s %s\n",user->name,user->desc);
+write_level(USER,0,text,NULL);
+sprintf(text,"~OLSIGN ON:~RS %s %s  ~RS~FT(%s:%d)\n",user->name,user->desc,user->site,user->site_port);
+write_level(WIZ,1,text,NULL);
 
 /* send post-login message and other logon stuff to user */
 write_user(user,"\n");
@@ -1876,6 +1907,8 @@ char *ptr;
 if (user->edit_op) {
 	switch(toupper(*inpstr)) {
 		case 'S':
+		sprintf(text,"%s finishes composing some text.\n",user->name);
+		write_room_except(user->room,text,user);
 		switch(user->misc_op) {
 			case 3: write_board(user,NULL,1);  break;
 			case 4: smail(user,NULL,1);  break;
@@ -1896,6 +1929,8 @@ if (user->edit_op) {
 
 		case 'A':
 		write_user(user,"\nMessage aborted.\n");
+		sprintf(text,"%s gives up composing some text.\n",user->name);
+		write_room_except(user->room,text,user);
 		editor_done(user);  
 		return;
 
@@ -1922,6 +1957,8 @@ if (user->malloc_start==NULL) {
 	*user->malloc_start='\0';
 	sprintf(text,"~FTMaximum of %d lines, end with a '.' on a line by itself.\n\n1>",MAX_LINES);
 	write_user(user,text);
+	sprintf(text,"%s starts composing some text...\n",user->name);
+	write_room_except(user->room,text,user);
 	return;
 	}
 
@@ -1978,6 +2015,8 @@ if (*user->malloc_start) {
 	user->edit_op=1;  return;
 	}
 write_user(user,"\nNo text.\n");
+sprintf(text,"%s gives up composing some text.\n",user->name);
+write_room_except(user->room,text,user);
 editor_done(user);
 }
 
@@ -2056,53 +2095,53 @@ switch(code) {
 	exit(1);
 
 	case 2:
-	write_syslog("BOOT FAILURE: Can't open main port listen socket.\n",0);
 	perror("NUTS: Can't open main port listen socket");
+	write_syslog("BOOT FAILURE: Can't open main port listen socket.\n",0);
 	exit(2);
 
 	case 3:
-	write_syslog("BOOT FAILURE: Can't open wiz port listen socket.\n",0);
 	perror("NUTS: Can't open wiz port listen socket");
+	write_syslog("BOOT FAILURE: Can't open wiz port listen socket.\n",0);
 	exit(3);
 
 	case 4:
-	write_syslog("BOOT FAILURE: Can't open link port listen socket.\n",0);
 	perror("NUTS: Can't open link port listen socket");
+	write_syslog("BOOT FAILURE: Can't open link port listen socket.\n",0);
 	exit(4);
 
 	case 5:
-	write_syslog("BOOT FAILURE: Can't bind to main port.\n",0);
 	perror("NUTS: Can't bind to main port");
+	write_syslog("BOOT FAILURE: Can't bind to main port.\n",0);
 	exit(5);
 
 	case 6:
-	write_syslog("BOOT FAILURE: Can't bind to wiz port.\n",0);
 	perror("NUTS: Can't bind to wiz port");
+	write_syslog("BOOT FAILURE: Can't bind to wiz port.\n",0);
 	exit(6);
 
 	case 7:
-	write_syslog("BOOT FAILURE: Can't bind to link port.\n",0);
 	perror("NUTS: Can't bind to link port");
+	write_syslog("BOOT FAILURE: Can't bind to link port.\n",0);
 	exit(7);
 	
 	case 8:
-	write_syslog("BOOT FAILURE: Listen error on main port.\n",0);
 	perror("NUTS: Listen error on main port");
+	write_syslog("BOOT FAILURE: Listen error on main port.\n",0);
 	exit(8);
 
 	case 9:
-	write_syslog("BOOT FAILURE: Listen error on wiz port.\n",0);
 	perror("NUTS: Listen error on wiz port");
+	write_syslog("BOOT FAILURE: Listen error on wiz port.\n",0);
 	exit(9);
 
 	case 10:
-	write_syslog("BOOT FAILURE: Listen error on link port.\n",0);
 	perror("NUTS: Listen error on link port");
+	write_syslog("BOOT FAILURE: Listen error on link port.\n",0);
 	exit(10);
 
 	case 11:
-	write_syslog("BOOT FAILURE: Failed to fork.\n",0);
 	perror("NUTS: Failed to fork");
+	write_syslog("BOOT FAILURE: Failed to fork.\n",0);
 	exit(11);
 	}
 }
@@ -2209,7 +2248,7 @@ while(!feof(fp) && (lines<23 || user==NULL)) {
 					write(sock,buff,buffpos);  buffpos=0;
 					}
 				++str;
-				for(i=0;i<20;++i) {
+				for(i=0;i<NUM_COLS;++i) {
 					if (!strncmp(str,colcom[i],2)) {
 						if (user!=NULL && user->colour) {
 							memcpy(buffpos+buff,colcode[i],strlen(colcode[i]));
@@ -2249,7 +2288,7 @@ else  {
 	/* We use E here instead of Q because when on a remote system and
 	   in COMMAND mode the Q will be intercepted by the home system and 
 	   quit the user */
-	write_user(user,"~BB*** PRESS <return>, E<return> TO EXIT ***");
+	write_user(user,"           ~BB*** Press <return> to continue, 'e'<return> to exit ***");
 	no_prompt=1;
 	}
 fclose(fp);
@@ -2375,7 +2414,7 @@ while(*c) {
 	if (*c=='@') {  
 		service=c+1;  *c='\0'; 
 		for(nl=nl_first;nl!=NULL;nl=nl->next) {
-			if (!strcmp(nl->service,service) && nl->stage==2) {
+			if (!strcmp(nl->service,service) && nl->stage==UP) {
 				send_external_mail(nl,user,to,ptr);
 				return;
 				}
@@ -2411,10 +2450,10 @@ if (infp=fopen(filename,"r")) {
 /* Put new mail in tempfile */
 if (user!=NULL) {
 	if (user->type==REMOTE_TYPE)
-		fprintf(outfp,"From: %s@%s  %s\n",user->name,user->netlink->service,long_date(0));
-	else fprintf(outfp,"From: %s  %s\n",user->name,long_date(0));
+		fprintf(outfp,"~OLFrom: %s@%s  %s\n",user->name,user->netlink->service,long_date(0));
+	else fprintf(outfp,"~OLFrom: %s  %s\n",user->name,long_date(0));
 	}
-else fprintf(outfp,"From: MAILER  %s\n",long_date(0));
+else fprintf(outfp,"~OLFrom: MAILER  %s\n",long_date(0));
 
 fputs(ptr,outfp);
 fputs("\n",outfp);
@@ -2491,7 +2530,7 @@ s=str;  cnt=0;
 while(*s) {
      if (*s=='~') {
           ++s;
-          for(i=0;i<20;++i) {
+          for(i=0;i<NUM_COLS;++i) {
                if (!strncmp(s,colcom[i],2)) {
                     cnt++;  s++;  continue;
                     }
@@ -2517,7 +2556,7 @@ s=str;  t=text2;
 while(*s) {
 	if (*s=='~') {
 		++s;
-		for(i=0;i<20;++i) {
+		for(i=0;i<NUM_COLS;++i) {
 			if (!strncmp(s,colcom[i],2)) {  s++;  goto CONT;  }
 			}
 		--s;  *t++=*s;
@@ -2624,6 +2663,7 @@ user->site_port=0;
 user->last_site[0]='\0';
 user->page_file[0]='\0';
 user->mail_to[0]='\0';
+user->inpstr_old[0]='\0';
 user->buff[0]='\0';  
 user->buffpos=0;
 user->filepos=0;
@@ -2650,7 +2690,8 @@ user->last_login=time(0);
 user->last_login_len=0;
 user->total_login=0;
 user->prompt=prompt_def;
-user->charmode_echo=0;
+user->colour=colour_def;
+user->charmode_echo=charecho_def;
 user->misc_op=0;
 user->edit_op=0;
 user->edit_line=0;
@@ -2659,7 +2700,6 @@ user->warned=0;
 user->accreq=0;
 user->afk=0;
 user->revline=0;
-user->colour=colour_def;
 user->clone_hear=CLONE_HEAR_ALL;
 user->malloc_start=NULL;
 user->malloc_end=NULL;
@@ -2759,8 +2799,8 @@ nl->socket=0;
 nl->mesg_user=NULL;
 nl->connect_room=NULL;
 nl->type=UNCONNECTED;
+nl->stage=DOWN;
 nl->connected=0;
-nl->stage=0;
 nl->lastcom=-1;
 nl->allow=ALL;
 nl->warned=0;
@@ -2845,8 +2885,8 @@ for(rm=room_first;rm!=NULL;rm=rm->next) {
 		rm->netlink=nl;
 		nl->socket=sock;
 		nl->type=INCOMING;
+		nl->stage=VERIFYING;
 		nl->connect_room=rm;
-		nl->stage=1; 
 		nl->allow=nl2->allow;
 		nl->last_recvd=time(0);
 		strcpy(nl->service,"<verifying>");
@@ -2911,8 +2951,7 @@ while(*inpstr) {
 		netcom_num++;
 		}
 	/* Deal with initial connects */
-	if (nl->stage==1) {
-		nl->stage=2;
+	if (nl->stage==VERIFYING) {
 		if (nl->type==OUTGOING) {
 			if (strcmp(w1,"NUTS")) {
 				sprintf(text,"NETLINK: Incorrect connect message from %s.\n",nl->service);
@@ -2921,6 +2960,7 @@ while(*inpstr) {
 				return;
 				}	
 			/* Store remote version for compat checks */
+			nl->stage=UP;
 			w2[10]='\0'; 
 			sscanf(w2,"%d.%d.%d",&nl->ver_major,&nl->ver_minor,&nl->ver_patch);
 			goto NEXT_LINE;
@@ -2934,6 +2974,7 @@ while(*inpstr) {
 				shutdown_netlink(nl);  
 				return;
 				}
+			nl->stage=UP;
 			}
 		}
 	/* If remote is currently sending a message relay it to user, don't
@@ -2950,7 +2991,7 @@ while(*inpstr) {
 	nl->lastcom=netcom_num;
 	switch(netcom_num) {
 		case  0: 
-		if (nl->stage==2) {
+		if (nl->stage==UP) {
 			sprintf(text,"~OLSYSTEM:~FY~RS Disconnecting from service %s in the %s.\n",nl->service,nl->connect_room->name);
 			write_room(NULL,text);
 			}
@@ -3207,10 +3248,10 @@ if (!strcmp(name,"CONNECT")) {
 	write_syslog(text,1);
 	/* If wiz initiated connect let them know its failed */
 	sprintf(text,"~OLSYSTEM:~RS Connection to %s failed, %s.\n",nl->service,neterr[errnum-1]);
-	write_wiz(com_level[CONN],text,NULL);
+	write_level(com_level[CONN],1,text,NULL);
 	close(nl->socket);
 	nl->type=UNCONNECTED;
-	nl->stage=0;
+	nl->stage=DOWN;
 	return;
 	}
 /* Is for a user */
@@ -3332,7 +3373,7 @@ if (!strcmp(w2,"BAD")) {
 	write_syslog(text,1);
 	/* Let wizes know its failed , may be wiz initiated */
 	sprintf(text,"~OLSYSTEM:~RS Connection to %s failed, bad verification.\n",nl->service);
-	write_wiz(com_level[CONN],text,NULL);
+	write_level(com_level[CONN],1,text,NULL);
 	shutdown_netlink(nl);  
 	return;
 	}
@@ -3419,7 +3460,7 @@ char filename[80];
 char text2[ARR_SIZE];
 
 if ((user=get_user(from))!=NULL) {
-	sprintf(text,"~OLSYSTEM:~RS %s does not exist at %s, your mail bounced.\n",to,nl->service);
+	sprintf(text,"~OLSYSTEM:~RS User %s does not exist at %s, your mail bounced.\n",to,nl->service);
 	write_user(user,text);
 	}
 else {
@@ -3525,7 +3566,7 @@ if (!(infp=fopen(mailfile,"r"))) {
 	write_sock(nl->socket,text);
 	goto END;
 	}
-fprintf(outfp,"From: %s@%s  %s",nl->mail_from,nl->service,long_date(0));
+fprintf(outfp,"~OLFrom: %s@%s  %s",nl->mail_from,nl->service,long_date(0));
 c=getc(infp);
 while(!feof(infp)) {  putc(c,outfp);  c=getc(infp);  }
 fclose(infp);
@@ -3606,7 +3647,7 @@ for(u=user_first;u!=NULL;u=u->next) {
 	if (u->pot_netlink==nl) {  u->remote_com=-1;  continue;  }
 	if (u->netlink==nl) {
 		if (u->room==NULL) {
-			write_user(u,"You feel yourself dragged back across the ether...\n");
+			write_user(u,"~FB~OLYou feel yourself dragged back across the ether...\n");
 			u->room=u->netlink->connect_room;
 			u->netlink=NULL;
 			if (u->vis) {
@@ -3627,16 +3668,18 @@ for(u=user_first;u!=NULL;u=u->next) {
 			}
 		}
 	}
-sprintf(text,"NETLINK: Disconnected from %s.\n",nl->service);
+if (nl->stage==UP) 
+	sprintf(text,"NETLINK: Disconnected from %s.\n",nl->service);
+else sprintf(text,"NETLINK: Disconnected from site %s.\n",nl->site);
 write_syslog(text,1);
 if (nl->type==INCOMING) {
 	nl->connect_room->netlink=NULL;
 	destruct_netlink(nl);  
 	return;
 	}
-nl->stage=0;
-nl->warned=0;
 nl->type=UNCONNECTED;
+nl->stage=DOWN;
+nl->warned=0;
 }
 
 
@@ -3689,6 +3732,7 @@ if (user->room==NULL) {
 		case REBOOT:
 		case SUICIDE:
 		case SHUTDOWN: 
+		case CHARECHO:
 		write_user(user,"~FY~OL*** Home execution ***\n");  break;
 
 		default:
@@ -3799,7 +3843,7 @@ switch(com_num) {
 	case LOGGING  : logging(user); break;
 	case MINLOGIN : minlogin(user);  break;
 	case SYSTEM   : system_details(user);  break;
-	case CHARECHO : charecho(user);  break;
+	case CHARECHO : toggle_charecho(user);  break;
 	case CLEARLINE: clearline(user);  break;
 	case FIX      : change_room_fix(user,1);  break;
 	case UNFIX    : change_room_fix(user,0);  break;
@@ -3855,7 +3899,7 @@ for(i=0;i<MAX_LINKS;++i) {
 	strcat(text,temp);
 	++exits;
 	}
-if (rm->netlink!=NULL && rm->netlink->stage==2) {
+if (rm->netlink!=NULL && rm->netlink->stage==UP) {
 	if (rm->netlink->allow==IN) sprintf(temp,"  ~FR%s*",rm->netlink->service);
 	else sprintf(temp,"  ~FG%s*",rm->netlink->service);
 	strcat(text,temp);
@@ -4185,7 +4229,7 @@ if (word_count<2) {
 	write_user(user,"Echo what?\n");  return;
 	}
 sprintf(text,"(%s) ",user->name);
-write_wiz(WIZ,text,NULL);
+write_level(WIZ,1,text,NULL);
 sprintf(text,"- %s\n",inpstr);
 write_room(user->room,text);
 record(user->room,text);
@@ -4695,11 +4739,11 @@ UR_OBJECT user;
 int people;
 {
 UR_OBJECT u;
-int cnt,total,invis,mins,remote,idle;
+int cnt,total,invis,mins,remote,idle,logins;
 char line[USER_NAME_LEN+USER_DESC_LEN*2];
 char rname[ROOM_NAME_LEN+1],portstr[5],idlestr[6],sockstr[3];
 
-total=0;  invis=0;  remote=0; 
+total=0;  invis=0;  remote=0;  logins=0;
 if (user->login) sprintf(text,"\n*** Current users %s ***\n\n",long_date(1));
 else sprintf(text,"\n~BB*** Current users %s ***\n\n",long_date(1));
 write_user(user,text);
@@ -4718,6 +4762,7 @@ for(u=user_first;u!=NULL;u=u->next) {
 		if (!people) continue;
 		sprintf(text,"~FY[Login stage %d] :     -   %2d      -    - %4d    -  %s  %s:%d\n",4 - u->login,u->socket,idle,portstr,u->site,u->site_port);
 		write_user(user,text);
+		logins++;
 		continue;
 		}
 	++total;
@@ -4746,7 +4791,9 @@ for(u=user_first;u!=NULL;u=u->next) {
 	if (u->afk) strcat(text,"~BR(AFK)\n"); else strcat(text,"\n");
 	write_user(user,text);
 	}
-sprintf(text,"\nThere are %d visible, %d invisible, %d remote users.\nTotal of %d users.\n\n",num_of_users-invis,invis,remote,total);
+sprintf(text,"\nThere are %d visible, %d invisible, %d remote users.\nTotal of %d users",num_of_users-invis,invis,remote,total);
+if (people) sprintf(text,"%s and %d logins.\n\n",text,logins);
+else strcat(text,".\n\n");
 write_user(user,text);
 }
 
@@ -4820,7 +4867,8 @@ int cnt,inp;
 char *ptr,*name,filename[80];
 
 if (user->muzzled) {
-	write_user(user,"You are muzzled, you cannot write on the board.\n");  return;
+	write_user(user,"You are muzzled, you cannot write on the board.\n");  
+	return;
 	}
 if (!done_editing) {
 	if (word_count<2) {
@@ -4830,7 +4878,7 @@ if (!done_editing) {
 			write_user(user,"Sorry, due to software limitations remote users cannot use the line editor.\nUse the '.write <mesg>' method instead.\n");
 			return;
 			}
-		write_user(user,"\n~BB** Writing board message ***\n\n");
+		write_user(user,"\n~BB*** Writing board message ***\n\n");
 		user->misc_op=3;
 		editor(user,NULL);
 		return;
@@ -4855,8 +4903,8 @@ if (user->vis) name=user->name; else name=invisname;
    makes it easy for this program to check the age of each message and delete 
    as appropriate in check_messages() */
 if (user->type==REMOTE_TYPE) 
-	sprintf(text,"PT: %d\rFrom: %s@%s  %s\n",(int)(time(0)),name,user->netlink->service,long_date(0));
-else sprintf(text,"PT: %d\rFrom: %s  %s\n",(int)(time(0)),name,long_date(0));
+	sprintf(text,"PT: %d\r~OLFrom: %s@%s  %s\n",(int)(time(0)),name,user->netlink->service,long_date(0));
+else sprintf(text,"PT: %d\r~OLFrom: %s  %s\n",(int)(time(0)),name,long_date(0));
 fputs(text,fp);
 cnt=0;
 while(*ptr!='\0') {
@@ -4885,7 +4933,7 @@ FILE *infp,*outfp;
 RM_OBJECT rm;
 
 if (word_count<2 || ((num=atoi(word[1]))<1 && strcmp(word[1],"all"))) {
-	write_user(user,"Usage: wipe <num>/all\n");  return;
+	write_user(user,"Usage: wipe <number of messages>/all\n");  return;
 	}
 rm=user->room;
 if (user->vis) name=user->name; else name=invisname;
@@ -5077,30 +5125,17 @@ if (word_count<2) {
 	if (ret==1) user->misc_op=2;
 	return;
 	}
-if (!strcmp(word[1],"commands")) {
-	help_commands(user);  return;
-	}
-if (!strcmp(word[1],"credits")) {
-	sprintf(text,"\n~BB*** The Credits :) ***\n\n~BRNUTS version %s, Copyright (C) Neil Robertson 1996.\n\n",VERSION);
-	write_user(user,text);
-	write_user(user,"NUTS stands for Neils Unix Talk Server, a program which started out as a\nuniversity project in autumn 1992 and has progressed from thereon. In no\nparticular order thanks go to the following people who helped me develop or\n");
-	write_user(user,"debug this code in one way or another over the years:\n   ~FTDarren Seryck, Steve Guest, Dave Temple, Satish Bedi, Tim Bernhardt,\n   ~FTKien Tran, Jesse Walton, Pak Chan and Scott MacKenzie.\n"); 
-	write_user(user,"Also thanks must go to anyone else who has emailed me with ideas and/or bug\nreports and all the people who have used NUTS over the intervening years.\n");
-	write_user(user,"If you wish to email me my address is '~FGneil@ogham.demon.co.uk~RS' and should\nremain so for the forseeable future.\n\nNeil Robertson - October 1996.\n\n");
+if (!strcmp(word[1],"commands")) {  help_commands(user);  return;  }
+if (!strcmp(word[1],"credits")) {  help_credits(user);  return;  }
 
-	/* Add your own credits here if you have altered the code but PLEASE 
-	   leave the above credits intact. Thanks. */
-	return;
-	}
 /* Check for any illegal crap in searched for filename so they cannot list 
    out the /etc/passwd file for instance. */
 c=word[1];
 while(*c) {
-	if (*c=='.' || *c=='/') {
+	if (*c=='.' || *c++=='/') {
 		write_user(user,"Sorry, there is no help on that topic.\n");
 		return;
 		}
-	++c;
 	}
 sprintf(filename,"%s/%s",HELPFILES,word[1]);
 if (!(ret=more(user,user->socket,filename)))
@@ -5113,28 +5148,48 @@ if (ret==1) user->misc_op=2;
 help_commands(user)
 UR_OBJECT user;
 {
-int com,cnt;
+int com,cnt,lev;
 char temp[20];
 
 sprintf(text,"\n~BB*** Commands available for level: %s ***\n\n",level_name[user->level]);
 write_user(user,text);
 
-com=0;  cnt=0;  text[0]='\0';
-while(command[com][0]!='*') {
-	if (com_level[com]>user->level) {  com++;  continue;  }
-	sprintf(temp,"%-12s ",command[com]);
-	strcat(text,temp);
-	if (cnt==5) {  
-		strcat(text,"\n");  write_user(user,text);  
-		text[0]='\0';  cnt=-1;  
+for(lev=NEW;lev<=user->level;++lev) {
+	sprintf(text,"~FT(%s)\n",level_name[lev]);
+	write_user(user,text);
+	com=0;  cnt=0;  text[0]='\0';
+	while(command[com][0]!='*') {
+		if (com_level[com]!=lev) {  com++;  continue;  }
+		sprintf(temp,"%-10s ",command[com]);
+		strcat(text,temp);
+		if (cnt==6) {  
+			strcat(text,"\n");  
+			write_user(user,text);  
+			text[0]='\0';  cnt=-1;  
+			}
+		com++; cnt++;
 		}
-	com++; cnt++;
+	if (cnt) {
+		strcat(text,"\n");  write_user(user,text);
+		}
 	}
-if (!cnt) write_user(user,"\n");
-else {
-	strcat(text,"\n\n");  write_user(user,text);
-	}
-write_user(user,"Type '~FG.help <command name>~RS' for specific help on a command.\n\n");
+write_user(user,"\nType '~FG.help <command name>~RS' for specific help on a command.\n\n");
+}
+
+
+/*** Show the credits. Add your own credits here if you wish but PLEASE leave 
+     my credits intact. Thanks. */
+help_credits(user)
+UR_OBJECT user;
+{
+sprintf(text,"\n~BB*** The Credits :) ***\n\n~BRNUTS version %s, Copyright (C) Neil Robertson 1996.\n\n",VERSION);
+write_user(user,text);
+write_user(user,"~BM             ~BB             ~BT             ~BG             ~BY             ~BR             ~RS\n");
+write_user(user,"NUTS stands for Neils Unix Talk Server, a program which started out as a\nuniversity project in autumn 1992 and has progressed from thereon. In no\nparticular order thanks go to the following people who helped me develop or\n");
+write_user(user,"debug this code in one way or another over the years:\n   ~FTDarren Seryck, Steve Guest, Dave Temple, Satish Bedi, Tim Bernhardt,\n   ~FTKien Tran, Jesse Walton, Pak Chan, Scott MacKenzie and Bryan McPhail.\n"); 
+write_user(user,"Also thanks must go to anyone else who has emailed me with ideas and/or bug\nreports and all the people who have used NUTS over the intervening years.\n");
+write_user(user,"If you wish to email me my address is '~FGneil@ogham.demon.co.uk~RS' and should\nremain so for the forseeable future.\n\nNeil Robertson - November 1996.\n");
+write_user(user,"~BM             ~BB             ~BT             ~BG             ~BY             ~BR             ~RS\n\n");
 }
 
 
@@ -5250,7 +5305,8 @@ c=word[1];
 while(*c) {
 	if (*c=='@') {  
 		if (c==word[1]) {
-			write_user(user,"Name missing before @ sign.\n");  return;
+			write_user(user,"Users name missing before @ sign.\n");  
+			return;
 			}
 		remote=1;  break;  
 		}
@@ -5294,7 +5350,7 @@ if (user->type==REMOTE_TYPE) {
 	write_user(user,"Sorry, due to software limitations remote users cannot use the line editor.\nUse the '.smail <user> <mesg>' method instead.\n");
 	return;
 	}
-sprintf(text,"\n~BB** Writing mail message to %s ***\n\n",word[1]);
+sprintf(text,"\n~BB*** Writing mail message to %s ***\n\n",word[1]);
 write_user(user,text);
 user->misc_op=4;
 strcpy(user->mail_to,word[1]);
@@ -5343,7 +5399,7 @@ while(!feof(infp)) {
 	if (cnt<=num) {
 		if (*line=='\n') valid=1;
 		sscanf(line,"%s",w1);
-		if (valid && !strcmp(w1,"From:")) {
+		if (valid && (!strcmp(w1,"~OLFrom:") || !strcmp(w1,"From:"))) {
 			if (++cnt>num) fputs(line,outfp);
 			valid=0;
 			}
@@ -5392,7 +5448,7 @@ fgets(line,ARR_SIZE-1,fp);
 while(!feof(fp)) {
 	if (*line=='\n') valid=1;
 	sscanf(line,"%s",w1);
-	if (valid && !strcmp(w1,"From:")) {
+	if (valid && (!strcmp(w1,"~OLFrom:") || !strcmp(w1,"From:"))) {
 		write_user(user,remove_first(line));  
 		cnt++;  valid=0;
 		}
@@ -5414,7 +5470,7 @@ FILE *fp;
 char *c,filename[80];
 
 if (!done_editing) {
-	write_user(user,"\n~BB** Writing profile ***\n\n");
+	write_user(user,"\n~BB*** Writing profile ***\n\n");
 	user->misc_op=5;
 	editor(user,NULL);
 	return;
@@ -5498,6 +5554,10 @@ if (u2==NULL) {
 	write_user(user,text);
 	sprintf(text,"Was on for : %d hours, %d minutes\nTotal login: %d days, %d hours, %d minutes\n",u->last_login_len/3600,(u->last_login_len%3600)/60,days,hours,mins);
 	write_user(user,text);
+	if (user->level>=WIZ) {
+		sprintf(text,"Last site  : %s\n",u->last_site);
+		write_user(user,text);
+		}
 	if (new_mail>u->read_mail) {
 		sprintf(text,"%s has unread mail.\n",u->name);
 		write_user(user,text);
@@ -5527,8 +5587,14 @@ else {
 sprintf(text,"Total login : %d days, %d hours, %d minutes\n",days,hours,mins);
 write_user(user,text);
 if (u->socket==-1) {
-	sprintf(text,"Home site   : %s\n",u->netlink->service);
+	sprintf(text,"Home service: %s\n",u->netlink->service);
 	write_user(user,text);
+	}
+else {
+	if (user->level>=WIZ) {
+		sprintf(text,"Site        : %s:%d\n",u->site,u->port);
+		write_user(user,text);
+		}
 	}
 if (new_mail>u->read_mail) {
 	sprintf(text,"%s has unread mail.\n",u->name);
@@ -5569,7 +5635,7 @@ for(rm=room_first;rm!=NULL;rm=rm->next) {
 			}
 		else {
 			if (nl->type==UNCONNECTED) strcpy(stat,"~FRDOWN");
-				else if (nl->stage==2) strcpy(stat,"  ~FGUP");
+				else if (nl->stage==UP) strcpy(stat,"  ~FGUP");
 					else strcpy(stat," ~FYVER");
 			}
 		if (nl!=NULL) strcpy(serv,nl->service);
@@ -5598,7 +5664,7 @@ if (nl_first==NULL) {
 write_user(user,"\n~BB*** Netlink data & status ***\n\n~FTService name    : Allow Type Status IU OU Version  Site\n\n");
 for(nl=nl_first;nl!=NULL;nl=nl->next) {
 	iu=0;  ou=0;
-	if (nl->stage==2) {
+	if (nl->stage==UP) {
 		for(u=user_first;u!=NULL;u=u->next) {
 			if (u->netlink==nl) {
 				if (u->type==REMOTE_TYPE)  ++iu;
@@ -5611,7 +5677,7 @@ for(nl=nl_first;nl!=NULL;nl=nl->next) {
 		strcpy(stat,"~FRDOWN");  strcpy(vers,"-");
 		}
 	else {
-		if (nl->stage==2) strcpy(stat,"  ~FGUP");
+		if (nl->stage==UP) strcpy(stat,"  ~FGUP");
 		else strcpy(stat," ~FYVER");
 		if (!nl->ver_major) strcpy(vers,"3.?.?"); /* Pre - 3.2 version */  
 		else sprintf(vers,"%d.%d.%d",nl->ver_major,nl->ver_minor,nl->ver_patch);
@@ -5733,7 +5799,7 @@ if (nl->type==UNCONNECTED) {
 	write_user(user,"That rooms netlink is not connected.\n");  return;
 	}
 /* If link has hung at verification stage don't bother announcing it */
-if (nl->stage==2) {
+if (nl->stage==UP) {
 	sprintf(text,"~OLSYSTEM:~RS Disconnecting from %s in the %s.\n",nl->service,rm->name);
 	write_room(NULL,text);
 	sprintf(text,"NETLINK: Link to %s in the %s disconnected by %s.\n",nl->service,rm->name,user->name);
@@ -6421,13 +6487,13 @@ else {
 	sprintf(text,"~OLYou wizshout to level %s:~RS %s\n",level_name[lev],inpstr);
 	write_user(user,text);
 	sprintf(text,"~OL%s wizshouts to level %s:~RS %s\n",user->name,level_name[lev],inpstr);
-	write_wiz(lev,text,user);
+	write_level(lev,1,text,user);
 	return;
 	}
 sprintf(text,"~OLYou wizshout:~RS %s\n",inpstr);
 write_user(user,text);
 sprintf(text,"~OL%s wizshouts:~RS %s\n",user->name,inpstr);
-write_wiz(WIZ,text,user);
+write_level(WIZ,1,text,user);
 }
 
 
@@ -6619,7 +6685,7 @@ minlogin_level=lev;
 sprintf(text,"Minlogin level set to %s.\n",levstr);
 write_user(user,text);
 sprintf(text,"%s has set the minlogin level to %s.\n",user->name,levstr);
-write_wiz(WIZ,text,user);
+write_level(WIZ,1,text,user);
 sprintf(text,"%s set the minlogin level to %s.\n",user->name,levstr);
 write_syslog(text,1);
 }
@@ -6668,7 +6734,7 @@ netlinks=0;  live=0;
 inc=0;  outg=0;
 size=sizeof(struct netlink_struct);
 for(nl=nl_first;nl!=NULL;nl=nl->next) {
-	if (nl->type!=UNCONNECTED && nl->stage==2) live++;
+	if (nl->type!=UNCONNECTED && nl->stage==UP) live++;
 	if (nl->type==INCOMING) ++inc;
 	if (nl->type==OUTGOING) ++outg;
 	++netlinks;  mem+=size;
@@ -6677,9 +6743,9 @@ if (minlogin_level==-1) strcpy(minlogin,"NONE");
 else strcpy(minlogin,level_name[minlogin_level]);
 
 /* Show header parameters */
-sprintf(text,"Process ID   : %d\nTalker booted: %sUptime       : %d days, %d hours, %d minutes, %d seconds\n",getpid(),bstr,days,hours,mins,secs);
+sprintf(text,"~FTProcess ID   : ~FG%d\n~FTTalker booted: ~FG%s~FTUptime       : ~FG%d days, %d hours, %d minutes, %d seconds\n",getpid(),bstr,days,hours,mins,secs);
 write_user(user,text);
-sprintf(text,"Ports (M/W/L): %d,  %d,  %d\n\n",port[0],port[1],port[2]);
+sprintf(text,"~FTPorts (M/W/L): ~FG%d,  %d,  %d\n",port[0],port[1],port[2]);
 write_user(user,text);
 
 /* Show others */
@@ -6711,9 +6777,11 @@ sprintf(text,"Swearing banned        : %s          Time out afks          : %s\n
 write_user(user,text);
 sprintf(text,"Allowing caps in name  : %s          New user prompt default: %s\n",noyes2[allow_caps_in_name],offon[prompt_def]);
 write_user(user,text);
-sprintf(text,"New user colour default: %s          System logging         : %s\n",offon[colour_def],offon[system_logging]);
+sprintf(text,"New user colour default: %s          New user charecho def. : %s\n",offon[colour_def],offon[charecho_def]);
 write_user(user,text);
-sprintf(text,"Crash action           : %s       Object memory allocated: %d bytes\n",ca[crash_action],mem);
+sprintf(text,"System logging         : %s          Crash action           : %s\n",offon[system_logging],ca[crash_action]);
+write_user(user,text);
+sprintf(text,"Object memory allocated: %d bytes\n",mem);
 write_user(user,text);
 }
 
@@ -6721,16 +6789,18 @@ write_user(user,text);
 /*** Set the character mode echo on or off. This is only for users logging in
      via a character mode client, those using a line mode client (eg unix
      telnet) will see no effect. ***/
-charecho(user)
+toggle_charecho(user)
 UR_OBJECT user;
 {
 if (!user->charmode_echo) {
 	write_user(user,"Echoing for character mode clients ~FGON.\n");
 	user->charmode_echo=1;
-	return;
 	}
-write_user(user,"Echoing for character mode clients ~FROFF.\n");
-user->charmode_echo=0;
+else {
+	write_user(user,"Echoing for character mode clients ~FROFF.\n");
+	user->charmode_echo=0;
+	}
+if (user->room==NULL) prompt(user);
 }
 
 
@@ -6844,13 +6914,12 @@ if (word_count==1) {
 		}
 	return;
 	}
-if (!isnumber(word[1])) {
+if ((lines=atoi(word[1]))<1) {
 	write_user(user,"Usage: viewlog [<lines from the end>]\n");  return;
 	}
 /* Count total lines */
 if (!(fp=fopen(SYSLOG,"r"))) {  write_user(user,emp);  return;  }
 cnt=0;
-lines=atoi(word[1]);
 
 c=getc(fp);
 while(!feof(fp)) {
@@ -6917,7 +6986,7 @@ if (word_count<2) {
 sprintf(text,"ACCOUNT REQUEST from %s: %s.\n",user->name,inpstr);
 write_syslog(text,1);
 sprintf(text,"~OLSYSTEM:~RS %s has made a request for an account.\n",user->name);
-write_wiz(ARCH,text,NULL);
+write_level(ARCH,1,text,NULL);
 write_user(user,"Account request logged.\n");
 user->accreq=1;
 }
@@ -6988,15 +7057,8 @@ u->socket=user->socket;
 u->room=rm;
 u->owner=user;
 strcpy(u->name,user->name);
-/* Could just copy the structure but this is easier to code */
-if (!load_user_details(u)) {
-	sprintf(text,"%s: Unable to reload your details.\n",syserror);
-	write_user(user,text);
-	sprintf(text,"ERROR: Unable to reload %s's details in clone().\n",user->name);
-	write_syslog(text,0);
-	return;
-	}
 strcpy(u->desc,"~BR(CLONE)");
+
 if (rm==user->room)
 	write_user(user,"~FB~OLYou whisper a haunting spell and a clone is created here.\n");
 else {
@@ -7308,6 +7370,17 @@ if (user->vis) {
 toggle_colour(user)
 UR_OBJECT user;
 {
+int col;
+
+/* A hidden "feature" , notalot of practical use but lets see if any users
+   stumble across it :) */
+if (user->command_mode && user->ignall && user->charmode_echo) {
+	for(col=1;col<NUM_COLS;++col) {
+		sprintf(text,"%s: ~%sNUTS 3 VIDEO TEST~RS\n",colcom[col],colcom[col]);
+		write_user(user,text);
+		}
+	return;
+	}
 if (user->colour) {
 	write_user(user,"Colour ~FROFF.\n");  
 	user->colour=0;
@@ -7685,7 +7758,7 @@ for(nl=nl_first;nl!=NULL;nl=nl->next) {
 		}
 	if (secs>net_idle_time-60) {
 		sprintf(text,"~OLSYSTEM:~RS Netlink to %s in the %s has been hung for %d seconds.\n",nl->service,nl->connect_room->name,secs);
-		write_wiz(ARCH,text,NULL);
+		write_level(ARCH,1,text,NULL);
 		nl->warned=1;
 		}
 	}

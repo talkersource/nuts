@@ -18,6 +18,7 @@ ignore_sigterm     NO
 allow_caps_in_name YES
 colour_def         ON
 prompt_def         ON
+charecho_def       OFF
 minlogin_level     NONE
 mesg_life          3
 mesg_check_time    01:00

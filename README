@@ -1,4 +1,4 @@
-*** README ***
+*** README for 3.3.2 ***
 
 Read the DOCS/diffs file for update information.
 
@@ -10,56 +10,26 @@ OWN MAKING OR WRITE CODE FOR YOU! If you write your own code or alter my
 code and fuck it up thats your problem, I have my own projects to do and I
 am *not* interested in sorting out yours. I've had one too many emails from
 people asking me to sort out the mess they've made and I'm getting rather sick 
-of it. If however theres a problem with my code please feel free to email
-me about it.
+of it. However, despite me putting this request in the 3.3.1 docs some people 
+have seen fit to ignore it so heres an added incentive: mail me about your cock
+ups and not only will I not reply to the mail but I will keep a note of your 
+email address and I will not reply to *any* mails you send me even if its about
+problems with *my* code. Its your choice. 
 
-This versions main change is that the local port number of the user connected 
-is available using .site command, is stored in the syslog and follows the
-SIGN ON: when seen by wizes and above. It appears after a colon following the 
-address eg ogham.demon.co.uk:1234
-The reason I have done this is so manual user identity lookups can be done on 
-a site if you so desire (automatic lookups means lots of extra code) to 
-supposedly verify a users real identity though bear in mind that fake auth 
-daemons can be easily written (about 2 hours work I'd say for an experienced 
-tcp/ip C programmer starting from scratch).
-To do a manual lookup telnet to port 113 on the users site (if you get a 
-connection refused message they don't have an auth daemon running) and enter 
-the following:
-
-<their local port number>,<talkers port number>
-
-So for instance if they're logging in on the talkers main port on 7000 and
-their local port is 1234 enter:
-
-1234,7000
-
-You should see something like the following:
-
-Trying sad.hackers.org...
-Connected to sad.hackers.org.
-Escape character is '^]'.
-1234,7000
-1234 , 7000 : USERID : UNIX : weenie     <--- The reply
-Connection closed by foreign host.
-
-As you can see the final field is the user id but if you see this...
-
-1234 , 7000 : ERROR : NO-USER
-
-then something is wrong. Bear in mind that this will only work while the user
-is logged onto the talker so if you wish to do it do it quick! Also YOU MUST 
-TELNET FROM THE SAME MACHINE THAT THE TALKER IS RUNNING ON. There ends the 
-lesson on manual auth lookups. If you're wondering whether I'll put automatic
-lookups in future NUTS releases (assuming there'll be any) the answer is no
-as the majority of sites do not have auth daemons in the first place eg a
-windows PC is very unlikely to have one :), so the effort would not be worth
-it , besides doing the lookup could hang the talker if there's net lag.
+I've found out about a problem with the colour on a SCO console. For some 
+reason the terminal reset code does not reset the colours so they stay 
+effective until another colour is specified. No doubt there is a specific code 
+to do a colour reset but at the moment I don't know what it is. If you 
+are using SCO and have trouble you'll just have to make do with colour off or 
+use an xterm under X windows. Sorry. If anyone does know the code could you
+email it to me.
 
 Now go and read the DOCS/compiling file for info on how to get started if 
-you're new to NUTS. 
+you're new to NUTS and all the other files there will be usefull in time also.
+The auth lookup stuff that was in the readme in the 3.3.1 distribution has been
+moved to its own file in DOCS.
 
-
-Neil Robertson - October 1996
+Neil Robertson - November 1996
 
 email: neil@ogham.demon.co.uk
 home page     : http://www.wso.co.uk/neil.html
@@ -71,5 +41,5 @@ NB: If anyone is also interested in MUDs I've written a MUD system called
     want to set up a low to medium complexity mud then this is just what you 
     need :) The final release of Ogham + mudlib (2.6.0) was released in early 
     June but there is now a patch release which will upgrade you to 2.6.1
-    called ogham261_patch.tar.gz.
+    called ogham261_patch.tar.gz but I'm hoping to release 2.6.2 soon.
     

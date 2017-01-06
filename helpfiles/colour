@@ -12,6 +12,8 @@ Control tags...
   /~OL : ~OLBold
   /~LI : ~LIBlink/flash text. This only works on some terminals, others may
         ~LIsimply display it as bold.
+  /~UL : ~ULUnderline text. As with blink this doesn't work on all terminals,
+	    ~ULsome just display it as bold.
 
 Foreground colour tags...
 

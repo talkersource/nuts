@@ -1,4 +1,4 @@
-/****************** Header file for NUTS version 3.3.1 ******************/
+/****************** Header file for NUTS version 3.3.2 ******************/
 
 #define DATAFILES "datafiles"
 #define USERFILES "userfiles"
@@ -17,7 +17,8 @@
 #define MAX_WORDS 10
 #define WORD_LEN 40
 #define ARR_SIZE 1000
-#define MAX_LINES 10
+#define MAX_LINES 15
+#define NUM_COLS 21
 
 #define USER_NAME_LEN 12
 #define USER_DESC_LEN 30
@@ -68,7 +69,7 @@ struct user_struct {
 	char in_phrase[PHRASE_LEN+1],out_phrase[PHRASE_LEN+1];
 	char buff[BUFSIZE],site[81],last_site[81],page_file[81];
 	char mail_to[WORD_LEN+1],revbuff[REVTELL_LINES][REVIEW_LEN+2];
-	char afk_mesg[AFK_MESG_LEN+1];
+	char afk_mesg[AFK_MESG_LEN+1],inpstr_old[REVIEW_LEN+1];
 	struct room_struct *room,*invite_room;
 	int type,port,site_port,login,socket,attempts,buffpos,filepos;
 	int vis,ignall,prompt,command_mode,muzzled,charmode_echo; 
@@ -109,6 +110,9 @@ RM_OBJECT create_room();
 #define UNCONNECTED 0 
 #define INCOMING 1 
 #define OUTGOING 2
+#define DOWN 0
+#define VERIFYING 1
+#define UP 2
 #define ALL 0
 #define IN 1
 #define OUT 2
@@ -202,19 +206,19 @@ NEW, NEW, NEW, NEW, USER,
 USER,USER,USER,USER,USER,
 USER,USER,NEW, USER,USER,
 USER,USER,USER,USER,USER,
-USER,WIZ, ARCH,NEW, WIZ,
+USER,WIZ, WIZ ,NEW, WIZ,
 USER,GOD, USER,NEW, USER,
 WIZ, USER,USER,NEW, NEW,
 NEW, NEW, USER,USER,USER,
 USER,USER,NEW, NEW, WIZ,
-ARCH,GOD, GOD, USER,WIZ,
-ARCH,ARCH,WIZ, ARCH,ARCH,
+ARCH,GOD, GOD, USER,ARCH,
+WIZ ,WIZ ,WIZ, ARCH,ARCH,
 ARCH,ARCH,WIZ, USER,WIZ,
 WIZ, WIZ, USER,GOD, GOD,
-WIZ, NEW, WIZ, GOD, GOD,
-ARCH,NEW, USER,ARCH,ARCH,
+WIZ, NEW, ARCH,GOD, GOD,
+WIZ ,NEW, USER,ARCH,ARCH,
 ARCH,USER,ARCH,ARCH,ARCH,
-GOD, ARCH,USER,NEW ,NEW,
+WIZ, ARCH,USER,NEW ,NEW,
 USER,USER,NEW, GOD, GOD,
 GOD, USER
 };
@@ -228,19 +232,20 @@ BLACK,RED,GREEN,YELLOW/ORANGE,
 BLUE,MAGENTA,TURQUIOSE,WHITE
 */
 
-char *colcode[]={
-"\033[0m", "\033[1m", "\033[5m", "\033[7m",
-/* Foreground */
+char *colcode[NUM_COLS]={
+/* Standard stuff */
+"\033[0m", "\033[1m", "\033[4m", "\033[5m", "\033[7m",
+/* Foreground colour */
 "\033[30m","\033[31m","\033[32m","\033[33m",
 "\033[34m","\033[35m","\033[36m","\033[37m",
-/* Background */
+/* Background colour */
 "\033[40m","\033[41m","\033[42m","\033[43m",
 "\033[44m","\033[45m","\033[46m","\033[47m"
 };
 
 /* Codes used in a string to produce the colours when prepended with a '~' */
-char *colcom[]={
-"RS","OL","LI","RV",
+char *colcom[NUM_COLS]={
+"RS","OL","UL","LI","RV",
 "FK","FR","FG","FY",
 "FB","FM","FT","FW",
 "BK","BR","BG","BY",
@@ -287,7 +292,7 @@ int force_listen,gatecrash_level,min_private_users;
 int ignore_mp_level,rem_user_maxlevel,rem_user_deflevel;
 int destructed,mesg_check_hour,mesg_check_min,net_idle_time;
 int keepalive_interval,auto_connect,ban_swearing,crash_action;
-int time_out_afks,allow_caps_in_name,rs_countdown,*bdv;
+int time_out_afks,allow_caps_in_name,rs_countdown,charecho_def,*bdv;
 time_t rs_announce,rs_which;
 UR_OBJECT rs_user;
 

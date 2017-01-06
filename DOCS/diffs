@@ -183,3 +183,39 @@ worth of log to see what happened recently.
 
 4.
 Bug fixes and minor changes.
+
+
+3.3.2 (November)
+-----
+
+1.
+Added a history type feature whereby if you just type a dot '.' by itself
+then the talker will repeat your last command or speech.
+
+2.
+Added ~UL "colour" command which is for underlining.
+
+3. 
+Added login count to .people command.
+
+4. 
+Added site to examine output if user is wiz or above.
+
+5. 
+Improved help_commands() function so it prints out commands by level.
+
+6. 
+The write_wiz() function has been renamed to write_level() and an extra
+formal parameter has been added. charecho() has been renamed to 
+toggle_charecho().
+
+7.
+Added charecho_def to config file as a default for a new users charmode_echo
+flag.
+
+8. 
+Altered some of the command levels in .h file and increased MAX_LINES to 15.
+
+9. 
+Amendments and bug fixes including removing a large lump of code from 
+create_clone() that shouldn't have been there.

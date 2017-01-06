@@ -19,6 +19,7 @@ RV - reverse video
 OL - bold
 LI - blink/flash text (only the text flashes , not the background colour). 
 	This won't work on all terminals , some xterms simply set it to bold.
+UL - underline text, this doesn't work on all terminals.
 
 FK - set foreground colour to black
 FR - foreground red

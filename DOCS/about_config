@@ -51,8 +51,6 @@ password_echo - If YES then talker will echo passwords at login.
 
 ignore_sigterm - If YES then SIGTERM will be noted but ignored.
 
-prompt_def - If ON then new users will have their prompt default to ON.
-
 minlogin_level - Minimum user level that can currently log in. If set to NONE
    then anyone can log in, if set to NEW then anyone can log in but new 
    accounts can't be created, if set to USER then newbies can't log in etc etc
@@ -89,12 +87,18 @@ crash_action - This defines what the talker should do if a segmentation fault
    IGNORE it jumps back to the start of the main loop in main() and if REBOOT
    the talker will reboot itself.
 
+prompt_def - If ON then new users will have their prompt default to ON else
+   prompt is OFF.
+
 colour_def - This is either ON or OFF and defines whether colour will be
    enabled for new users. Bear in mind that the colour codes used are only
    compatible with terminals that support ANSI colour. If the user is on
    an incompatible type of terminal (eg an hpterm, wyse50 etc) then generally
    all he'll get is a screenfull of garbage therefor its best if the default 
    is OFF as he can always switch colour on using the .colour toggle command.
+
+charecho_def - Either ON or OFF. Defines whether characters will be echoed 
+   back to a user if their client is operating in character mode.
 
 time_out_afks - Either YES or NO. If yes then even users who are afk will get
    timed out if they idle for too long.
