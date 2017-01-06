@@ -1,0 +1,27 @@
+**** About the directories ***
+
+The server has a fixed directory structure and expects certain files to be
+in certain directories which I shall describe below...
+
+
+datafiles
+---------
+
+This directory contains the config file which contains all the parameters
+necessary to boot the server and also the room description and message
+board files. These are in the form of <room name>.R and <room name>.B
+respectively. Also the 2 ban files: sitebans and userbans are stored here
+which store banned sites and banned users.
+
+
+helpfiles
+---------
+
+This contains all the help files. 'Nuff said really.
+
+
+userfiles
+---------
+
+This contains the user files, these being their data file (.D), 
+profile/description (.P) and any mail they may have (.M).

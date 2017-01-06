@@ -1,3 +1,13 @@
-Aug 31 16:00: Fred signed on from andromeda
-Aug 31 16:00: Fred signed off
-*** Talker SHUTDOWN by Fred on Wed Aug 31 16:00:27 1994 ***
+
+*** SERVER BOOTING ***
+20/02 10:19:57: NETLINK: Failed to connect to service talker2: Connection refused.
+*** Booted successfully with PID 489 at 10:19:57 ***
+
+20/02 10:20:13: New user "Fred" created.
+20/02 10:20:13: Fred logged in on port 5000 from anubis.
+20/02 10:20:15: Fred logged out.
+20/02 10:20:43: Fred logged in on port 5000 from anubis.
+*** SHUTDOWN initiated by Fred ***
+20/02 10:20:51: Fred logged out.
+*** SHUTDOWN complete at 10:20:51 ***
+

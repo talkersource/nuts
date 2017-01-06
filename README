@@ -1,88 +1,52 @@
-A Note from the New Author
---------------------------
 
-Neil Robertson has decided to pass the baton to someone else in the
-maintenance and development of the NUTS software.  The NUTS-based
-talker community owes many thanks to Neil for his efforts and time
-spent on this software.
+*** NUTS 3 readme file ***
 
-As the new developer of NUTS, I will make every effort possible 
-(time-permitting) to continue the usefulness of this program.  This
-is not in any way ignoring the fun factor with this program, I believe
-that it provides the medium for a great deal of entertainment both for
-any would-be sysops and also users.
+This is an alpha release. As such this means the documentation may be a bit
+ropey and the server itself may have problems and bugs. PLease mail me with
+any problems be they functional or presentation wise and I'll try to put a
+fix in the final release version.
 
-As of version 2.1.1, all bugs reports and suggestions should be addressed
-to me at sven@borderbase.utep.edu.  I appreciate any constructive comments,
-but if you wish to make unproductive comments ("this code is no good",etc)
-please keep them to yourself.  All such messages will be routed to /dev/null.
+From a initial glance this version of the talker looks pretty similar to all
+the other versions. Up to a point this is correct, after all there are only
+so many things you can do with a talker to make it look original and 
+different, espcially a text based one. However, under the skin things are 100%
+new. The entire code has been rewritten and a number of major new features 
+have been added (one has also been removed - the atmospherics, no one liked
+them or used them so I dumped them) including the biggest new feature of all
+which is having networked talkers, ie you can log into one talker and wander
+into another talker simply by typing "go <room name>". This will be explained
+more clearly in the documentation in the DOCS directory so now I will turn
+to the more prosaic field of compilation and how to get started...
 
-Thank you
+Compiling...
 
-Sven Barzanallana  31-Aug-94
-sven@borderbase.utep.edu
+This particular version of the software was developed in parallel on 
+HP-UX 10.01 using the ANSI compiler and Linux 1.2.13 using gcc 2.5.8 so 
+there should be no probs with either of these. The talker should also compile
+fine on AIX and OSF/1 (I hope).
+	Generally you'll just need to enter "cc nuts300.c" to compile though
+for HP-UX you need to type "cc -Ae nuts300.c". 
+Please note that you NEED the ANSI compiler for HP-UX, the bundled K&R one
+is useless.
 
-P.S.  Questions about NUTS 2.1.0 and earlier should be addressed to
-      Neil Robertson at neil@realtime.demon.co.uk
+Running...
 
+The talker comes with a config file ready made (datadir/config) which will
+be a good starting point for you. There are some network addresses in there
+but they are more of a guide as to how to set up talker links rather than
+being genuine links themselves. 
+	To start the talker just type "a.out" and it will boot and 
+automatically run itself in the background. All its actions are written to the
+syslog file. To log in you then just telnet to port 5000 and log in as "fred"
+with the password "test" as this is an account set up with GOD status.
 
-A rough guide for would-be sysops.
------------------------------------
+I have included a 2nd config file called config2. This is so you can set up
+another talker (by copying the files from this current one) and have them
+link together. The only file that need to be different is the config file.
+Move config2 into the 2nd datafiles directory as config and run the 2nd 
+talker.
 
-This is NUTS 2. Even though it appears the same as NUTS 1.x from the users
-point of view (bar some extra commands and slight changes) it has been 
-changed quite radically under the skin. To compile the program type
-"cc nuts211.c" and to run just type "a.out" or whatever name you give it.
-This software is guaranteed to compile on AIX & OSF/1 and Mach (NeXT)
-and should compile on SunOS & HP-UX. As for other unix's I haven't a clue.
+More detailed information is in the specific documentation in the DOCS
+directory.
 
-
-Format of the INITFILE:
-
-<port number> <no. of areas> <atmos on> <logging_on> <allow new> <mess life>
-<room name> <link> <status>
-.
-.
-.
-.
-
-The port number is the number of the port the talker runs on.
-The no. of areas is the number of areas you have defined (max 26)
-Atmos on is 1 or 0 depending on whether you want the atmospherics on or not.
-Ditto above for system logging.
-If allow new = 1 then new id's can be created else if 0 they can't.
-Mess life is how many days messages remain on the message boards befor being
-automatically erased.
-
-You then define the room names, their links to other rooms (using letters) and
-their status.
-
-Status = 0 - room can be set by uses to either private or public
-         1 - room is fixed to public
-         2 - room is fixed to private (ie for sysop (Wizards & gods) only use)
-
-
-Files in USERDIR:
-
-Using Fred as an example we could have the following files..
-Fred.D , Fred.M , Fred.P. They are all text files and they contain the 
-following data. Fred.M contains Freds mail, Fred.P contains Freds profile
-and Fred.D contains his userdata which has the following format:
-
-<last logged in time>
-<last site logged in from>
-<user description>
-<user level (0-2)>
-
-The rest you should be able to work out for yourself. Some final things to note
-are that use passwords are now encrypted and the user status is no longer
-contained in the password file and the data directory is no longer specified
-on the command line but stored as a macro in the program. There is also a
-second message of the day on logging in.
-
-I have set up a user called "Fred" who has the password "test" and use level
-of God so log in has him first to play around.
-
-You should be able to work the rest out for yourself.
-
-Have fun.
+Neil Robertson , Feb 1996

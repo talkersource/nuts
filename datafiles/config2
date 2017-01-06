@@ -1,0 +1,28 @@
+# This is a test config file
+# that it will have to parse
+
+INIT:
+verification      fred123
+mainport          7000 
+wizport           7001
+linkport          7002
+logging           YES
+prompt_def        ON
+mesg_life         3
+min_private       2
+ignore_mp_level   WIZ
+rem_user_maxlevel GOD
+rem_user_deflevel USER
+wizport_level     ARCH
+gatecrash_level   ARCH
+
+ROOMS:
+dr drive    ha        PUB  CONNECT talker1
+ha hallway  dr,co,wz  PUB  
+wz wizroom  ha        PRIV
+co corridor ha,lg     
+lg lounge   co        BOTH ACCEPT
+
+# Some favourite sites
+SITES:
+talker1       localhost 5002         bloggs456

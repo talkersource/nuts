@@ -1,0 +1,10 @@
+
+*** SERVER BOOTING ***
+20/02 10:19:30: NETLINK: Failed to connect to service talker2: Connection refused.
+*** Booted successfully with PID 481 at 10:19:30 ***
+
+20/02 10:19:34: Neil logged in on port 5000 from anubis.
+*** SHUTDOWN initiated by Neil ***
+20/02 10:19:42: Neil logged out.
+*** SHUTDOWN complete at 10:19:42 ***
+
