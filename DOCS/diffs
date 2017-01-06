@@ -52,3 +52,20 @@ Initial alpha release.
 2. Entering "version" at the login prompt gives the software version.
 
 3. Bug fixes and other minor "look and feel" alterations.
+
+
+3.1.2
+-----
+
+1. Added "crash_recovery" option to config file. Read the about_config doc for
+   further information.
+
+2. Replaced bcopy() call with memcpy() call as bcopy is an old Berkeley
+   function which might not be found in all systems (I know of 1 site which
+   didn't have it) whereas memcpy is an ISO standard function.
+
+3. '/' is now a shortcut for .tell and '#' for shout.
+
+4. Remote users can now create clones.
+
+5. Some major bug fixes and some minor changes and additions.

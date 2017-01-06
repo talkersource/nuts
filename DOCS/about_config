@@ -84,7 +84,13 @@ rem_user_deflevel - Default level of remote users who do not have an account
 wizport_level - Minimum level of user who can log in via the wizport.
 
 gatecrash_level - Minimum level of user who can enter a private room without an
-   invite.
+   invite. This does not apply to FIXED private rooms however since these are
+   probably to be used as wiz rooms so any user of WIZ and above can enter
+   a fixed private room.
+
+crash_recovery - If ON then a segmentation fault or a bus error will be 
+   ignored and the program will jump back to the start of the main loop.
+   The program appears to crash the 2nd time round though.
 
 
 The ROOMS section

@@ -1,4 +1,4 @@
-/****************** Header file for NUTS version 3.1.1 ******************/
+/****************** Header file for NUTS version 3.1.2 ******************/
 
 #define DATAFILES "datafiles"
 #define USERFILES "userfiles"
@@ -57,13 +57,12 @@
    one flag variable as they're only ever 0 or 1, but I tried it and it
    made the code unreadable. Better to waste a few bytes */
 struct user_struct {
-	/* general (used by 2 or more types) */
 	char name[USER_NAME_LEN+1];
 	char desc[USER_DESC_LEN+1];
 	char pass[PASS_LEN+6];
 	char in_phrase[PHRASE_LEN+1],out_phrase[PHRASE_LEN+1];
 	char buff[BUFSIZE],site[81],last_site[81],page_file[81];
-	char mail_to[USER_NAME_LEN+1];
+	char mail_to[WORD_LEN+1];
 	struct room_struct *room,*invite_room;
 	int type,port,login,socket,attempts,buffpos,filepos;
 	int vis,listen,prompt,command_mode,muzzled,charmode_echo; 
@@ -72,7 +71,7 @@ struct user_struct {
 	time_t last_input,last_login,total_login,read_mail;
 	char *malloc_start,*malloc_end;
 	struct netlink_struct *netlink;
-	struct user_struct *prev,*next;
+	struct user_struct *prev,*next,*owner;
 	};
 
 typedef struct user_struct* UR_OBJECT;
@@ -96,7 +95,7 @@ struct room_struct {
 	};
 
 typedef struct room_struct *RM_OBJECT;
-RM_OBJECT room_first=NULL,room_last=NULL;
+RM_OBJECT room_first,room_last;
 RM_OBJECT create_room();
 
 /* Netlink stuff */
@@ -114,8 +113,8 @@ struct netlink_struct {
 	char verification[SERV_NAME_LEN+1];
 	char remote_ver[11];
 	char buffer[ARR_SIZE*2];
-	char mail_to[USER_NAME_LEN+1];
-	char mail_from[USER_NAME_LEN+1];
+	char mail_to[WORD_LEN+1];
+	char mail_from[WORD_LEN+1];
 	FILE *mailfile;
 	time_t last_recvd; 
 	int port,socket,type,connected;
@@ -126,7 +125,7 @@ struct netlink_struct {
 	};
 
 typedef struct netlink_struct *NL_OBJECT;
-NL_OBJECT nl_first=NULL,nl_last=NULL;
+NL_OBJECT nl_first,nl_last;
 NL_OBJECT create_netlink();
 
 char *syserror="Sorry, a system error has occured";
@@ -143,66 +142,69 @@ char *level_name[]={
 };
 
 char *command[]={
-"quit","look","mode","say","shout",
-"tell","emote","semote","pemote","echo",
-"go","listen","prompt","desc","inphr",
-"outphr","public","private","letmein","invite",
-"topic","move","bcast","who","people",
-"home","shutdown","news","read","write",
-"wipe","search","review","help","status",
-"version","rmail","smail","dmail","from",
-"entpro","examine","rmst","rmsn","netstat",
-"netdata","connect","disconnect","passwd","kill",
-"promote","demote","lban","ban","unban",
-"vis","invis","site","wake","wizshout",
-"muzzle","unmuzzle","map","logging","minlogin",
-"system","charecho","clearline","fix","unfix",
-"viewlog","accreq","revclr","clone","destroy",
+"quit",    "look",     "mode",      "say",    "shout",
+"tell",    "emote",    "semote",    "pemote", "echo",
+"go",      "listen",   "prompt",    "desc",   "inphr",
+"outphr",  "public",   "private",   "letmein","invite",
+"topic",   "move",     "bcast",     "who",     "people",
+"home",    "shutdown", "news",      "read",    "write",
+"wipe",    "search",   "review",    "help",    "status",
+"version", "rmail",    "smail",     "dmail",   "from",
+"entpro",  "examine",  "rmst",      "rmsn",    "netstat",
+"netdata", "connect",  "disconnect","passwd",  "kill",
+"promote", "demote",   "lban",      "ban",     "unban",
+"vis",     "invis",    "site",      "wake",    "wizshout",
+"muzzle",  "unmuzzle", "map",       "logging", "minlogin",
+"system",  "charecho", "clearline", "fix",     "unfix",
+"viewlog", "accreq",   "revclr",    "clone",   "destroy",
 "myclones","allclones","switch","clsay","clhear",
-"rstat","swban","afk","*"
+"rstat",   "swban",    "afk","*"
 };
+
+
+/* Values of commands , used in switch in exec_com() */
+enum comvals {
+QUIT,     LOOK,     MODE,     SAY,    SHOUT,
+TELL,     EMOTE,    SEMOTE,   PEMOTE, ECHO,
+GO,       LISTEN,   PROMPT,   DESC,   INPHRASE,
+OUTPHRASE,PUBCOM,   PRIVCOM,  LETMEIN,INVITE,
+TOPIC,    MOVE,     BCAST,    WHO,    PEOPLE,
+HOME,     SHUTDOWN, NEWS,     READ,   WRITE,
+WIPE,     SEARCH,   REVIEW,   HELP,   STATUS,
+VER,      RMAIL,    SMAIL,    DMAIL,  FROM,
+ENTPRO,   EXAMINE,  RMST,     RMSN,   NETSTAT,
+NETDATA,  CONN,     DISCONN,  PASSWD, KILL,
+PROMOTE,  DEMOTE,   LBAN,     BAN,    UNBAN,
+VIS,      INVIS,    SITE,     WAKE,   WIZSHOUT,
+MUZZLE,   UNMUZZLE, MAP,      LOGGING,MINLOGIN,
+SYSTEM,   CHARECHO, CLEARLINE,FIX,    UNFIX,
+VIEWLOG,  ACCREQ,   REVCLR,   CREATE, DESTROY,
+MYCLONES, ALLCLONES,SWITCH,   CLSAY,  CLHEAR,
+RSTAT,    SWBAN,    AFK
+} com_num;
+
 
 /* These are the minimum levels at which the commands can be executed. 
    Alter to suit. */
 int com_level[]={
-NEW,NEW,NEW,NEW,USER,
+NEW, NEW, NEW, NEW, USER,
 USER,USER,USER,USER,USER,
 USER,USER,USER,USER,USER,
 USER,USER,USER,USER,USER,
-USER,WIZ,ARCH,NEW,WIZ,
-USER,GOD,USER,NEW,USER,
-WIZ,USER,USER,NEW,NEW,
-USER,USER,USER,USER,USER,
-USER,USER,NEW,NEW,WIZ,
-ARCH,GOD,GOD,USER,WIZ,
-ARCH,ARCH,WIZ,ARCH,ARCH,
-ARCH,ARCH,WIZ,WIZ,WIZ,
-WIZ,WIZ,USER,GOD,GOD,
-WIZ,NEW,WIZ,GOD,GOD,
-ARCH,NEW,USER,ARCH,ARCH,
+USER,WIZ, ARCH,NEW, WIZ,
+USER,GOD, USER,NEW, USER,
+WIZ, USER,USER,NEW, NEW,
+NEW, USER,USER,USER,USER,
+USER,USER,NEW, NEW, WIZ,
+ARCH,GOD, GOD, USER,WIZ,
+ARCH,ARCH,WIZ, ARCH,ARCH,
+ARCH,ARCH,WIZ, WIZ, WIZ,
+WIZ, WIZ, USER,GOD, GOD,
+WIZ, NEW, WIZ, GOD, GOD,
+ARCH,NEW, USER,ARCH,ARCH,
 ARCH,USER,ARCH,ARCH,ARCH,
-GOD,ARCH,USER
+GOD, ARCH,USER
 };
-
-enum comvals {
-QUIT,LOOK,MODE,SAY,SHOUT,
-TELL,EMOTE,SEMOTE,PEMOTE,ECHO,
-GO,LISTEN,PROMPT,DESC,INPHRASE,
-OUTPHRASE,PUBCOM,PRIVCOM,LETMEIN,INVITE,
-TOPIC,MOVE,BCAST,WHO,PEOPLE,
-HOME,SHUTDOWN,NEWS,READ,WRITE,
-WIPE,SEARCH,REVIEW,HELP,STATUS,
-VER,RMAIL,SMAIL,DMAIL,FROM,
-ENTPRO,EXAMINE,RMST,RMSN,NETSTAT,
-NETDATA,CON,DISCON,PASSWD,KILL,
-PROMOTE,DEMOTE,LBAN,BAN,UNBAN,
-VIS,INVIS,SITE,WAKE,WIZSHOUT,
-MUZZLE,UNMUZZLE,MAP,LOGGING,MINLOGIN,
-SYSTEM,CHARECHO,CLEARLINE,FIX,UNFIX,
-VIEWLOG,ACCREQ,REVCLR,CREATE,DESTROY,
-MYCLONES,ALLCLONES,SWITCH,CLSAY,CLHEAR,
-RSTAT,SWBAN,AFK
-} com_num;
 
 char *month[12]={
 "January","February","March","April","May","June",
@@ -228,6 +230,8 @@ char text[ARR_SIZE];
 char word[MAX_WORDS][WORD_LEN+1];
 char wrd[8][81];
 time_t boot_time;
+jmp_buf jmpvar;
+
 int mainport,wizport,linkport,wizport_level,minlogin_level;
 int password_echo,dos_newline,ignore_sigterm,listen_sock[3];
 int max_users,max_clones,num_of_users,num_of_logins,heartbeat;
@@ -237,6 +241,6 @@ int mesg_life,system_logging,prompt_def,no_prompt;
 int force_listen,gatecrash_level,min_private_users;
 int ignore_mp_level,rem_user_maxlevel,rem_user_deflevel;
 int destructed,mesg_check_hour,mesg_check_min,net_idle_time;
-int keepalive_interval,auto_connect,ban_swearing;
-extern char *sys_errlist[];
+int keepalive_interval,auto_connect,ban_swearing,crash_recovery;
 
+extern char *sys_errlist[];

@@ -1,28 +1,14 @@
 
-*** NUTS 3.1.1 readme file ***
+*** NUTS 3.1.2 readme file ***
 
-Ive moved this too the top since a number of people seemed to think that 
-because I put it at the end last time I wasnt serious so...
+Read the DOCS/diffs file for update information.
 
-------------------------------------------------------------------------------
-Could you please leave the credits in the code (.help credits) and also
-don't change the version so much that it doesn't say NUTS anymore when a user
-does the .version command. I find it annoying that after I've spent
-months of time working on this software someone comes along , changes a few 
-commands then pretends its all their own work. If you have a problem
-with any references to my name or NUTS being on your talker then don't use my
-software, its that simple, go write your own from scratch. This software
-is freeware , it is *NOT* public domain, I retain copyright, and since there is
-code in here than I have used in a commercial system I have written I will
-take legal action on anyone and their institution/employer who I find using it
-to their own commercial advantage.
-------------------------------------------------------------------------------
-
-I've tried to track down bugs that have been causing intermittent crashes 
-and I've found a few but no doubt there are still some there. Unfortunately 
-a full time job, a life beyond my keyboard and intolerance to boredom prohibit
-me spending all my waking hours trawling the code for them but if I do spot 
-some more or someone tells me of some then expect version 3.1.2 to appear :)
+Yet more bugs have been nailed for this release however there are probably 
+still some around , so because of this I've put an option in the config file 
+called "crash_recovery". Read the doc for more information. Apparently this 
+program dies horribly on IRIX 5.3 as soon as someone attempts to log in. I may
+have solved it in this release but since I don't know what the problem was in 
+the first place theres no way to tell.
 
 Compiling...
 
@@ -30,13 +16,13 @@ I had thought of dividing this version of NUTS up into separate source files
 then compiling and linking them together using a makefile but in the end
 I decided that it there was very little point as the code isn't that large
 and once its compiled its unlikely to be done again unless you decide to
-hack it about a bit or more to a different system.
+hack it about a bit or move to a different system.
 This particular version of the software was developed in parallel on 
 HP-UX 10.01 using the ANSI compiler and Linux 1.2.13 using gcc 2.5.8 so 
 there should be no probs with either of these. The talker should also compile
 fine on AIX and OSF/1 (I hope).
-	Generally you'll just need to enter "cc nuts300.c" to compile though
-for HP-UX you need to type "cc -Ae nuts300.c". 
+	Generally you'll just need to enter "cc nuts312.c" to compile though
+for HP-UX you need to type "cc -Ae nuts312.c". 
 Please note that you NEED the ANSI compiler for HP-UX, the bundled K&R one
 is useless.
 
@@ -61,7 +47,7 @@ talker.
 More detailed information is in the specific documentation in the DOCS
 directory.
 
-Neil Robertson , March 1996
+Neil Robertson , April/May 1996
 
 neil@ogham.demon.co.uk
 

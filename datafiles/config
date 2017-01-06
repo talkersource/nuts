@@ -26,6 +26,7 @@ rem_user_maxlevel WIZ
 rem_user_deflevel USER
 wizport_level     ARCH
 gatecrash_level   ARCH
+crash_recovery    ON    #this isnt guaranteed to work
 
 ROOMS:
 dr drive    ha        PUB  CONNECT talker2
